@@ -1,0 +1,24 @@
+# Staging Gate PASS Evidence
+
+Observed commit: `775243c`
+Reviewed candidate commit: `03ced987671c5dfd0d37a3d224688e1347b384bf`
+DecisionRecord: `DR-001` / `ACCEPTED_FOR_STAGING`
+Operating mode: `single_operator`
+Risk level: `low`
+Work Order: `AWO-001` / `ISSUED`
+
+Command:
+
+```sh
+python3 demo/order-operations-portal/scripts/check-staging-gate.py \
+  demo/order-operations-portal \
+  03ced987671c5dfd0d37a3d224688e1347b384bf
+```
+
+Observed result:
+
+```text
+STAGING GATE PASS
+```
+
+This is a pre-deploy authorization result. No Cloud Run deployment, image push or production operation was performed by this check.

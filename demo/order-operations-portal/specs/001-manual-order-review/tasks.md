@@ -118,3 +118,4 @@ description: "Task list for the Manual Order Review Change Slice"
 - [x] T027 Verify the negative role-separation gate with the Founder／Solution Architect overlap fixture and record the blocked result in `evidence/EB-001/role-separation-gate.txt`.
 - [x] T028 Add `single_operator` and `multi_operator` policy profiles with explicit low-risk staging controls and an always-human production gate.
 - [x] T029 Verify that single-operator staging passes only with AI review and compensating controls, while missing controls remain blocked.
+- [x] T030 Run the positive pre-deploy staging gate after staging approval and issued Work Order; record the PASS without claiming a Cloud Run deployment.
