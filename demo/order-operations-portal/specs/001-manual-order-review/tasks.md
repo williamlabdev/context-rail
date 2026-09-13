@@ -1,37 +1,109 @@
+---
+
+description: "Task list for the Manual Order Review Change Slice"
+---
+
 # Tasks: Manual Order Review
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md)
+**Input**: Design documents from `specs/001-manual-order-review/`
 
-**Status**: Pilot task plan; implementation baseline already exists in the demo checkout
+**Prerequisites**: `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/http.md`, `quickstart.md`
 
-## Phase 1: Specification and governance
+**Status**: Spec Kit-generated execution plan; the checkout contains a brownfield implementation baseline, but tasks are not marked complete without this run's evidence.
 
-- [x] T001 Record the feature request in `requests/REQ-001-manual-order-review.md`.
-- [x] T002 Record the selected stateless option and forbidden scope in `decisions/DR-001-manual-order-review.json`.
-- [x] T003 Establish the project principles in `.specify/memory/constitution.md`.
-- [x] T004 Define the Change Slice and acceptance scenarios in `spec.md`.
+## Phase 1: Setup
 
-## Phase 2: Plan and contract
+**Purpose**: Establish the feature execution boundary.
 
-- [x] T005 Confirm the existing Go service and embedded UI are the selected structure in `plan.md`.
-- [x] T006 Confirm the HTTP behavior and validation requirements against `main.go` and `main_test.go`.
-- [x] T007 Define the evidence and handoff references required for implementation and review.
+- [ ] T001 Confirm the `001-manual-order-review` feature scope in `specs/001-manual-order-review/spec.md`.
+- [ ] T002 Confirm the selected source structure and constraints in `specs/001-manual-order-review/plan.md`.
+- [ ] T003 [P] Verify Spec Kit project metadata in `.specify/feature.json`, `.specify/integration.json` and `.specify/init-options.json`.
 
-## Phase 3: Implementation baseline
+---
 
-- [x] T008 Verify the existing review endpoint in `main.go` is within the accepted allowed paths.
-- [x] T009 Verify the existing UI in `web/index.html` exposes the result.
-- [x] T010 Verify tests cover health, listing, required note, valid review and unknown order.
+## Phase 2: Foundational
+
+**Purpose**: Confirm the project and governance prerequisites before user-story work.
+
+- [ ] T004 Review the non-negotiable principles in `.specify/memory/constitution.md`.
+- [ ] T005 [P] Confirm `project_id`, `request_id`, `decision_id` and `policy_version` references in `specs/001-manual-order-review/plan.md`.
+- [ ] T006 [P] Confirm forbidden scope and staging/prod boundary in `decisions/DR-001-manual-order-review.json` and `docs/operations/environments.md`.
+
+**Checkpoint**: The implementation may proceed only within the accepted Change Slice and allowed paths.
+
+---
+
+## Phase 3: User Story 1 - Review an order exception (Priority: P1) 🎯 MVP
+
+**Goal**: Let an operations staff member approve or reject a seeded order exception with a required reason and visible result.
+
+**Independent Test**: Follow `specs/001-manual-order-review/quickstart.md` and verify the list, valid approval, valid rejection, empty-note rejection and unknown-order behavior.
+
+### Contract and behavior tests
+
+- [ ] T007 [P] [US1] Add or update health and order-list behavior tests in `main_test.go` for `GET /healthz` and `GET /api/orders`.
+- [ ] T008 [P] [US1] Add or update review validation tests in `main_test.go` for invalid JSON, unsupported decisions and whitespace-only notes.
+- [ ] T009 [P] [US1] Add or update state-transition tests in `main_test.go` for valid approval, valid rejection and unknown order IDs.
+
+### Implementation
+
+- [ ] T010 [US1] Implement the synthetic Order and Review Request behavior in `main.go` according to `specs/001-manual-order-review/data-model.md`.
+- [ ] T011 [US1] Implement the review endpoint contract in `main.go` according to `specs/001-manual-order-review/contracts/http.md`.
+- [ ] T012 [US1] Expose the seeded order list and review outcome in `web/index.html` without adding authentication or persistence.
+- [ ] T013 [US1] Keep changes within the allowed paths recorded in `decisions/DR-001-manual-order-review.json`.
+
+**Checkpoint**: User Story 1 is independently testable locally; no deployment authorization is implied.
+
+---
 
 ## Phase 4: Evidence and review
 
-- [x] T011 Record local test evidence in `evidence/EB-001/test-output.txt`.
-- [x] T012 Record local build evidence in `evidence/EB-001/build-output.txt`.
-- [x] T013 Keep independent review evidence separate from the implementation claim.
-- [ ] T014 Reconcile evidence to a committed source snapshot and image identity.
-- [ ] T015 Obtain authorized Cloud Run staging configuration and replace the pending receipt.
-- [ ] T016 Complete human staging approval; production remains blocked for this demo.
+**Purpose**: Prove the Change Slice against the accepted source and policy.
 
-## Exit criteria
+- [ ] T014 [P] Run `go test ./...` and record the exact result in `evidence/EB-001/test-output.txt`.
+- [ ] T015 [P] Run `go vet ./...` and record the exact result in `evidence/EB-001/vet-output.txt`.
+- [ ] T016 [P] Run `go build ./...` and record the exact result in `evidence/EB-001/build-output.txt`.
+- [ ] T017 Run the local smoke and negative scenarios from `specs/001-manual-order-review/quickstart.md` and record the result in `evidence/EB-001/README.md`.
+- [ ] T018 Reconcile the implementation commit, changed paths, test/build identity and source snapshot hash in `evidence/EB-001/README.md`.
+- [ ] T019 Complete independent review in `evidence/EB-001/code-review.md`; the implementation agent cannot be the sole reviewer.
 
-The pilot is ready for review when T014–T016 are either completed with evidence or explicitly retained as `NEEDS_INPUT`／`BLOCKED`. No unchecked task may be silently treated as complete.
+---
+
+## Phase 5: Staging gate
+
+**Purpose**: Keep cloud deployment separate from local implementation success.
+
+- [ ] T020 Confirm authorized `GCP_PROJECT_ID`, `CLOUD_RUN_REGION`, `IMAGE_URI` and deploy identity before changing `evidence/EB-001/cloud-run-staging-receipt.json`.
+- [ ] T021 Deploy only the reviewed image to the Cloud Run staging target using `scripts/deploy-staging.sh`.
+- [ ] T022 Read back the Cloud Run revision and execute the staging smoke check; record the receipt in `evidence/EB-001/cloud-run-staging-receipt.json`.
+- [ ] T023 Obtain human staging approval; keep production status `BLOCKED_IN_DEMO` in `evidence/EB-001/cloud-run-staging-receipt.json`.
+
+---
+
+## Dependencies & Execution Order
+
+### Phase dependencies
+
+- Setup (Phase 1) precedes Foundational (Phase 2).
+- Foundational (Phase 2) blocks User Story 1 implementation.
+- User Story 1 must pass before Evidence and Review (Phase 4).
+- Phase 4 must pass before the Staging Gate (Phase 5).
+- Phase 5 never authorizes production for this demo.
+
+### Parallel opportunities
+
+- T003, T005 and T006 can be inspected in parallel.
+- T007, T008 and T009 can be prepared in parallel because they touch the same test contract but cover independent behaviors; merge them before implementation.
+- T014, T015 and T016 can run in parallel after the implementation commit.
+
+## Implementation strategy
+
+1. Complete Setup and Foundational phases.
+2. Deliver User Story 1 as the only MVP slice.
+3. Validate locally and obtain independent review.
+4. Stop at any missing-evidence gate; do not infer staging readiness.
+5. Deploy to staging only after the required configuration and human gate are present.
+
+## Traceability
+
+`FR-001` → T007, T010; `FR-002` → T008, T011; `FR-003` → T008, T011; `FR-004` → T009, T011, T012; `FR-005` → T009, T011; `FR-006` → T012; `FR-007` → T010, T013.
