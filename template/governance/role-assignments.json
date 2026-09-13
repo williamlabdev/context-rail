@@ -3,12 +3,30 @@
   "schema_version": "role-assignments/v1",
   "project_id": "<REPLACE_ME_PROJECT_ID>",
   "status": "NEEDS_INPUT",
+  "operating_mode": "multi_operator",
+  "staging_policy": {
+    "mode": "strict_separation",
+    "allowed_risk_levels": ["low"],
+    "required_controls": ["tests", "build", "review", "production-block"],
+    "self_approval": false
+  },
+  "production_policy": {
+    "requires_distinct_human": true,
+    "status": "BLOCKED_UNTIL_HUMAN_GATE"
+  },
   "actors": [
     {
       "actor_id": "<REPLACE_ME_ACTOR_ID>",
       "display_name": "<REPLACE_ME_ACTOR_NAME>",
       "identity_type": "human",
       "roles": ["founder", "solution_architect"]
+    },
+    {
+      "actor_id": "<REPLACE_ME_AI_REVIEWER_ID>",
+      "display_name": "<REPLACE_ME_AI_REVIEWER_NAME>",
+      "identity_type": "agent",
+      "roles": ["ai_reviewer"],
+      "status": "ACTIVE"
     }
   ],
   "separation_rules": {

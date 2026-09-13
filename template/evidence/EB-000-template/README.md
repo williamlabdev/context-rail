@@ -6,6 +6,7 @@ Link this bundle to exactly one Request/Decision or explicitly list every Change
 | --- | --- | --- |
 | Diff / commit | `NEEDS_INPUT` | `<REPLACE_ME>` |
 | Independent code review | `NEEDS_INPUT` | `<REPLACE_ME>` |
+| Single-operator controls, if selected | `NEEDS_INPUT` | `single-operator-controls.md` |
 | Test result | `NEEDS_INPUT` | `<REPLACE_ME>` |
 | Build identity | `NEEDS_INPUT` | `<REPLACE_ME>` |
 | Environment configuration | `NEEDS_INPUT` | `<REPLACE_ME>` |

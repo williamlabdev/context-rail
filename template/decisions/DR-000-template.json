@@ -4,6 +4,7 @@
   "request_id": "REQ-000",
   "version": 1,
   "status": "PENDING_HUMAN_DECISION",
+  "risk_level": "<REPLACE_ME_LOW_OR_HIGH>",
   "selected_option": null,
   "alternatives": [],
   "scope": {"allowed_paths": [], "forbidden_paths": []},

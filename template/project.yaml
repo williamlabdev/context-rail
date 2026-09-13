@@ -35,7 +35,7 @@ spec:
       type: staging
       sequence: 3
       targetRef: <REPLACE_ME_CLOUD_RUN_STAGING_TARGET>
-      requiredEvidence: [decision-record, code-review, test, build, smoke]
+      requiredEvidence: [decision-record, review, single-operator-controls, test, build, smoke]
     - id: production
       type: production
       sequence: 4
@@ -44,8 +44,8 @@ spec:
       action: human-gated
   promotionPolicy:
     developmentToTesting: test, build and independent code review required
-    testingToStaging: accepted DecisionRecord, matching commit, build identity and smoke required
-    stagingToProduction: separate human release approval required
+    testingToStaging: accepted DecisionRecord, matching commit, review, build identity and smoke required; apply the selected operating-mode policy
+    stagingToProduction: separate human release approval required in every operating mode
   commands:
     test: <REPLACE_ME_TEST_COMMAND>
     build: <REPLACE_ME_BUILD_COMMAND>

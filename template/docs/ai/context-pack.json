@@ -4,23 +4,23 @@
   "status": "NEEDS_INPUT",
   "project_id": "<REPLACE_ME_PROJECT_ID>",
   "schema_version": "context-pack/v1",
-  "generated_at": "2026-09-13T12:40:19Z",
-  "source_snapshot_hash": "sha256:aba6886a4e2a3877231e3a256926a31f7173de0af58724ac38b08996c1626f49",
+  "generated_at": "2026-09-13T14:30:34Z",
+  "source_snapshot_hash": "sha256:9a40b9ed838e11450bc03a49b020d17dd444e8ee5024a0d28a6ee2680441adc0",
   "sources": [
     {
       "path": "project.yaml",
       "kind": "project-manifest",
       "version": "1",
-      "content_hash": "sha256:fd9352072a25be01fe3b0cabf9118fbf49da08a8620828b6888d0b5d8e52fd61",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "content_hash": "sha256:a8b25019ea406cb43fe05ae2f4565487514861ac8f4f6dc24efc051237365592",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     },
     {
       "path": "README.md",
       "kind": "human-entry",
       "version": "1",
-      "content_hash": "sha256:2616c574f90c68786a921a227566171c988e10f44712bb7e3ebd60496a5e8876",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "content_hash": "sha256:3a28595bc1c65f0aa163b7564173f6bb9fc18e57be49a7b3e28884eb2526a11a",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     },
     {
@@ -28,7 +28,7 @@
       "kind": "product-intent",
       "version": "1",
       "content_hash": "sha256:2dbc3617b1a3a05cf6d1a1d33f96e165b7c3b072f75dfd6632263ae10c651e0e",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     },
     {
@@ -36,7 +36,7 @@
       "kind": "architecture-baseline",
       "version": "1",
       "content_hash": "sha256:12beb54e9fa6c34256fa02906adebb7c95d6a71346c18947f9e983759eb9f178",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     },
     {
@@ -44,31 +44,31 @@
       "kind": "engineering-operations",
       "version": "1",
       "content_hash": "sha256:0fbae0eb86712b3749cd64fa0b501b9dd9f87ee89114c27af9341073f254c76b",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     },
     {
       "path": "docs/operations/environments.md",
       "kind": "environment-policy",
       "version": "1",
-      "content_hash": "sha256:099b3873eccc5f012e84b6282ebcabcc6ded6decd18a766d41cc7dfe352cb21d",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "content_hash": "sha256:45ba5f9bda3883f8645930cae7ebee99792669554278e5645dd0abd2d678bacc",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     },
     {
       "path": "docs/governance/policies.md",
       "kind": "governance-policy",
       "version": "1",
-      "content_hash": "sha256:339f0901e923bf3fc37ddb0566c2f36655f03cdb2e0814567859d6931a7b6648",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "content_hash": "sha256:b0bbf52241f69c6f12a21992e3d8feb0f0a728160bcfdf94c04c6bd0671467ad",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     },
     {
       "path": "governance/role-assignments.json",
       "kind": "role-assignments",
       "version": "1",
-      "content_hash": "sha256:34227b0d96ddb92e64457addc70d236cdf6682b492a83dad5035c2127d4641a6",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "content_hash": "sha256:2e9ec1343cc35ec910d33fbeb4c9cbbd05c2c30ee06fbd7fef663d00026c7da4",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     },
     {
@@ -76,7 +76,7 @@
       "kind": "agent-behavior",
       "version": "1",
       "content_hash": "sha256:ce54524f31428a0e50beef88fa2842a3ba44617809cbbe0133d80cb6f886034c",
-      "effective_time": "2026-09-13T12:40:19Z",
+      "effective_time": "2026-09-13T14:30:34Z",
       "access_scope": "repository-read"
     }
   ],

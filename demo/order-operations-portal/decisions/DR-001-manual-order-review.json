@@ -4,6 +4,7 @@
   "request_id": "REQ-001",
   "version": 1,
   "status": "STALE",
+  "risk_level": "low",
   "selected_option": "stateless_go_review_flow",
   "rationale": "The smallest reversible slice proves the review interaction and evidence path without introducing persistence or production risk.",
   "affected_components": ["browser-ui", "go-http-api", "staging-deploy"],
@@ -13,7 +14,7 @@
   "cost_assumptions": {"cloud_run": "small staging service; actual bill depends on account usage", "storage": "not used by this stateless slice", "firestore": "not used by this stateless slice"},
   "unknowns": ["real GitHub private repository URL", "GCP project, region and deploy identity", "whether a future production design needs persistence and authorization"],
   "policy_version": "environments-v1",
-  "source_snapshot_hash": "sha256:840ce51a96fd0ef408c22ef903c93465ba9db857c5744bef45ec03857bf26d11",
+  "source_snapshot_hash": "sha256:5c450163ba83460e452d8fd77a951f7508f6bdc2334d39a219086a957b64222b",
   "evidence_refs": ["EB-001"],
   "human_decisions": {
     "accept_request": {

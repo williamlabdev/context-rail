@@ -10,7 +10,7 @@
 - Branch: `codex/001-manual-order-review`
 - Baseline: `develop`
 - Review commit: 執行 `git rev-parse HEAD`，並把完整 SHA 寫入 `code-review.md`
-- Review independence: reviewer 不得是 implementation agent 的唯一審查者，也不得同時代表 work-order issuer
+- Review independence: `multi_operator` 或高風險變更需要獨立人類 reviewer；本低風險 `single_operator` staging path 可使用明確標示的 AI review 與補償控制，但不能取代 production 的人類核准
 
 ## 一句話結論
 
@@ -23,7 +23,7 @@
 - Browser UI 使用安全 DOM API 顯示 note，避免把訂單輸入插入 `innerHTML`；同時保留其他卡片的草稿。
 - Context Pack 依 manifest 宣告的 source-of-truth 文件產生，並驗證每個 source hash、source coverage 與 aggregate snapshot hash。
 - Readiness 將 request acceptance、testing evidence、staging deploy eligibility 與 post-deploy verification 分開。
-- Staging script 要求 human／review／commit／Context Pack lineage、不可變 image digest，並使用 tagged no-traffic revision 做 smoke。
+- Staging script 依 operating mode 要求 review／commit／Context Pack lineage；本 demo 的低風險 single-operator path 另外要求 AI review、補償控制、不可變 image digest，並使用 tagged no-traffic revision 做 smoke。
 - 新增 `AWO-001` 與 `ARR-001`；它們明確記錄目前 human gate pending、尚未宣稱 agent execution。
 
 ## 明確沒有做什麼
@@ -51,7 +51,7 @@
 - UI 是否不再將使用者輸入當作 HTML 解譯？
 - Context Pack 的來源集合與 hash 是否真的能阻擋 stale／coverage drift？
 - `ready_for_staging` 是否是部署前 gate，而 `staging_verified` 是否只代表部署後 evidence？
-- staging script 是否會阻擋 pending decision、review、mutable image 與未綁定的 revision smoke？
+- staging script 是否會依 operating mode 阻擋 pending decision、錯誤 review identity、缺少補償控制、mutable image 與未綁定的 revision smoke？
 
 ## 建議驗證命令
 

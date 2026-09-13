@@ -12,6 +12,7 @@ This bundle is the evidence index for `REQ-001` / `DR-001`. The local implementa
 | `../../runs/ARR-001-manual-order-review.json` | NOT_STARTED | no agent execution or provenance claimed for the brownfield baseline |
 | `HUMAN_REVIEW_PACKET.zh-TW.md` | REVIEW_GUIDE | single human-readable entry point for independent review |
 | `code-review.md` | review fixture | independent review decision boundary |
+| `single-operator-controls.md` | NEEDS_INPUT | compensating controls required for low-risk staging self-approval |
 | `cloud-run-staging-receipt.json` | pending cloud access | deploy result or explicit blocker |
 
 The bundle cannot authorize production. A missing or blocked receipt is `NEEDS_INPUT`, not `PASS`.

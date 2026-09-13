@@ -15,6 +15,16 @@ def field(text: str, label: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+def evidence_controls_pass(root: Path, required_controls: list[str]) -> bool:
+    path = root / "evidence/EB-001/single-operator-controls.md"
+    if not path.is_file():
+        return False
+    text = path.read_text(encoding="utf-8")
+    if field(text, "Status").upper() != "PASS":
+        return False
+    return all(field(text, f"Control {control}").upper() == "PASS" for control in required_controls)
+
+
 def action_value(human_decisions: dict, action: str) -> str:
     value = human_decisions.get(action, "")
     if isinstance(value, dict):
@@ -61,8 +71,17 @@ def main() -> int:
         return fail("Context Pack is not CURRENT")
     if context_pack.get("source_snapshot_hash") != decision.get("source_snapshot_hash"):
         return fail("DecisionRecord and Context Pack snapshots do not match")
+    operating_mode = str(role_assignments.get("operating_mode", "multi_operator")).lower()
+    if operating_mode not in {"single_operator", "multi_operator"}:
+        return fail("role assignment operating_mode is invalid")
+    staging_policy = role_assignments.get("staging_policy", {})
+    risk_level = str(decision.get("risk_level", "")).lower()
+    allowed_risk_levels = {str(value).lower() for value in staging_policy.get("allowed_risk_levels", [])}
+    if risk_level not in allowed_risk_levels:
+        return fail("DecisionRecord risk level is not allowed by the staging policy")
     if field(review_text, "Status").upper() != "PASS":
-        return fail("independent code review is not PASS")
+        return fail("required code review evidence is not PASS")
+    review_type = field(review_text, "Review type").upper()
     reviewer = field(review_text, "Reviewer").lower()
     reviewer_actor_id = field(review_text, "Reviewer actor_id")
     if not reviewer or reviewer in {"unassigned", "unknown", "pending"}:
@@ -78,6 +97,22 @@ def main() -> int:
     }
     if reviewer_actor_id not in actors:
         return fail("reviewer actor_id is not declared in role assignments")
+    reviewer_actor = actors[reviewer_actor_id]
+    if operating_mode == "single_operator":
+        if review_type != "AI_REVIEW":
+            return fail("single_operator staging requires an explicit AI_REVIEW")
+        if reviewer_actor.get("identity_type") != "agent" or "ai_reviewer" not in reviewer_actor.get("roles", []):
+            return fail("AI reviewer actor must be a declared ai_reviewer agent")
+        required_controls = [str(value) for value in staging_policy.get("required_controls", [])]
+        if not evidence_controls_pass(root, required_controls):
+            return fail("single_operator compensating-control evidence is not PASS")
+    else:
+        if review_type not in {"", "HUMAN_REVIEW"}:
+            return fail("multi_operator staging requires human review evidence")
+        if reviewer_actor.get("identity_type") != "human" or "independent_reviewer" not in reviewer_actor.get("roles", []):
+            return fail("multi_operator reviewer must be a declared independent human reviewer")
+        if reviewer_actor.get("status") == "UNASSIGNED":
+            return fail("multi_operator reviewer is not assigned")
     if work_order.get("status") in {"READY", "ISSUED", "ACCEPTED_FOR_EXECUTION"}:
         issuer = work_order.get("issuer", {})
         issuer_actor_id = issuer.get("actor_id")
@@ -88,11 +123,21 @@ def main() -> int:
             return fail("Work Order issuer actor_id is not declared in role assignments")
         if issuer_role not in actors[issuer_actor_id].get("roles", []):
             return fail("Work Order issuer role is not assigned to that actor")
-        if issuer_actor_id == reviewer_actor_id:
+        if issuer_actor_id == reviewer_actor_id and operating_mode == "multi_operator":
             return fail("Work Order issuer and independent reviewer must be different actors")
         staging_decision = human_decisions.get("allow_staging", {})
         staging_actor_id = staging_decision.get("actor_id") if isinstance(staging_decision, dict) else None
-        if staging_actor_id and staging_actor_id in {issuer_actor_id, reviewer_actor_id}:
+        if not staging_actor_id:
+            return fail("human staging approval actor_id is missing")
+        if staging_actor_id not in actors:
+            return fail("staging approver actor_id is not declared in role assignments")
+        if actors[staging_actor_id].get("identity_type") != "human":
+            return fail("staging approver must be a human actor")
+        if staging_actor_id == reviewer_actor_id:
+            return fail("staging approver must be different from reviewer")
+        if staging_actor_id == issuer_actor_id and not staging_policy.get("self_approval", False):
+            return fail("staging self-approval is not allowed by the selected policy")
+        if operating_mode == "multi_operator" and staging_actor_id == issuer_actor_id:
             return fail("staging approver must be different from issuer and reviewer")
     print("STAGING GATE PASS")
     return 0

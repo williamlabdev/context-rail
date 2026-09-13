@@ -3,6 +3,17 @@
   "schema_version": "role-assignments/v1",
   "project_id": "order-operations-portal",
   "status": "CURRENT",
+  "operating_mode": "single_operator",
+  "staging_policy": {
+    "mode": "self_approval_with_compensating_controls",
+    "allowed_risk_levels": ["low"],
+    "required_controls": ["ai-review", "tests", "build", "production-block"],
+    "self_approval": true
+  },
+  "production_policy": {
+    "requires_distinct_human": true,
+    "status": "BLOCKED_IN_DEMO"
+  },
   "actors": [
     {
       "actor_id": "founder-001",
@@ -16,6 +27,13 @@
       "identity_type": "human",
       "roles": ["independent_reviewer"],
       "status": "UNASSIGNED"
+    },
+    {
+      "actor_id": "context-rail-ai-reviewer-001",
+      "display_name": "ContextRail AI review agent",
+      "identity_type": "agent",
+      "roles": ["ai_reviewer"],
+      "status": "ACTIVE"
     }
   ],
   "separation_rules": {

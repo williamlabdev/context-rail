@@ -36,7 +36,7 @@ spec:
       type: staging
       sequence: 3
       targetRef: cloud-run/order-operations-portal-staging
-      requiredEvidence: [decision-record, code-review, test, build, smoke]
+      requiredEvidence: [decision-record, review, single-operator-controls, test, build, smoke]
     - id: production
       type: production
       sequence: 4
@@ -45,8 +45,8 @@ spec:
       action: blocked-in-demo
   promotionPolicy:
     developmentToTesting: testing evidence and independent code review required
-    testingToStaging: accepted decision, matching commit, build identity and staging smoke required
-    stagingToProduction: human release approval required; production remains blocked in this demo
+    testingToStaging: accepted low-risk decision, matching commit, AI review, tests, build identity and staging smoke; single-operator controls permit documented self-approval
+    stagingToProduction: distinct human release approval required; production remains blocked in this demo
   commands:
     test: go test ./...
     run: go run .

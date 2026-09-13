@@ -65,7 +65,7 @@ description: "Task list for the Manual Order Review Change Slice"
 - [x] T016 [P] Run `go build ./...` and record the exact result in `evidence/EB-001/build-output.txt`.
 - [x] T017 Run the local handler smoke and negative scenarios from `specs/001-manual-order-review/quickstart.md` and record the result in `evidence/EB-001/local-smoke.txt`; live port smoke remains environment-blocked.
 - [x] T018 Reconcile the implementation commit, changed paths, test/build identity and source snapshot hash in `evidence/EB-001/README.md`.
-- [ ] T019 Re-complete independent review after the multi-role contract change in `evidence/EB-001/code-review.md`; the implementation agent cannot be the sole reviewer.
+- [ ] T019 Re-complete the review required by the selected operating mode in `evidence/EB-001/code-review.md`; AI review is acceptable for this low-risk single-operator staging path, but is not human production approval.
 
 ---
 
@@ -113,6 +113,8 @@ description: "Task list for the Manual Order Review Change Slice"
 **Purpose**: Close evidence gaps found after the brownfield implementation verification.
 
 - [x] T024 Rebuild the canonical Context Pack and replace `sha256:pending-context-build` in `decisions/DR-001-manual-order-review.json` with the observed source snapshot hash per `plan: source snapshot` (partial).
-- [ ] T025 Obtain a new independent reviewer identity, decision, timestamp and reviewed commit after the multi-role contract change in `evidence/EB-001/code-review.md` per `SC-004`.
+- [ ] T025 Record the review identity, decision, timestamp and reviewed commit required by the selected operating mode in `evidence/EB-001/code-review.md`; retain a separate human gate for production.
 - [ ] T026 After T025 and authorized cloud configuration are available, deploy the reviewed image and record the Cloud Run staging revision in `evidence/EB-001/cloud-run-staging-receipt.json` per `REQ-001/AC-006` (missing).
 - [x] T027 Verify the negative role-separation gate with the Founder／Solution Architect overlap fixture and record the blocked result in `evidence/EB-001/role-separation-gate.txt`.
+- [x] T028 Add `single_operator` and `multi_operator` policy profiles with explicit low-risk staging controls and an always-human production gate.
+- [x] T029 Verify that single-operator staging passes only with AI review and compensating controls, while missing controls remain blocked.
