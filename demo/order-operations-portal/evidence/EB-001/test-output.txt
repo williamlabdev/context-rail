@@ -1,0 +1,6 @@
+Engineering Evidence Bundle: EB-001
+Command: go test ./...
+Result: PASS
+Package: example.com/order-operations-portal
+Tests: TestHealthAndOrderList, TestReviewRequiresNote, TestReviewUpdatesOrder, TestReviewUnknownOrder
+Observed: 2026-09-13 local verification

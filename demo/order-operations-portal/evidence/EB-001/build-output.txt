@@ -1,0 +1,5 @@
+Engineering Evidence Bundle: EB-001
+Command: go build ./...
+Result: PASS
+Observed: 2026-09-13 local verification
+Build identity: local working tree; no Git commit or container digest claimed

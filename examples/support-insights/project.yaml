@@ -1,0 +1,83 @@
+apiVersion: context-rail/v1alpha1
+kind: Project
+metadata:
+  id: support-insights
+  name: Support Insights
+  version: 1
+  classification: internal
+spec:
+  purpose: Give support leads a read-only view of recurring ticket themes and response-time trends.
+  owners:
+    technical: analytics/platform
+    business: support/operations
+  repository:
+    provider: github
+    visibility: private
+    url: github.com/example/support-insights
+    defaultBranch: main
+  services:
+    - id: support-insights-pipeline
+      repository: support-insights
+      path: .
+      role: primary
+  environments:
+    - id: development
+      type: development
+      sequence: 1
+      targetRef: local-python
+      requiredEvidence: [fixture-test]
+    - id: staging
+      type: staging
+      sequence: 2
+      targetRef: cloud-run/support-insights-staging
+      requiredEvidence: [decision-record, review, test, smoke]
+    - id: production
+      type: production
+      sequence: 3
+      targetRef: protected/read-only
+      requiredEvidence: [release-approval, staging-receipt]
+      action: human-gated
+  promotionPolicy:
+    developmentToStaging: accepted decision, test and review evidence required
+    stagingToProduction: separate human approval and staging receipt required
+  commands:
+    test: python -m unittest discover -s tests
+    build: python -m compileall src
+    run: python -m src.report
+  documents:
+    - path: project.yaml
+      kind: project-manifest
+      sourceOfTruth: true
+      requiredFor: [decision, development, staging]
+    - path: README.md
+      kind: human-entry
+      sourceOfTruth: true
+      requiredFor: [decision, development]
+    - path: vision.md
+      kind: product-intent
+      sourceOfTruth: true
+      requiredFor: [decision]
+    - path: architecture.md
+      kind: architecture-baseline
+      sourceOfTruth: true
+      requiredFor: [decision, work-order]
+    - path: docs/engineering/development.md
+      kind: engineering-operations
+      sourceOfTruth: true
+      requiredFor: [development, staging]
+    - path: docs/operations/environments.md
+      kind: environment-policy
+      sourceOfTruth: true
+      requiredFor: [decision, staging]
+    - path: docs/governance/policies.md
+      kind: governance-policy
+      sourceOfTruth: true
+      requiredFor: [decision, staging]
+    - path: AGENTS.md
+      kind: agent-behavior
+      sourceOfTruth: true
+      requiredFor: [development, work-order]
+    - path: docs/ai/context-pack.json
+      kind: derived-context
+      sourceOfTruth: false
+      requiredFor: [work-order]

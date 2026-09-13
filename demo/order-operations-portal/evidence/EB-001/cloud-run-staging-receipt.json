@@ -1,0 +1,8 @@
+{
+  "receipt_id": "CR-STAGING-001",
+  "status": "NEEDS_INPUT",
+  "environment": "staging",
+  "target": "cloud-run/order-operations-portal-staging",
+  "reason": "Set GCP_PROJECT_ID, CLOUD_RUN_REGION and IMAGE_URI and install/authenticate gcloud before a real staging deploy.",
+  "production": {"status": "BLOCKED_IN_DEMO", "deployed": false}
+}

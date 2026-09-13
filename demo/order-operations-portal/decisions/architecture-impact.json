@@ -1,0 +1,23 @@
+{
+  "assessment_id": "AI-001",
+  "project_id": "order-operations-portal",
+  "request_id": "REQ-001",
+  "decision_id": "DR-001",
+  "status": "CANDIDATE_REQUIRES_HUMAN_ACCEPTANCE",
+  "impact": {
+    "browser_ui": "new review list, note field and approve/reject actions",
+    "go_http_api": "new POST review handler with order ID, decision and note validation",
+    "deployment": "same stateless container can be deployed to staging; no production target change",
+    "data": "synthetic in-memory fixture only; no persistence or external data store",
+    "security": "identity and authorization remain explicitly unresolved and block real use"
+  },
+  "recommended_option": "stateless_go_review_flow",
+  "alternatives": [
+    {"option": "persisted_review_flow", "status": "deferred", "reason": "requires identity, retention and database decisions"},
+    {"option": "ai_auto_approval", "status": "rejected", "reason": "human approval is the purpose of this Change"}
+  ],
+  "required_checks": ["unit tests", "independent code review", "build identity", "staging health smoke"],
+  "unknowns": ["production authorization model", "review retention policy", "real private repository and GCP target"],
+  "provider": "demo-fixture",
+  "model_output_is_not_approval": true
+}

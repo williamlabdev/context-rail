@@ -1,0 +1,71 @@
+{
+  "kind": "ContextPack",
+  "derived": true,
+  "status": "CURRENT",
+  "project_id": "support-insights",
+  "schema_version": "context-pack/v1",
+  "generated_at": "2026-09-13T03:36:58Z",
+  "source_snapshot_hash": "sha256:73a56865fbd344c2dac8b055309b0c7aff214b0ebd166e28e00dfdfc4010ef60",
+  "sources": [
+    {
+      "path": "project.yaml",
+      "kind": "project-manifest",
+      "version": "1",
+      "content_hash": "sha256:c2709920312c4ae2448a78dbc12459746df811d79f9e4954bd1ea09ed65d731b",
+      "effective_time": "2026-09-13T03:36:58Z",
+      "access_scope": "repository-read"
+    },
+    {
+      "path": "README.md",
+      "kind": "human-entry",
+      "version": "1",
+      "content_hash": "sha256:1f8ca7bd43e7eb30f299f2b01006f5795a735e149a1e084bd82132c77a60d13b",
+      "effective_time": "2026-09-13T03:36:58Z",
+      "access_scope": "repository-read"
+    },
+    {
+      "path": "vision.md",
+      "kind": "product-intent",
+      "version": "1",
+      "content_hash": "sha256:2205baf6b9a3ecff5681cf5020d6b9f78bec5b39531477a5755d803782386783",
+      "effective_time": "2026-09-13T03:36:58Z",
+      "access_scope": "repository-read"
+    },
+    {
+      "path": "architecture.md",
+      "kind": "architecture-baseline",
+      "version": "1",
+      "content_hash": "sha256:c8c53dbbace35a2c6cad150472872037164753aa1d52dd5469c0da4cfa8482e7",
+      "effective_time": "2026-09-13T03:36:58Z",
+      "access_scope": "repository-read"
+    },
+    {
+      "path": "docs/engineering/development.md",
+      "kind": "engineering-operations",
+      "version": "1",
+      "content_hash": "sha256:ad5dc88233130e4680862d5b1a4af4e94d5d0dd922b7539c7f9d13d983aabc50",
+      "effective_time": "2026-09-13T03:36:58Z",
+      "access_scope": "repository-read"
+    },
+    {
+      "path": "docs/operations/environments.md",
+      "kind": "environment-policy",
+      "version": "1",
+      "content_hash": "sha256:b5f9bac46f7e550fbd00bec1a721ad528cf6927249020c825f0eff200d44a5eb",
+      "effective_time": "2026-09-13T03:36:58Z",
+      "access_scope": "repository-read"
+    },
+    {
+      "path": "AGENTS.md",
+      "kind": "agent-behavior",
+      "version": "1",
+      "content_hash": "sha256:b859abc3ca83c7b886d0a17f6bf949154d4cea7fe818431f2abcd6f76653929d",
+      "effective_time": "2026-09-13T03:36:58Z",
+      "access_scope": "repository-read"
+    }
+  ],
+  "decision_refs": [],
+  "limitations": [
+    "Generated from declared repository sources; external Git, CI and runtime evidence is not included"
+  ]
+}

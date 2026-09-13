@@ -1,0 +1,5 @@
+[
+  {"id": "SYN-001", "theme": "access", "response_hours": 3.5},
+  {"id": "SYN-002", "theme": "access", "response_hours": 5.0},
+  {"id": "SYN-003", "theme": "billing", "response_hours": 7.5}
+]

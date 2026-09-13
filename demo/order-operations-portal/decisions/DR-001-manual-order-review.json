@@ -1,0 +1,23 @@
+{
+  "decision_id": "DR-001",
+  "project_id": "order-operations-portal",
+  "request_id": "REQ-001",
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "selected_option": "stateless_go_review_flow",
+  "rationale": "The smallest reversible slice proves the review interaction and evidence path without introducing persistence or production risk.",
+  "affected_components": ["browser-ui", "go-http-api", "staging-deploy"],
+  "allowed_paths": ["main.go", "web/index.html", "main_test.go", "evidence/EB-001/"],
+  "forbidden_changes": ["authentication", "payment", "fulfillment", "iam", "production-target"],
+  "architecture_assumptions": ["synthetic data is sufficient for the demo", "state resets on process restart", "Cloud Run staging is the only executable cloud target"],
+  "cost_assumptions": {"cloud_run": "small staging service; actual bill depends on account usage", "storage": "not used by this stateless slice", "firestore": "not used by this stateless slice"},
+  "unknowns": ["real GitHub private repository URL", "GCP project, region and deploy identity", "whether a future production design needs persistence and authorization"],
+  "policy_version": "environments-v1",
+  "source_snapshot_hash": "sha256:pending-context-build",
+  "evidence_refs": ["EB-001"],
+  "human_decisions": {
+    "accept_request": "PENDING_HUMAN_CONFIRMATION",
+    "allow_staging": "PENDING_STAGING_EVIDENCE",
+    "allow_production": "BLOCKED_IN_DEMO"
+  }
+}
