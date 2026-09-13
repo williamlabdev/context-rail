@@ -1,6 +1,6 @@
 Engineering Evidence Bundle: EB-001
 Command: go build ./...
 Result: PASS
-Source commit: 10876c6
-Observed: 2026-09-13 local verification
-Build identity: source commit 08e3d47; no container image digest claimed
+Source commit: 03ced98
+Observed: 2026-09-13T14:52:38Z local verification
+Build identity: source commit 03ced98; no container image digest claimed
