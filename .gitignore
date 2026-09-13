@@ -1,0 +1,6 @@
+# OS metadata
+.DS_Store
+
+# Reproducible previews and render QA workspaces
+/output/
+/tmp/
