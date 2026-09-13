@@ -10,6 +10,7 @@ This bundle is the evidence index for `REQ-001` / `DR-001`. The local implementa
 | `local-smoke.txt` | PASS | local handler-level positive and negative smoke result for source commit `10876c6` |
 | `../../work-orders/AWO-001-manual-order-review.json` | BLOCKED | bounded execution contract awaiting human request acceptance |
 | `../../runs/ARR-001-manual-order-review.json` | NOT_STARTED | no agent execution or provenance claimed for the brownfield baseline |
+| `HUMAN_REVIEW_PACKET.zh-TW.md` | REVIEW_GUIDE | single human-readable entry point for independent review |
 | `code-review.md` | review fixture | independent review decision boundary |
 | `cloud-run-staging-receipt.json` | pending cloud access | deploy result or explicit blocker |
 
