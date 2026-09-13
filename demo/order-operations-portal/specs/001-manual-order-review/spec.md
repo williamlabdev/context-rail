@@ -1,131 +1,68 @@
-# Feature Specification: [FEATURE NAME]
+# Feature Specification: Manual Order Review
 
-**Feature Branch**: `[###-feature-name]`
+**Feature Branch**: `001-manual-order-review` (planned; current checkout remains `develop`)
 
-**Created**: [DATE]
+**Created**: 2026-09-13
 
-**Status**: Draft
+**Status**: Pilot baseline; brownfield implementation already exists
 
-**Input**: User description: "$ARGUMENTS"
+**Input**: `requests/REQ-001-manual-order-review.md` and `decisions/DR-001-manual-order-review.json`
 
-## User Scenarios & Testing *(mandatory)*
+## Change Slice
 
-<!--
-  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
-  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
+Provide a small, independently testable flow for an operations staff member to review a synthetic order exception before fulfillment. The slice includes an order list, an explicit approve/reject action, a required reason, API validation and a visible result. It does not introduce persistence, authentication or real fulfillment side effects.
 
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
-  Think of each story as a standalone slice of functionality that can be:
-  - Developed independently
-  - Tested independently
-  - Deployed independently
-  - Demonstrated to users independently
--->
+## User Scenarios & Testing
 
-### User Story 1 - [Brief Title] (Priority: P1)
+### User Story 1 - Review an order exception (Priority: P1)
 
-[Describe this user journey in plain language]
+As an operations staff member, I want to approve or reject a pending order with a reason so that the demo shows a controlled human review step.
 
-**Why this priority**: [Explain the value and why it has this priority level]
+**Why this priority**: This is the smallest journey that proves the product intent and release-evidence path.
 
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+**Independent Test**: Start the service, open the order list, submit an approval or rejection with a note, and confirm the result is visible and returned as JSON.
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-2. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
----
-
-### User Story 2 - [Brief Title] (Priority: P2)
-
-[Describe this user journey in plain language]
-
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently]
-
-**Acceptance Scenarios**:
-
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
----
-
-### User Story 3 - [Brief Title] (Priority: P3)
-
-[Describe this user journey in plain language]
-
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently]
-
-**Acceptance Scenarios**:
-
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
----
-
-[Add more user stories as needed, each with an assigned priority]
+1. **Given** at least two synthetic pending orders, **when** the operator opens the portal, **then** the orders and their review reasons are visible.
+2. **Given** a known order, **when** the operator submits `APPROVED` or `REJECTED` with a non-empty note, **then** the status and trimmed note are returned and displayed.
+3. **Given** a known order, **when** the note is empty or whitespace, **then** the request is rejected with a validation error and the order is unchanged.
+4. **Given** an unknown order ID, **when** a review is submitted, **then** the API returns `404`.
 
 ### Edge Cases
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right edge cases.
--->
+- Invalid JSON returns `400`.
+- A decision other than `APPROVED` or `REJECTED` returns `400`.
+- State is process-local and resets after restart; persistence is explicitly out of scope.
+- Authentication, authorization, payment, fulfillment and production deployment remain out of scope.
 
-- What happens when [boundary condition]?
-- How does system handle [error scenario]?
-
-## Requirements *(mandatory)*
-
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right functional requirements.
--->
+## Requirements
 
 ### Functional Requirements
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-001**: The system MUST list at least two synthetic orders in `PENDING_REVIEW` state.
+- **FR-002**: The system MUST require `APPROVED` or `REJECTED` for a review decision.
+- **FR-003**: The system MUST require a non-empty trimmed note.
+- **FR-004**: The system MUST return the reviewed order and a UTC review timestamp as JSON.
+- **FR-005**: The system MUST return `404` for an unknown order.
+- **FR-006**: The browser UI MUST make the review result visible.
+- **FR-007**: The implementation MUST use synthetic, stateless data for this slice.
 
-*Example of marking unclear requirements:*
+### Key Entities
 
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+- **Order**: Synthetic order exception with ID, customer label, amount, reason, status and optional review note.
+- **Review Request**: A decision and note submitted for one order.
 
-### Key Entities *(include if feature involves data)*
+## Success Criteria
 
-- **[Entity 1]**: [What it represents, key attributes without implementation]
-- **[Entity 2]**: [What it represents, relationships to other entities]
+- **SC-001**: A reviewer can complete one approval and one rejection through the UI using only the seeded orders.
+- **SC-002**: All four existing Go tests pass, including validation and unknown-order behavior.
+- **SC-003**: The service builds reproducibly with `go build ./...`.
+- **SC-004**: The change can be independently reviewed against the allowed paths in `DR-001`.
 
-## Success Criteria *(mandatory)*
+## Assumptions and Open Questions
 
-<!--
-  ACTION REQUIRED: Define measurable success criteria.
-  These must be technology-agnostic and measurable.
--->
-
-### Measurable Outcomes
-
-- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
-
-## Assumptions
-
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right assumptions based on reasonable defaults
-  chosen when the feature description did not specify certain details.
--->
-
-- [Assumption about target users, e.g., "Users have stable internet connectivity"]
-- [Assumption about scope boundaries, e.g., "Mobile support is out of scope for v1"]
-- [Assumption about data/environment, e.g., "Existing authentication system will be reused"]
-- [Dependency on existing system/service, e.g., "Requires access to the existing user profile API"]
+- Synthetic data is sufficient for the prototype demonstration.
+- The state reset on restart is acceptable for this slice.
+- Real authentication, persistence and authorization require a future Request and DecisionRecord.
+- Cloud Run staging remains unavailable until project, region, image and deploy identity are supplied; this is recorded in `EB-001` rather than assumed.

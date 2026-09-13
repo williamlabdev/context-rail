@@ -1,50 +1,42 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Order Operations Portal Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Scope before implementation
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Every feature starts from an accepted Request and a bounded Change Slice. The implementation must not silently expand into authentication, payment, fulfillment, IAM or production operations.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Synthetic and reversible by default
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+The prototype uses synthetic orders and stateless process memory. Persistent customer data, payment side effects and irreversible external operations require a new decision and explicit approval.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Evidence before promotion
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Implementation claims require reproducible tests, build output, review evidence and an environment-specific receipt. Missing evidence remains `NEEDS_INPUT`, `UNKNOWN`, `STALE` or `BLOCKED`.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Human authority and least privilege
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Agents may propose or execute only the accepted scope. They cannot change IAM, grant approval, bypass review or deploy production. Human acceptance, candidate review and release approval are separate decisions.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Simple contracts and observable behavior
+
+Use the smallest HTTP and Go contracts that prove the user journey. Keep API results, validation failures, logs, tests and evidence understandable without relying on model output.
+
+## Additional constraints
+
+- Runtime: Go 1.22 or newer, Cloud Run as the staging target.
+- Data: synthetic fixtures only; no real customer or credential data.
+- Review: the same agent that implements the slice cannot be the sole reviewer.
+- Deployment: staging may be executed only after its gate passes; production is blocked in this demo.
+
+## Development workflow
+
+Request → Change Slice specification → DecisionRecord → implementation plan/tasks → bounded execution → tests/build → independent review → staging gate.
+
+Spec Kit artifacts support this workflow but do not replace ContextRail governance artifacts. The repository's `AGENTS.md`, development contract and environment policy remain mandatory.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution is project guidance for the demo. Changes to scope, authorization, data handling, environment topology or release policy require a new DecisionRecord and human confirmation. A generated specification or plan cannot override this constitution or the canonical Project Context documents.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-09-13 | **Last Amended**: 2026-09-13
