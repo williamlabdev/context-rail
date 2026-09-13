@@ -1,18 +1,19 @@
 Engineering Evidence Bundle: EB-001
-Source commit: 08e3d4777ffeb8596825e9813fed56f75034cd26
-Observed: 2026-09-13 local verification
+Source commit: 10876c6
+Observed: 2026-09-13 local handler-level verification
 
 Positive checks:
 
-- `GET /healthz` returned `200` and `{"service":"order-operations-portal","status":"ok"}`.
-- `GET /api/orders` returned two seeded `PENDING_REVIEW` orders.
-- Valid `APPROVED` review returned `200` and the updated order.
+- `GET /healthz` returned `200` and `{"service":"order-operations-portal","status":"ok"}` through the Go handler test path.
+- `GET /api/orders` returned two seeded `PENDING_REVIEW` orders through the Go handler test path.
+- Valid `APPROVED` review returned `200`, the updated order and `reviewedAt` through the Go handler test path.
 
 Negative checks:
 
-- Whitespace-only note returned `400`.
+- ASCII and full-width whitespace-only notes returned `400` without changing the order.
 - Unknown order returned `404`.
 - Invalid JSON returned `400`.
+- Valid JSON followed by garbage or a second JSON object returned `400` without changing the order.
 - Unsupported decision returned `400`.
 
-No Cloud Run or production operation was performed.
+No Cloud Run or production operation was performed. A live `localhost:8080` smoke was not claimed in this refresh because that port was occupied by an unrelated Docker process; handler-level coverage is recorded instead.

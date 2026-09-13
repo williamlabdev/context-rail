@@ -1,7 +1,7 @@
 Engineering Evidence Bundle: EB-001
-Command: go test ./...
+Command: go test -count=1 ./...
 Result: PASS
 Package: example.com/order-operations-portal
-Tests: TestHealthAndOrderList, TestReviewRequiresNote, TestReviewRejectsInvalidJSON, TestReviewRejectsUnsupportedDecision, TestReviewUpdatesOrder, TestReviewCanBeRepeated, TestReviewUnknownOrder
-Source commit: 08e3d4777ffeb8596825e9813fed56f75034cd26
+Tests: TestHealthAndOrderList, TestReviewRequiresNote, TestReviewRejectsInvalidJSON, TestReviewRejectsTrailingJSON, TestReviewRejectsUnsupportedDecision, TestReviewUpdatesOrder, TestReviewCanBeRepeated, TestReviewUnknownOrder
+Source commit: 10876c6
 Observed: 2026-09-13 local verification

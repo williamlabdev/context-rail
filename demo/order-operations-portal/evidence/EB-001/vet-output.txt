@@ -1,6 +1,6 @@
 Engineering Evidence Bundle: EB-001
 Command: go vet ./...
 Result: PASS
-Source commit: 08e3d4777ffeb8596825e9813fed56f75034cd26
+Source commit: 10876c6
 Observed: 2026-09-13 local verification
 Output: none
