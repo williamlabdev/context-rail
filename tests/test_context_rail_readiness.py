@@ -43,7 +43,16 @@ class ReadinessInspectionTests(unittest.TestCase):
         self.assertEqual(reports[0]["readiness"]["production"]["status"], "BLOCKED")
 
     def test_pending_human_decision_is_not_promoted_to_ready(self) -> None:
-        report = self.inspect(ROOT / "demo/order-operations-portal")[0]
+        temp_dir = Path(tempfile.mkdtemp(prefix="context-rail-readiness-"))
+        self.addCleanup(shutil.rmtree, temp_dir)
+        project = temp_dir / "order-operations-portal"
+        shutil.copytree(ROOT / "demo/order-operations-portal", project)
+        decision_path = project / "decisions/DR-001-manual-order-review.json"
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        decision["status"] = "PENDING_HUMAN_DECISION"
+        decision["human_decisions"]["accept_request"] = "PENDING_HUMAN_CONFIRMATION"
+        decision_path.write_text(json.dumps(decision), encoding="utf-8")
+        report = self.inspect(project)[0]
         development = report["readiness"]["ready_for_local_development"]
         self.assertEqual(development["status"], "NEEDS_INPUT")
         self.assertTrue(any("no human-accepted" in reason for reason in development["reasons"]))
@@ -110,7 +119,7 @@ class ReadinessInspectionTests(unittest.TestCase):
         local = report["readiness"]["ready_for_local_development"]
         staging = report["readiness"]["ready_for_staging"]
         verified = report["readiness"]["staging_verified"]
-        self.assertEqual(local["status"], "NEEDS_INPUT")
+        self.assertEqual(local["status"], "READY")
         self.assertFalse(any("Cloud Run" in reason for reason in local["reasons"]))
         self.assertEqual(staging["status"], "NEEDS_INPUT")
         self.assertTrue(any("human-approved staging" in reason for reason in staging["reasons"]))

@@ -65,7 +65,7 @@ description: "Task list for the Manual Order Review Change Slice"
 - [x] T016 [P] Run `go build ./...` and record the exact result in `evidence/EB-001/build-output.txt`.
 - [x] T017 Run the local handler smoke and negative scenarios from `specs/001-manual-order-review/quickstart.md` and record the result in `evidence/EB-001/local-smoke.txt`; live port smoke remains environment-blocked.
 - [x] T018 Reconcile the implementation commit, changed paths, test/build identity and source snapshot hash in `evidence/EB-001/README.md`.
-- [ ] T019 Complete independent review in `evidence/EB-001/code-review.md`; the implementation agent cannot be the sole reviewer.
+- [x] T019 Complete independent review in `evidence/EB-001/code-review.md`; the implementation agent cannot be the sole reviewer.
 
 ---
 
@@ -113,5 +113,5 @@ description: "Task list for the Manual Order Review Change Slice"
 **Purpose**: Close evidence gaps found after the brownfield implementation verification.
 
 - [x] T024 Rebuild the canonical Context Pack and replace `sha256:pending-context-build` in `decisions/DR-001-manual-order-review.json` with the observed source snapshot hash per `plan: source snapshot` (partial).
-- [ ] T025 Obtain an independent reviewer identity, decision, timestamp and reviewed commit in `evidence/EB-001/code-review.md` per `SC-004` (missing).
+- [x] T025 Obtain an independent reviewer identity, decision, timestamp and reviewed commit in `evidence/EB-001/code-review.md` per `SC-004`.
 - [ ] T026 After T025 and authorized cloud configuration are available, deploy the reviewed image and record the Cloud Run staging revision in `evidence/EB-001/cloud-run-staging-receipt.json` per `REQ-001/AC-006` (missing).

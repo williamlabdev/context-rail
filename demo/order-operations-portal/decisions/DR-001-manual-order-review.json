@@ -3,7 +3,7 @@
   "project_id": "order-operations-portal",
   "request_id": "REQ-001",
   "version": 1,
-  "status": "PENDING_HUMAN_DECISION",
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
   "selected_option": "stateless_go_review_flow",
   "rationale": "The smallest reversible slice proves the review interaction and evidence path without introducing persistence or production risk.",
   "affected_components": ["browser-ui", "go-http-api", "staging-deploy"],
@@ -16,7 +16,7 @@
   "source_snapshot_hash": "sha256:153bc806689f984af7d799fed2b747021a9b69aad1040059ae25c0c3dec07e52",
   "evidence_refs": ["EB-001"],
   "human_decisions": {
-    "accept_request": "PENDING_HUMAN_CONFIRMATION",
+    "accept_request": "ACCEPTED",
     "allow_staging": "PENDING_STAGING_EVIDENCE",
     "allow_production": "BLOCKED_IN_DEMO"
   }
