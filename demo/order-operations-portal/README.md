@@ -38,4 +38,5 @@ The manifest models the eventual source as one GitHub private repository. The UR
 - `decisions/` — canonical DecisionRecord and two audience views.
 - `work-orders/` and `runs/` — bounded handoff and honest Agent Run Record status.
 - `evidence/EB-001/` — test, review, build and Cloud Run receipt evidence.
-- `scripts/deploy-staging.sh` — real `gcloud run deploy` path with a safe preflight; without GCP access it writes a `BLOCKED` receipt rather than claiming deployment.
+- `scripts/check-staging-gate.py` — read-only pre-deploy validation of DecisionRecord, Context Pack, review identity and commit.
+- `scripts/deploy-staging.sh` — real `gcloud run deploy` path with immutable image and tagged-revision smoke; without required evidence or GCP access it writes a `NEEDS_INPUT` receipt rather than claiming deployment.

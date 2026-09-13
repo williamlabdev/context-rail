@@ -7,7 +7,7 @@
   "change_id": "manual-order-review",
   "change_version": 1,
   "decision_id": "DR-001",
-  "source_snapshot_hash": "sha256:79747c3fad52ea902b429150824cdc671ade0cbfb9a0e2fa85951aaf29c1314e",
+  "source_snapshot_hash": "sha256:153bc806689f984af7d799fed2b747021a9b69aad1040059ae25c0c3dec07e52",
   "policy_version": "environments-v1",
   "status": "BLOCKED",
   "human_gate": "PENDING_HUMAN_CONFIRMATION",
@@ -24,5 +24,5 @@
   "input_refs": ["requests/REQ-001-manual-order-review.md", "decisions/DR-001-manual-order-review.json", "specs/001-manual-order-review/spec.md", "specs/001-manual-order-review/plan.md", "specs/001-manual-order-review/tasks.md"],
   "output_paths": ["runs/ARR-001-manual-order-review.json", "evidence/EB-001/"],
   "expires_at": null,
-  "work_order_hash": "sha256:a645896ba4fb9958c00cf8abb69eea1628aa97492bc455fb7f47edffa0b46626"
+  "work_order_hash": "sha256:da1c30a30eaf5f701855404606648c0ce8715814c9906835e50ded664e18caa7"
 }

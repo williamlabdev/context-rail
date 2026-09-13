@@ -7,7 +7,7 @@
   "change_id": "manual-order-review",
   "decision_id": "DR-001",
   "work_order_id": "AWO-001",
-  "work_order_hash": "sha256:a645896ba4fb9958c00cf8abb69eea1628aa97492bc455fb7f47edffa0b46626",
+  "work_order_hash": "sha256:da1c30a30eaf5f701855404606648c0ce8715814c9906835e50ded664e18caa7",
   "status": "NOT_STARTED",
   "human_gate": "PENDING_HUMAN_CONFIRMATION",
   "reason": "The implementation is a brownfield baseline; no bounded agent run is claimed by this record.",

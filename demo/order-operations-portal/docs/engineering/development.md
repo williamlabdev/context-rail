@@ -19,3 +19,5 @@ The service is a synthetic, stateless fixture. Use `/healthz` and `/api/orders` 
 ## Verification
 
 The candidate must provide test output, build output, independent review evidence and a staging smoke result tied to the same commit/image identity.
+
+The staging helper also requires `APPROVED_COMMIT` and an `IMAGE_URI` using `@sha256:<digest>`. It will not deploy while the DecisionRecord or independent review remains pending.
