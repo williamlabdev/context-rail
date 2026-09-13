@@ -14,7 +14,13 @@ from typing import Any
 import yaml
 
 
-READINESS = ("ready_for_decision", "ready_for_development", "ready_for_staging", "production")
+READINESS = (
+    "ready_for_decision",
+    "ready_for_local_development",
+    "ready_for_cloud_testing",
+    "ready_for_staging",
+    "production",
+)
 
 
 def sha256(path: Path) -> str:
@@ -95,6 +101,24 @@ def evidence_state(root: Path) -> tuple[str, list[str]]:
     return ("READY" if not reasons else "NEEDS_INPUT"), reasons
 
 
+def cloud_testing_evidence_state(root: Path) -> tuple[str, list[str]]:
+    """Check testing/CI evidence without requiring a Cloud Run deployment."""
+    evidence_root = root / "evidence"
+    if not evidence_root.is_dir():
+        return "NEEDS_INPUT", ["Evidence Bundle is missing"]
+    reasons: list[str] = []
+    test_files = list(evidence_root.glob("**/test-output.txt"))
+    if not test_files or any("Result: PASS" not in path.read_text(encoding="utf-8") for path in test_files):
+        reasons.append("test evidence is not PASS")
+    build_files = list(evidence_root.glob("**/build-output.txt"))
+    if not build_files or any("Result: PASS" not in path.read_text(encoding="utf-8") for path in build_files):
+        reasons.append("build evidence is not PASS")
+    review_files = list(evidence_root.glob("**/code-review.md"))
+    if not review_files or any("REVIEW_REQUIRED" in path.read_text(encoding="utf-8") for path in review_files):
+        reasons.append("independent code review is not PASS")
+    return ("READY" if not reasons else "NEEDS_INPUT"), reasons
+
+
 def inspect_project(root: Path) -> dict[str, Any]:
     root = root.resolve()
     manifest_path = root / "project.yaml"
@@ -115,16 +139,23 @@ def inspect_project(root: Path) -> dict[str, Any]:
     if any(status in {"MISSING", "STALE", "CONFLICT", "NEEDS_INPUT"} for status in decision_blockers):
         decision_reasons.append("required decision documents are not all CURRENT")
     decision_ready = "READY" if not decision_reasons else "NEEDS_INPUT"
-    development_reasons: list[str] = []
+    local_development_reasons: list[str] = []
     if not human_accepted:
-        development_reasons.append("no human-accepted DecisionRecord found")
+        local_development_reasons.append("no human-accepted DecisionRecord found")
     if has_accepted_status and not human_accepted:
-        development_reasons.append("DecisionRecord status conflicts with pending human decision")
-    development_ready = "READY" if not development_reasons else "NEEDS_INPUT"
+        local_development_reasons.append("DecisionRecord status conflicts with pending human decision")
+    local_development_ready = "READY" if not local_development_reasons else "NEEDS_INPUT"
+    cloud_testing_evidence, cloud_testing_reasons = cloud_testing_evidence_state(root)
+    cloud_testing_reasons = list(cloud_testing_reasons)
+    if local_development_ready != "READY":
+        cloud_testing_reasons.insert(0, "local development readiness is not READY")
+    cloud_testing_ready = "READY" if cloud_testing_evidence == "READY" and not cloud_testing_reasons else "NEEDS_INPUT"
     staging_evidence, staging_reasons = evidence_state(root)
     staging_reasons = list(staging_reasons)
-    if development_ready != "READY":
-        staging_reasons.insert(0, "development readiness is not READY")
+    if local_development_ready != "READY":
+        staging_reasons.insert(0, "local development readiness is not READY")
+    if cloud_testing_ready != "READY":
+        staging_reasons.insert(0, "cloud testing readiness is not READY")
     staging_ready = "READY" if staging_evidence == "READY" and not staging_reasons else "NEEDS_INPUT"
     production = "BLOCKED"
     return {
@@ -143,7 +174,11 @@ def inspect_project(root: Path) -> dict[str, Any]:
         ],
         "readiness": {
             "ready_for_decision": {"status": decision_ready, "reasons": decision_reasons},
-            "ready_for_development": {"status": development_ready, "reasons": development_reasons},
+            "ready_for_local_development": {
+                "status": local_development_ready,
+                "reasons": local_development_reasons,
+            },
+            "ready_for_cloud_testing": {"status": cloud_testing_ready, "reasons": cloud_testing_reasons},
             "ready_for_staging": {"status": staging_ready, "reasons": staging_reasons},
             "production": {"status": production, "reasons": ["production is human-gated and read-only in P0"]},
         },

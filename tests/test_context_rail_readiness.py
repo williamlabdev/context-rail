@@ -29,13 +29,32 @@ class ReadinessInspectionTests(unittest.TestCase):
         self.assertEqual([report["project"]["id"] for report in reports], ["order-operations-portal", "support-insights"])
         self.assertEqual(reports[0]["readiness"]["ready_for_decision"]["status"], "READY")
         self.assertEqual(reports[1]["readiness"]["ready_for_decision"]["status"], "READY")
+        self.assertEqual(
+            set(reports[0]["readiness"]),
+            {
+                "ready_for_decision",
+                "ready_for_local_development",
+                "ready_for_cloud_testing",
+                "ready_for_staging",
+                "production",
+            },
+        )
         self.assertEqual(reports[0]["readiness"]["production"]["status"], "BLOCKED")
 
     def test_pending_human_decision_is_not_promoted_to_ready(self) -> None:
         report = self.inspect(ROOT / "demo/order-operations-portal")[0]
-        development = report["readiness"]["ready_for_development"]
+        development = report["readiness"]["ready_for_local_development"]
         self.assertEqual(development["status"], "NEEDS_INPUT")
         self.assertTrue(any("conflicts" in reason for reason in development["reasons"]))
+
+    def test_local_development_does_not_require_cloud_run(self) -> None:
+        report = self.inspect(ROOT / "demo/order-operations-portal")[0]
+        local = report["readiness"]["ready_for_local_development"]
+        staging = report["readiness"]["ready_for_staging"]
+        self.assertEqual(local["status"], "NEEDS_INPUT")
+        self.assertFalse(any("Cloud Run" in reason for reason in local["reasons"]))
+        self.assertEqual(staging["status"], "NEEDS_INPUT")
+        self.assertTrue(any("receipt" in reason for reason in staging["reasons"]))
 
     def test_changed_source_is_stale(self) -> None:
         temp_dir = Path(tempfile.mkdtemp(prefix="context-rail-readiness-"))

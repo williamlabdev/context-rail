@@ -45,7 +45,13 @@ The next gate is a human walkthrough of both consumer READMEs, followed by a rea
 
 Observed results:
 
-- `order-operations-portal`: decision context `READY`; development `NEEDS_INPUT` because the DecisionRecord still has a pending human decision; staging `NEEDS_INPUT`; production `BLOCKED`.
-- `support-insights`: decision context `READY`; development and staging `NEEDS_INPUT` because no accepted DecisionRecord or Evidence Bundle exists; production `BLOCKED`.
+- `order-operations-portal`: decision context `READY`; local development `NEEDS_INPUT` because the DecisionRecord still has a pending human decision; cloud testing `NEEDS_INPUT` because independent review is still required; staging `NEEDS_INPUT` because the local, testing and Cloud Run receipt gates are incomplete; production `BLOCKED`.
+- `support-insights`: decision context `READY`; local development, cloud testing and staging are `NEEDS_INPUT` because no accepted DecisionRecord or Evidence Bundle exists; production `BLOCKED`.
+
+The readiness names intentionally separate local development from deployment:
+
+- `ready_for_local_development` does not require Cloud Run credentials or a staging receipt.
+- `ready_for_cloud_testing` evaluates test, build and independent review evidence for the testing/CI boundary; it does not mean that a Cloud Run service has been deployed.
+- `ready_for_staging` is the Cloud Run deployment gate and requires the staging receipt in addition to upstream governance and engineering evidence.
 
 The inspector also detects a changed source document as `STALE` by comparing the derived Context Pack hash with the current file.
