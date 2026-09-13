@@ -15,9 +15,9 @@ description: "Task list for the Manual Order Review Change Slice"
 
 **Purpose**: Establish the feature execution boundary.
 
-- [ ] T001 Confirm the `001-manual-order-review` feature scope in `specs/001-manual-order-review/spec.md`.
-- [ ] T002 Confirm the selected source structure and constraints in `specs/001-manual-order-review/plan.md`.
-- [ ] T003 [P] Verify Spec Kit project metadata in `.specify/feature.json`, `.specify/integration.json` and `.specify/init-options.json`.
+- [x] T001 Confirm the `001-manual-order-review` feature scope in `specs/001-manual-order-review/spec.md`.
+- [x] T002 Confirm the selected source structure and constraints in `specs/001-manual-order-review/plan.md`.
+- [x] T003 [P] Verify Spec Kit project metadata in `.specify/feature.json`, `.specify/integration.json` and `.specify/init-options.json`.
 
 ---
 
@@ -25,9 +25,9 @@ description: "Task list for the Manual Order Review Change Slice"
 
 **Purpose**: Confirm the project and governance prerequisites before user-story work.
 
-- [ ] T004 Review the non-negotiable principles in `.specify/memory/constitution.md`.
-- [ ] T005 [P] Confirm `project_id`, `request_id`, `decision_id` and `policy_version` references in `specs/001-manual-order-review/plan.md`.
-- [ ] T006 [P] Confirm forbidden scope and staging/prod boundary in `decisions/DR-001-manual-order-review.json` and `docs/operations/environments.md`.
+- [x] T004 Review the non-negotiable principles in `.specify/memory/constitution.md`.
+- [x] T005 [P] Confirm `project_id`, `request_id`, `decision_id` and `policy_version` references in `specs/001-manual-order-review/plan.md`.
+- [x] T006 [P] Confirm forbidden scope and staging/prod boundary in `decisions/DR-001-manual-order-review.json` and `docs/operations/environments.md`.
 
 **Checkpoint**: The implementation may proceed only within the accepted Change Slice and allowed paths.
 
@@ -41,16 +41,16 @@ description: "Task list for the Manual Order Review Change Slice"
 
 ### Contract and behavior tests
 
-- [ ] T007 [P] [US1] Add or update health and order-list behavior tests in `main_test.go` for `GET /healthz` and `GET /api/orders`.
-- [ ] T008 [P] [US1] Add or update review validation tests in `main_test.go` for invalid JSON, unsupported decisions and whitespace-only notes.
-- [ ] T009 [P] [US1] Add or update state-transition tests in `main_test.go` for valid approval, valid rejection, repeated review and unknown order IDs.
+- [x] T007 [P] [US1] Add or update health and order-list behavior tests in `main_test.go` for `GET /healthz` and `GET /api/orders`.
+- [x] T008 [P] [US1] Add or update review validation tests in `main_test.go` for invalid JSON, unsupported decisions and whitespace-only notes.
+- [x] T009 [P] [US1] Add or update state-transition tests in `main_test.go` for valid approval, valid rejection, repeated review and unknown order IDs.
 
 ### Implementation
 
-- [ ] T010 [US1] Verify the existing synthetic Order and Review Request behavior in `main.go` against `specs/001-manual-order-review/data-model.md`; update only if a documented gap exists.
-- [ ] T011 [US1] Verify the existing review endpoint in `main.go` against `specs/001-manual-order-review/contracts/http.md`; update only if a documented gap exists.
-- [ ] T012 [US1] Verify the seeded order list and review outcome in `web/index.html`; update only if a documented gap exists and do not add authentication or persistence.
-- [ ] T013 [US1] Keep changes within the allowed paths recorded in `decisions/DR-001-manual-order-review.json`.
+- [x] T010 [US1] Verify the existing synthetic Order and Review Request behavior in `main.go` against `specs/001-manual-order-review/data-model.md`; update only if a documented gap exists.
+- [x] T011 [US1] Verify the existing review endpoint in `main.go` against `specs/001-manual-order-review/contracts/http.md`; update only if a documented gap exists.
+- [x] T012 [US1] Verify the seeded order list and review outcome in `web/index.html`; update only if a documented gap exists and do not add authentication or persistence.
+- [x] T013 [US1] Keep changes within the allowed paths recorded in `decisions/DR-001-manual-order-review.json`.
 
 **Checkpoint**: User Story 1 is independently testable locally; no deployment authorization is implied.
 
@@ -60,11 +60,11 @@ description: "Task list for the Manual Order Review Change Slice"
 
 **Purpose**: Prove the Change Slice against the accepted source and policy.
 
-- [ ] T014 [P] Run `go test ./...` and record the exact result in `evidence/EB-001/test-output.txt`.
-- [ ] T015 [P] Run `go vet ./...` and record the exact result in `evidence/EB-001/vet-output.txt`.
-- [ ] T016 [P] Run `go build ./...` and record the exact result in `evidence/EB-001/build-output.txt`.
-- [ ] T017 Run the local smoke and negative scenarios from `specs/001-manual-order-review/quickstart.md` and record the result in `evidence/EB-001/README.md`.
-- [ ] T018 Reconcile the implementation commit, changed paths, test/build identity and source snapshot hash in `evidence/EB-001/README.md`.
+- [x] T014 [P] Run `go test ./...` and record the exact result in `evidence/EB-001/test-output.txt`.
+- [x] T015 [P] Run `go vet ./...` and record the exact result in `evidence/EB-001/vet-output.txt`.
+- [x] T016 [P] Run `go build ./...` and record the exact result in `evidence/EB-001/build-output.txt`.
+- [x] T017 Run the local smoke and negative scenarios from `specs/001-manual-order-review/quickstart.md` and record the result in `evidence/EB-001/local-smoke.txt`.
+- [x] T018 Reconcile the implementation commit, changed paths, test/build identity and source snapshot hash in `evidence/EB-001/README.md`.
 - [ ] T019 Complete independent review in `evidence/EB-001/code-review.md`; the implementation agent cannot be the sole reviewer.
 
 ---

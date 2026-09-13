@@ -1,11 +1,13 @@
 # EB-001 — Engineering Evidence Bundle
 
-This bundle is the evidence index for `REQ-001` / `DR-001`. It is valid only for the commit and image identity recorded by the implementation run. Placeholder values are intentionally visible until the corresponding source is connected.
+This bundle is the evidence index for `REQ-001` / `DR-001`. The local implementation evidence below is tied to source commit `08e3d4777ffeb8596825e9813fed56f75034cd26`. No container image digest or Cloud Run revision is claimed.
 
 | Evidence | Status | Meaning |
 | --- | --- | --- |
-| `test-output.txt` | PASS | local test result |
-| `build-output.txt` | PASS | local build result; no commit/digest claimed |
+| `test-output.txt` | PASS | local test result for source commit `08e3d47` |
+| `vet-output.txt` | PASS | local static analysis result for source commit `08e3d47` |
+| `build-output.txt` | PASS | local build result for source commit `08e3d47`; no image digest claimed |
+| `local-smoke.txt` | PASS | local positive and negative HTTP smoke result |
 | `code-review.md` | review fixture | independent review decision boundary |
 | `cloud-run-staging-receipt.json` | pending cloud access | deploy result or explicit blocker |
 
