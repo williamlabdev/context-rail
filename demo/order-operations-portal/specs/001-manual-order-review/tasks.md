@@ -107,3 +107,11 @@ description: "Task list for the Manual Order Review Change Slice"
 ## Traceability
 
 `FR-001` → T007, T010; `FR-002` → T008, T011; `FR-003` → T008, T011; `FR-004` → T009, T011, T012; `FR-005` → T009, T011; `FR-006` → T012; `FR-007` → T010, T013; `FR-008` → T009, T011.
+
+## Phase 6: Convergence
+
+**Purpose**: Close evidence gaps found after the brownfield implementation verification.
+
+- [ ] T024 Rebuild the canonical Context Pack and replace `sha256:pending-context-build` in `decisions/DR-001-manual-order-review.json` with the observed source snapshot hash per `plan: source snapshot` (partial).
+- [ ] T025 Obtain an independent reviewer identity, decision, timestamp and reviewed commit in `evidence/EB-001/code-review.md` per `SC-004` (missing).
+- [ ] T026 After T025 and authorized cloud configuration are available, deploy the reviewed image and record the Cloud Run staging revision in `evidence/EB-001/cloud-run-staging-receipt.json` per `REQ-001/AC-006` (missing).
