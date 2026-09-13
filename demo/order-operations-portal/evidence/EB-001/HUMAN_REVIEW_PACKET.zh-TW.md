@@ -24,7 +24,7 @@
 - Context Pack 依 manifest 宣告的 source-of-truth 文件產生，並驗證每個 source hash、source coverage 與 aggregate snapshot hash。
 - Readiness 將 request acceptance、testing evidence、staging deploy eligibility 與 post-deploy verification 分開。
 - Staging script 依 operating mode 要求 review／commit／Context Pack lineage；本 demo 的低風險 single-operator path 另外要求 AI review、補償控制、不可變 image digest，並使用 tagged no-traffic revision 做 smoke。
-- 新增 `AWO-001` 與 `ARR-001`；它們明確記錄目前 human gate pending、尚未宣稱 agent execution。
+- `AWO-001` 已由 Founder 以 Solution Architect 身分發行；`ARR-001` 仍是 `NOT_STARTED`，沒有倒填 brownfield implementation 的 agent execution provenance。
 
 ## 明確沒有做什麼
 

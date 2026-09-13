@@ -8,7 +8,7 @@ This bundle is the evidence index for `REQ-001` / `DR-001`. The refreshed techni
 | `vet-output.txt` | PASS | local static analysis result for source commit `03ced98` |
 | `build-output.txt` | PASS | local build result for source commit `03ced98`; no image digest claimed |
 | `local-smoke.txt` | PASS | local handler-level positive and negative smoke result for source commit `03ced98` |
-| `../../work-orders/AWO-001-manual-order-review.json` | BLOCKED | bounded execution contract awaiting human request acceptance |
+| `../../work-orders/AWO-001-manual-order-review.json` | ISSUED | bounded execution contract issued to the Founder as Solution Architect; no agent run claimed |
 | `../../runs/ARR-001-manual-order-review.json` | NOT_STARTED | no agent execution or provenance claimed for the brownfield baseline |
 | `HUMAN_REVIEW_PACKET.zh-TW.md` | REVIEW_GUIDE | single human-readable entry point for independent review |
 | `code-review.md` | PASS | AI technical review; not human production approval |
