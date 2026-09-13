@@ -8,6 +8,14 @@ An Agent may work only on the repository, branch, paths, acceptance criteria and
 
 Use the commands in `docs/engineering/development.md`. Report exact results, changed paths, commit identity and any unavailable evidence.
 
+## Agent handoff boundary
+
+- Exchange work through structured artifacts such as `Request`, `DecisionRecord`, `AgentWorkOrder` and `EvidenceBundle`.
+- Include project, request, decision, source snapshot, policy, input, output, evidence, status and human-gate references in each handoff.
+- Treat free-form agent conversation as coordination only, never as governance evidence or authorization.
+- Do not implement autonomous Agent-to-Agent orchestration in the P0 template path.
+- Consider A2A only as a later integration when independent agents, providers or runtimes create a demonstrated interoperability need; it must not replace project policy, evidence lineage or human approval.
+
 ## Forbidden actions
 
 - Do not add secrets, real credentials or unapproved personal data.
