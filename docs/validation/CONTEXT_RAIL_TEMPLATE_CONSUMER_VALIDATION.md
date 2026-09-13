@@ -45,8 +45,8 @@ The next gate is a human walkthrough of both consumer READMEs, followed by a rea
 
 Observed results:
 
-- `order-operations-portal`: decision context `READY`; local development `NEEDS_INPUT` because the DecisionRecord still has a pending human decision; cloud testing `NEEDS_INPUT` because independent review is still required; staging `NEEDS_INPUT` because the local, testing and Cloud Run receipt gates are incomplete; production `BLOCKED`.
-- `support-insights`: decision context `READY`; local development, cloud testing and staging are `NEEDS_INPUT` because no accepted DecisionRecord or Evidence Bundle exists; production `BLOCKED`.
+- `order-operations-portal`: decision context `READY`; local development `NEEDS_INPUT` because the DecisionRecord still has a pending human decision; cloud testing `NEEDS_INPUT` because independent review is still required; staging deployment `NEEDS_INPUT` because request/review gates are incomplete; staging verification is `NEEDS_INPUT` because no matching Cloud Run receipt exists; production `BLOCKED`.
+- `support-insights`: decision context `READY`; local development, cloud testing and staging deployment are `NEEDS_INPUT` because no accepted DecisionRecord or Evidence Bundle exists; staging verification is also `NEEDS_INPUT`; production `BLOCKED`.
 
 The readiness names intentionally separate local development from deployment:
 
