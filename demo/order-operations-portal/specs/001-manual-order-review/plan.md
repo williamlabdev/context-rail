@@ -60,3 +60,16 @@ REQ-001 → spec.md → DR-001 → plan.md / tasks.md → AgentRunRecord → EB-
 ```
 
 Required references: `project_id=order-operations-portal`, `request_id=REQ-001`, `decision_id=DR-001`, `policy_version=environments-v1`, and the source snapshot hash recorded when the canonical context is rebuilt.
+
+## Design artifacts
+
+- [Data model](data-model.md) defines the synthetic order and review state boundary.
+- [HTTP contract](contracts/http.md) defines the externally observable service behavior.
+- [Quickstart](quickstart.md) defines the reproducible local validation path.
+
+## Constitution Check: post-design
+
+- [x] The design remains a single reversible Change Slice.
+- [x] No design artifact introduces real data, persistence, IAM or production access.
+- [x] Every externally observable behavior has a validation scenario or evidence path.
+- [x] Cloud Run staging remains a separate gate and is not implied by local validation.
