@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -14,12 +15,13 @@ import (
 var indexHTML []byte
 
 type order struct {
-	ID       string `json:"id"`
-	Customer string `json:"customer"`
-	Amount   int    `json:"amount"`
-	Reason   string `json:"reason"`
-	Status   string `json:"status"`
-	Note     string `json:"note,omitempty"`
+	ID         string `json:"id"`
+	Customer   string `json:"customer"`
+	Amount     int    `json:"amount"`
+	Reason     string `json:"reason"`
+	Status     string `json:"status"`
+	Note       string `json:"note,omitempty"`
+	ReviewedAt string `json:"reviewedAt,omitempty"`
 }
 
 type reviewRequest struct {
@@ -73,9 +75,15 @@ func (s *server) review(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	decoder := json.NewDecoder(r.Body)
 	var req reviewRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decoder.Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "request must be valid JSON"})
+		return
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "request must contain one JSON object"})
 		return
 	}
 	if req.Decision != "APPROVED" && req.Decision != "REJECTED" {
@@ -95,7 +103,8 @@ func (s *server) review(w http.ResponseWriter, r *http.Request) {
 	}
 	item.Status = req.Decision
 	item.Note = strings.TrimSpace(req.Note)
-	writeJSON(w, http.StatusOK, map[string]any{"order": item, "reviewedAt": time.Now().UTC().Format(time.RFC3339)})
+	item.ReviewedAt = time.Now().UTC().Format(time.RFC3339)
+	writeJSON(w, http.StatusOK, map[string]any{"order": item, "reviewedAt": item.ReviewedAt})
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

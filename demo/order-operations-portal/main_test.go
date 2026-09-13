@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -21,9 +22,25 @@ func TestHealthAndOrderList(t *testing.T) {
 }
 
 func TestReviewRequiresNote(t *testing.T) {
+	for _, note := range []string{"", " \t\n ", "　"} {
+		s := newServer()
+		before := *s.orders["ORD-1001"]
+		body, _ := json.Marshal(reviewRequest{Decision: "APPROVED", Note: note})
+		req := httptest.NewRequest(http.MethodPost, "/api/orders/ORD-1001/review", bytes.NewReader(body))
+		res := httptest.NewRecorder()
+		s.routes().ServeHTTP(res, req)
+		if res.Code != http.StatusBadRequest {
+			t.Fatalf("note %q: got %d, want 400", note, res.Code)
+		}
+		if *s.orders["ORD-1001"] != before {
+			t.Fatalf("note %q changed the order", note)
+		}
+	}
+}
+
+func TestReviewRejectsInvalidJSON(t *testing.T) {
 	s := newServer()
-	body, _ := json.Marshal(reviewRequest{Decision: "APPROVED"})
-	req := httptest.NewRequest(http.MethodPost, "/api/orders/ORD-1001/review", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/orders/ORD-1001/review", bytes.NewBufferString("{"))
 	res := httptest.NewRecorder()
 	s.routes().ServeHTTP(res, req)
 	if res.Code != http.StatusBadRequest {
@@ -31,14 +48,22 @@ func TestReviewRequiresNote(t *testing.T) {
 	}
 }
 
-func TestReviewRejectsInvalidJSON(t *testing.T) {
-
-	s := newServer()
-	req := httptest.NewRequest(http.MethodPost, "/api/orders/ORD-1001/review", bytes.NewBufferString("{"))
-	res := httptest.NewRecorder()
-	s.routes().ServeHTTP(res, req)
-	if res.Code != http.StatusBadRequest {
-		t.Fatalf("got %d, want 400", res.Code)
+func TestReviewRejectsTrailingJSON(t *testing.T) {
+	for _, payload := range []string{
+		`{"decision":"APPROVED","note":"valid prefix"}garbage`,
+		`{"decision":"APPROVED","note":"first"}{"decision":"REJECTED","note":"second"}`,
+	} {
+		s := newServer()
+		before := *s.orders["ORD-1001"]
+		req := httptest.NewRequest(http.MethodPost, "/api/orders/ORD-1001/review", strings.NewReader(payload))
+		res := httptest.NewRecorder()
+		s.routes().ServeHTTP(res, req)
+		if res.Code != http.StatusBadRequest {
+			t.Fatalf("payload %q: got %d, want 400", payload, res.Code)
+		}
+		if *s.orders["ORD-1001"] != before {
+			t.Fatalf("payload %q changed the order", payload)
+		}
 	}
 }
 
@@ -66,10 +91,22 @@ func TestReviewUpdatesOrder(t *testing.T) {
 	if s.orders["ORD-1001"].Status != "APPROVED" {
 		t.Fatalf("status was not updated")
 	}
+	if s.orders["ORD-1001"].ReviewedAt == "" {
+		t.Fatalf("review timestamp was not recorded")
+	}
+	var bodyResponse struct {
+		Order      order  `json:"order"`
+		ReviewedAt string `json:"reviewedAt"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&bodyResponse); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if bodyResponse.ReviewedAt == "" || bodyResponse.Order.ReviewedAt != bodyResponse.ReviewedAt {
+		t.Fatalf("response timestamp was not consistent: %+v", bodyResponse)
+	}
 }
 
 func TestReviewCanBeRepeated(t *testing.T) {
-
 	s := newServer()
 	for _, review := range []reviewRequest{
 		{Decision: "APPROVED", Note: "Address confirmed"},

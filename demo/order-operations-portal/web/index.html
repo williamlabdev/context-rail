@@ -28,22 +28,40 @@
 </main>
 <script>
 let selected = null;
+const draftNotes = new Map();
 const money = n => `NT$ ${n.toLocaleString()}`;
+function element(tag, className, value) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (value !== undefined) node.textContent = value;
+  return node;
+}
 async function load() {
   const res = await fetch('/api/orders'); const orders = await res.json();
   const root = document.querySelector('#orders'); root.innerHTML = '';
   orders.forEach(order => {
-    const card = document.createElement('article'); card.className = 'card' + (selected === order.id ? ' selected' : '');
-    card.innerHTML = `<h2>${order.id}</h2><div class="meta"><span>${order.customer}</span><strong>${money(order.amount)}</strong></div><div class="status">${order.status}</div><p class="reason">${order.reason}</p>${order.note ? `<p><strong>覆核備註：</strong>${order.note}</p>` : ''}${order.status === 'PENDING_REVIEW' ? `<textarea id="note-${order.id}" placeholder="請輸入覆核理由（必填）"></textarea><button class="approve" onclick="review('${order.id}','APPROVED')">核准</button><button class="reject" onclick="review('${order.id}','REJECTED')">退回</button>` : ''}`;
+    const card = element('article'); card.className = 'card' + (selected === order.id ? ' selected' : '');
+    card.append(element('h2', null, order.id));
+    const meta = element('div', 'meta'); meta.append(element('span', null, order.customer), element('strong', null, money(order.amount))); card.append(meta);
+    card.append(element('div', 'status', order.status), element('p', 'reason', order.reason));
+    if (order.note) { const note = element('p'); note.append(element('strong', null, '覆核備註：'), document.createTextNode(order.note)); card.append(note); }
+    if (order.reviewedAt) { const reviewedAt = element('p'); reviewedAt.append(element('strong', null, '覆核時間：'), document.createTextNode(order.reviewedAt)); card.append(reviewedAt); }
+    if (order.status === 'PENDING_REVIEW') {
+      const textarea = element('textarea'); textarea.placeholder = '請輸入覆核理由（必填）'; textarea.value = draftNotes.get(order.id) || '';
+      textarea.addEventListener('input', () => draftNotes.set(order.id, textarea.value)); card.append(textarea);
+      const approve = element('button', 'approve', '核准'); approve.addEventListener('click', () => review(order.id, 'APPROVED', textarea.value));
+      const reject = element('button', 'reject', '退回'); reject.addEventListener('click', () => review(order.id, 'REJECTED', textarea.value)); card.append(approve, reject);
+    }
     root.appendChild(card);
   });
-  if (!orders.length) root.innerHTML = '<p class="empty">目前沒有待覆核訂單。</p>';
+  if (!orders.length) root.appendChild(element('p', 'empty', '目前沒有待覆核訂單。'));
 }
-async function review(id, decision) {
-  selected = id; const note = document.querySelector(`#note-${id}`).value;
+async function review(id, decision, note) {
+  selected = id;
   const res = await fetch(`/api/orders/${id}/review`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({decision, note}) });
   const body = await res.json(); const message = document.querySelector('#message');
-  message.textContent = res.ok ? `${id} 已${decision === 'APPROVED' ? '核准' : '退回'}，結果已記錄。` : `無法送出：${body.error}`;
+  message.textContent = res.ok ? `${id} 已${decision === 'APPROVED' ? '核准' : '退回'}，結果已記錄（${body.reviewedAt}）。` : `無法送出：${body.error}`;
+  if (res.ok) draftNotes.delete(id);
   message.style.color = res.ok ? '#146b45' : '#9a2e2e'; await load();
 }
 load();
