@@ -10,7 +10,7 @@
 
 ## Change Slice
 
-Provide a small, independently testable flow for an operations staff member to review a synthetic order exception before fulfillment. The slice includes an order list, an explicit approve/reject action, a required reason, API validation and a visible result. It does not introduce persistence, authentication or real fulfillment side effects.
+Provide a small, independently testable flow for an operations staff member to review a synthetic order exception before fulfillment. The slice includes an order list, an explicit approve/reject action, a required reason, validation and a visible result. It does not introduce persistence, authentication or real fulfillment side effects.
 
 ## User Scenarios & Testing
 
@@ -20,14 +20,14 @@ As an operations staff member, I want to approve or reject a pending order with 
 
 **Why this priority**: This is the smallest journey that proves the product intent and release-evidence path.
 
-**Independent Test**: Start the service, open the order list, submit an approval or rejection with a note, and confirm the result is visible and returned as JSON.
+**Independent Test**: Start the service, open the order list, submit an approval or rejection with a note, and confirm the result is visible to the operator.
 
 **Acceptance Scenarios**:
 
 1. **Given** at least two synthetic pending orders, **when** the operator opens the portal, **then** the orders and their review reasons are visible.
 2. **Given** a known order, **when** the operator submits `APPROVED` or `REJECTED` with a non-empty note, **then** the status and trimmed note are returned and displayed.
 3. **Given** a known order, **when** the note is empty or whitespace, **then** the request is rejected with a validation error and the order is unchanged.
-4. **Given** an unknown order ID, **when** a review is submitted, **then** the API returns `404`.
+4. **Given** an unknown order ID, **when** a review is submitted, **then** the system clearly reports that the order does not exist and makes no review change.
 
 ### Edge Cases
 
@@ -43,8 +43,8 @@ As an operations staff member, I want to approve or reject a pending order with 
 - **FR-001**: The system MUST list at least two synthetic orders in `PENDING_REVIEW` state.
 - **FR-002**: The system MUST require `APPROVED` or `REJECTED` for a review decision.
 - **FR-003**: The system MUST require a non-empty trimmed note.
-- **FR-004**: The system MUST return the reviewed order and a UTC review timestamp as JSON.
-- **FR-005**: The system MUST return `404` for an unknown order.
+- **FR-004**: The system MUST present the reviewed order, its new status and the review time to the operator.
+- **FR-005**: The system MUST clearly reject an unknown order without changing any order state.
 - **FR-006**: The browser UI MUST make the review result visible.
 - **FR-007**: The implementation MUST use synthetic, stateless data for this slice.
 
@@ -56,8 +56,8 @@ As an operations staff member, I want to approve or reject a pending order with 
 ## Success Criteria
 
 - **SC-001**: A reviewer can complete one approval and one rejection through the UI using only the seeded orders.
-- **SC-002**: All four existing Go tests pass, including validation and unknown-order behavior.
-- **SC-003**: The service builds reproducibly with `go build ./...`.
+- **SC-002**: The five documented happy-path and negative behaviors pass during verification, including validation and unknown-order behavior.
+- **SC-003**: A reviewer can start the prototype from the documented setup and observe the primary journey without undocumented steps.
 - **SC-004**: The change can be independently reviewed against the allowed paths in `DR-001`.
 
 ## Assumptions and Open Questions
