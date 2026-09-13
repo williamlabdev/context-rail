@@ -1,0 +1,39 @@
+# Role Separation Gate Evidence
+
+Observed source commit: `99b72f8a4b245332d8b82461a8e4e260ee680a30`
+
+## Current demo path
+
+Command:
+
+```sh
+python3 demo/order-operations-portal/scripts/check-staging-gate.py \
+  demo/order-operations-portal \
+  99b72f8a4b245332d8b82461a8e4e260ee680a30
+```
+
+Observed result:
+
+```text
+exit=2
+STAGING GATE BLOCKED: DecisionRecord status is not ACCEPTED_FOR_STAGING
+```
+
+This is the expected blocked path. No staging operation was attempted.
+
+## Isolated identity-overlap path
+
+Command:
+
+```sh
+template/.venv/bin/python -m unittest \
+  tests.test_staging_gate.StagingGateTests.test_issued_work_order_cannot_share_reviewer_actor -v
+```
+
+Observed result:
+
+```text
+test_issued_work_order_cannot_share_reviewer_actor ... ok
+```
+
+The fixture sets the Work Order issuer and reviewer to the same `actor_id` (`founder-001`). The staging gate rejects that overlap. This verifies the negative control before a distinct reviewer is assigned.

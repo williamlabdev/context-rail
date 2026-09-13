@@ -115,3 +115,4 @@ description: "Task list for the Manual Order Review Change Slice"
 - [x] T024 Rebuild the canonical Context Pack and replace `sha256:pending-context-build` in `decisions/DR-001-manual-order-review.json` with the observed source snapshot hash per `plan: source snapshot` (partial).
 - [ ] T025 Obtain a new independent reviewer identity, decision, timestamp and reviewed commit after the multi-role contract change in `evidence/EB-001/code-review.md` per `SC-004`.
 - [ ] T026 After T025 and authorized cloud configuration are available, deploy the reviewed image and record the Cloud Run staging revision in `evidence/EB-001/cloud-run-staging-receipt.json` per `REQ-001/AC-006` (missing).
+- [x] T027 Verify the negative role-separation gate with the Founder／Solution Architect overlap fixture and record the blocked result in `evidence/EB-001/role-separation-gate.txt`.
