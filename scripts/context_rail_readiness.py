@@ -19,6 +19,7 @@ READINESS = (
     "ready_for_local_development",
     "ready_for_cloud_testing",
     "ready_for_staging",
+    "staging_verified",
     "production",
 )
 
@@ -215,15 +216,23 @@ def inspect_project(root: Path) -> dict[str, Any]:
     if local_development_ready != "READY":
         cloud_testing_reasons.insert(0, "local development readiness is not READY")
     cloud_testing_ready = "READY" if cloud_testing_evidence == "READY" and not cloud_testing_reasons else "NEEDS_INPUT"
-    staging_evidence, staging_reasons = evidence_state(root)
-    staging_reasons = list(staging_reasons)
-    if local_development_ready != "READY":
-        staging_reasons.insert(0, "local development readiness is not READY")
+    staging_evidence, staging_evidence_reasons = evidence_state(root)
+    staging_reasons: list[str] = []
+    staging_environment = next(
+        (environment for environment in spec.get("environments", []) if environment.get("id") == "staging"),
+        {},
+    )
+    if not staging_environment.get("targetRef") or "<REPLACE_ME" in str(staging_environment.get("targetRef")):
+        staging_reasons.append("staging target is not configured")
     if cloud_testing_ready != "READY":
-        staging_reasons.insert(0, "cloud testing readiness is not READY")
+        staging_reasons.append("cloud testing readiness is not READY")
     if not staging_accepted:
-        staging_reasons.insert(0, "no human-approved staging DecisionRecord found")
-    staging_ready = "READY" if staging_evidence == "READY" and not staging_reasons else "NEEDS_INPUT"
+        staging_reasons.append("no human-approved staging DecisionRecord found")
+    staging_ready = "READY" if not staging_reasons else "NEEDS_INPUT"
+    staging_verified_reasons = list(staging_evidence_reasons)
+    if staging_ready != "READY":
+        staging_verified_reasons.insert(0, "staging deployment readiness is not READY")
+    staging_verified = "READY" if staging_evidence == "READY" and not staging_verified_reasons else "NEEDS_INPUT"
     production = "BLOCKED"
     return {
         "read_only": True,
@@ -247,6 +256,7 @@ def inspect_project(root: Path) -> dict[str, Any]:
             },
             "ready_for_cloud_testing": {"status": cloud_testing_ready, "reasons": cloud_testing_reasons},
             "ready_for_staging": {"status": staging_ready, "reasons": staging_reasons},
+            "staging_verified": {"status": staging_verified, "reasons": staging_verified_reasons},
             "production": {"status": production, "reasons": ["production is human-gated and read-only in P0"]},
         },
     }

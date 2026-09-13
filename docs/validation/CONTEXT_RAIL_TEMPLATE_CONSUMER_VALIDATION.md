@@ -52,6 +52,7 @@ The readiness names intentionally separate local development from deployment:
 
 - `ready_for_local_development` does not require Cloud Run credentials or a staging receipt.
 - `ready_for_cloud_testing` evaluates test, build and independent review evidence for the testing/CI boundary; it does not mean that a Cloud Run service has been deployed.
-- `ready_for_staging` is the Cloud Run deployment gate and requires the staging receipt in addition to upstream governance and engineering evidence.
+- `ready_for_staging` is the Cloud Run pre-deployment gate and does not require a receipt that cannot exist before the first deploy.
+- `staging_verified` is the post-deployment state and requires a matching PASS staging receipt, review, test/build evidence and the upstream deployment gate.
 
 The inspector also detects a changed source document as `STALE` by comparing the derived Context Pack hash with the current file.

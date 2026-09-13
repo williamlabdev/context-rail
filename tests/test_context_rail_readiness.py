@@ -36,6 +36,7 @@ class ReadinessInspectionTests(unittest.TestCase):
                 "ready_for_local_development",
                 "ready_for_cloud_testing",
                 "ready_for_staging",
+                "staging_verified",
                 "production",
             },
         )
@@ -85,14 +86,36 @@ class ReadinessInspectionTests(unittest.TestCase):
         self.assertEqual(development["status"], "NEEDS_INPUT")
         self.assertTrue(any("no human-accepted" in reason for reason in development["reasons"]))
 
+    def test_staging_deploy_gate_does_not_require_postdeploy_receipt(self) -> None:
+        temp_dir = Path(tempfile.mkdtemp(prefix="context-rail-readiness-"))
+        self.addCleanup(shutil.rmtree, temp_dir)
+        project = temp_dir / "order-operations-portal"
+        shutil.copytree(ROOT / "demo/order-operations-portal", project)
+        decision_path = project / "decisions/DR-001-manual-order-review.json"
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        decision["status"] = "ACCEPTED_FOR_STAGING"
+        decision["human_decisions"] = {"accept_request": "ACCEPTED", "allow_staging": "ACCEPTED"}
+        decision_path.write_text(json.dumps(decision), encoding="utf-8")
+        (project / "evidence/EB-001/code-review.md").write_text(
+            "Status: `PASS`\nReviewer: `independent-reviewer`\nReviewed commit: `10876c6`\n",
+            encoding="utf-8",
+        )
+        report = self.inspect(project)[0]
+        self.assertEqual(report["readiness"]["ready_for_staging"]["status"], "READY")
+        self.assertEqual(report["readiness"]["staging_verified"]["status"], "NEEDS_INPUT")
+        self.assertTrue(any("receipt" in reason for reason in report["readiness"]["staging_verified"]["reasons"]))
+
     def test_local_development_does_not_require_cloud_run(self) -> None:
         report = self.inspect(ROOT / "demo/order-operations-portal")[0]
         local = report["readiness"]["ready_for_local_development"]
         staging = report["readiness"]["ready_for_staging"]
+        verified = report["readiness"]["staging_verified"]
         self.assertEqual(local["status"], "NEEDS_INPUT")
         self.assertFalse(any("Cloud Run" in reason for reason in local["reasons"]))
         self.assertEqual(staging["status"], "NEEDS_INPUT")
-        self.assertTrue(any("receipt" in reason for reason in staging["reasons"]))
+        self.assertTrue(any("human-approved staging" in reason for reason in staging["reasons"]))
+        self.assertEqual(verified["status"], "NEEDS_INPUT")
+        self.assertTrue(any("receipt" in reason for reason in verified["reasons"]))
 
     def test_changed_source_is_stale(self) -> None:
         temp_dir = Path(tempfile.mkdtemp(prefix="context-rail-readiness-"))
