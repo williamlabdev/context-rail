@@ -1,0 +1,43 @@
+{
+  "artifact_type": "release_receipt",
+  "example_only": true,
+  "schema_version": "1.0",
+  "project_id": "proj-internal-approval",
+  "project_key": "APV",
+  "project_version": 3,
+  "receipt_id": "RR-2026-0017-STG-001",
+  "receipt_status": "SIMULATED_NOT_EXECUTED",
+  "decision_id": "CHG-2026-0017",
+  "decision_version": 3,
+  "environment": "staging",
+  "environment_topology_id": "internal-approval-envs",
+  "environment_topology_version": 1,
+  "source_environment": "testing",
+  "target_environment": "staging",
+  "promotion_transition": "testing-to-staging",
+  "source_snapshot_hash": "sha256:example-source-snapshot-7f83...",
+  "artifact_digest": "sha256:example-image-digest-91bc...",
+  "config_snapshot_hash": "sha256:example-staging-config-a11c...",
+  "build": {
+    "status": "REQUIRED_BUT_NOT_ATTACHED",
+    "provenance_uri": "evidence://CHG-2026-0017/build-provenance"
+  },
+  "verification": {
+    "unit_tests": "NOT_EXECUTED",
+    "integration_tests": "NOT_EXECUTED",
+    "static_policy_tests": "NOT_EXECUTED",
+    "smoke_test": "NOT_EXECUTED"
+  },
+  "rollout": {
+    "status": "REQUIRED_BUT_NOT_ATTACHED",
+    "approval_event": "evidence://CHG-2026-0017/staging-rollout"
+  },
+  "production_authorized": false,
+  "drift_policy": {
+    "source_mismatch": "BLOCK",
+    "artifact_mismatch": "BLOCK",
+    "config_mismatch": "BLOCK",
+    "expired_approval": "BLOCK"
+  },
+  "generated_at": "2026-09-11T10:00:00+08:00"
+}

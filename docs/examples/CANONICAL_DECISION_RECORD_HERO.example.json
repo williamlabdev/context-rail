@@ -1,0 +1,140 @@
+{
+  "artifact_type": "canonical_engineering_decision_record",
+  "example_only": true,
+  "schema_version": "1.0",
+  "project_id": "proj-internal-approval",
+  "project_key": "APV",
+  "project_version": 3,
+  "decision_id": "CHG-2026-0017",
+  "decision_version": 3,
+  "subject_type": "feature_addition",
+  "subject": "Internal Approval System attachment support",
+  "status": "APPROVED_FOR_STAGING_ONLY",
+  "source_snapshot_hash": "sha256:example-source-snapshot-7f83...",
+  "policy_version": "internal-cloudrun-v1",
+  "decision": {
+    "summary": "Use a private Cloud Storage bucket and five-minute signed URLs for the staging candidate.",
+    "human_readable_summary": "先在受控測試環境驗證，檔案只允許授權使用者存取；正式上線前還要完成成本、資安、備份復原與上線驗證。",
+    "environment_boundary": "staging_only",
+    "production_authorized": false
+  },
+  "environment_topology": {
+    "topology_id": "internal-approval-envs",
+    "version": 1,
+    "source": "project_config",
+    "environments": [
+      {
+        "environment_id": "development",
+        "display_name": "Development",
+        "normalized_type": "development",
+        "sequence": 1,
+        "target_ref": "cloudrun://internal-approval-dev",
+        "allowed_actions": ["create_revision", "run_tests"],
+        "required_evidence": ["agent_work_order", "feature_branch"]
+      },
+      {
+        "environment_id": "testing",
+        "display_name": "Testing",
+        "normalized_type": "testing",
+        "sequence": 2,
+        "target_ref": "cloudrun://internal-approval-test",
+        "allowed_actions": ["deploy_candidate", "run_integration_tests"],
+        "required_evidence": ["pull_request", "unit_tests", "build_provenance"]
+      },
+      {
+        "environment_id": "staging",
+        "display_name": "Staging",
+        "normalized_type": "staging",
+        "sequence": 3,
+        "target_ref": "cloudrun://internal-approval-staging",
+        "allowed_actions": ["deploy_approved_digest", "run_smoke_test"],
+        "required_evidence": ["candidate_decision", "independent_review", "config_hash", "smoke_test"]
+      },
+      {
+        "environment_id": "production",
+        "display_name": "Production",
+        "normalized_type": "production",
+        "sequence": 4,
+        "target_ref": "cloudrun://internal-approval-prod",
+        "allowed_actions": ["request_promotion"],
+        "required_evidence": ["staging_verified", "release_approval", "backup_evidence"],
+        "approval_policy": "separation_of_duties",
+        "prototype_state": "read_only_blocked"
+      }
+    ]
+  },
+  "business_requirement": {
+    "problem": "Approval request data and attachments are separated, causing review omissions.",
+    "desired_outcome": "Applicants upload attachments in the internal approval system and authorized reviewers can view them in the same request.",
+    "not_a_goal": "Build a general-purpose file management platform."
+  },
+  "confirmed_inputs": {
+    "max_file_size_mb": 25,
+    "allowed_file_types": ["PDF", "DOCX", "XLSX", "PNG", "JPG"],
+    "retention_days": 365,
+    "expected_monthly_uploads": 10000,
+    "expected_monthly_downloads": 30000,
+    "data_classification": "Internal Confidential",
+    "region": "asia-east1",
+    "roles": ["applicant", "reviewer", "unrelated_user"]
+  },
+  "architecture": {
+    "api": "Existing Go service on Cloud Run",
+    "metadata": "Firestore",
+    "object_store": "Private Cloud Storage bucket",
+    "access_pattern": "Cloud Run authorizes request, then issues a five-minute signed URL",
+    "bucket_public_access": false,
+    "lifecycle": "Delete objects after 365 days"
+  },
+  "options": [
+    {
+      "id": "proxy",
+      "name": "Cloud Run proxy",
+      "decision": "fallback",
+      "reason": "Centralizes traffic but increases request time, compute, and large-file handling risk."
+    },
+    {
+      "id": "signed_url",
+      "name": "Signed URL direct transfer",
+      "decision": "selected_for_staging",
+      "reason": "Keeps the bucket private while avoiding file-content transfer through Cloud Run."
+    }
+  ],
+  "required_evidence": [
+    "changed-path manifest",
+    "unit tests",
+    "integration tests",
+    "static policy tests",
+    "container image digest",
+    "Cloud Build provenance",
+    "staging config hash",
+    "staging rollout and approval event",
+    "smoke test"
+  ],
+  "unknowns_for_production": [
+    "Observed staging storage and egress cost",
+    "Security review outcome",
+    "Backup and recovery evidence",
+    "Complete staging rollout evidence"
+  ],
+  "authority": {
+    "can_approve": false,
+    "can_merge": false,
+    "can_deploy_production": false,
+    "can_change_policy": false
+  },
+  "approvers": {
+    "business_owner": "Business Owner (example)",
+    "technical_owner": "Solution Architect (example)",
+    "security_owner": "Security Owner (example)",
+    "release_owner": "Release Owner (example)"
+  },
+  "evidence_refs": [
+    "evidence://CHG-2026-0017/source-snapshot",
+    "evidence://CHG-2026-0017/changed-paths",
+    "evidence://CHG-2026-0017/tests",
+    "evidence://CHG-2026-0017/build-provenance",
+    "evidence://CHG-2026-0017/staging-rollout"
+  ],
+  "expires_at": "2026-09-25T23:59:59+08:00"
+}

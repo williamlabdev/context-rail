@@ -1,0 +1,45 @@
+{
+  "artifact_type": "candidate_review",
+  "example_only": true,
+  "schema_version": "1.0",
+  "project_id": "proj-internal-approval",
+  "project_key": "APV",
+  "project_version": 3,
+  "decision_id": "CHG-2026-0017",
+  "decision_version": 3,
+  "candidate_id": "feature/attachment-public-bucket",
+  "status": "BLOCKED",
+  "environment_topology_id": "internal-approval-envs",
+  "target_environment": "staging",
+  "promotion_transition": "testing-to-staging",
+  "source_snapshot_hash": "sha256:example-source-snapshot-7f83...",
+  "changed_paths": [
+    "internal/attachments/service.go",
+    "tests/attachments/service_test.go",
+    "infra/iam/public-bucket.yaml"
+  ],
+  "violations": [
+    {
+      "rule": "forbidden_path",
+      "path": "infra/iam/public-bucket.yaml",
+      "detail": "The candidate changes IAM outside the issued allowed paths."
+    },
+    {
+      "rule": "public_object_access",
+      "path": "infra/iam/public-bucket.yaml",
+      "detail": "The candidate grants allUsers objectViewer to an Internal Confidential bucket."
+    }
+  ],
+  "functional_tests": {
+    "status": "NOT_RELEVANT_TO_GATE",
+    "note": "Functional tests cannot override a policy violation."
+  },
+  "recommended_action": "Remove the forbidden change or create a new decision version with Security Owner and Solution Architect review.",
+  "work_order_issuance": "BLOCKED",
+  "merge": "BLOCKED",
+  "production_deploy": "BLOCKED",
+  "human_decision_required": [
+    "Security Owner",
+    "Solution Architect"
+  ]
+}

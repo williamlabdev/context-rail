@@ -1,0 +1,150 @@
+{
+  "artifact_type": "agent_context_pack",
+  "example_only": true,
+  "schema_version": "1.0",
+  "project_id": "proj-internal-approval",
+  "project_key": "APV",
+  "project_version": 3,
+  "decision_id": "CHG-2026-0017",
+  "decision_version": 3,
+  "subject_type": "feature_addition",
+  "subject": "Internal Approval System attachment support",
+  "status": "ISSUED_FOR_STAGING_CANDIDATE",
+  "source_snapshot_hash": "sha256:example-source-snapshot-7f83...",
+  "policy_version": "internal-cloudrun-v1",
+  "environment_topology": {
+    "topology_id": "internal-approval-envs",
+    "version": 1,
+    "source_environment_id": "testing",
+    "target_environment_id": "staging",
+    "allowed_transition_id": "testing-to-staging",
+    "production_action": "forbidden"
+  },
+  "objective": "Add private attachment upload and download to an existing internal approval system without allowing public object access.",
+  "business_constraints": {
+    "data_classification": "Internal Confidential",
+    "region": "asia-east1",
+    "retention_days": 365,
+    "max_file_size_mb": 25,
+    "expected_monthly_uploads": 10000,
+    "expected_monthly_downloads": 30000
+  },
+  "accepted_scope": [
+    "Add attachment metadata linked to an approval request",
+    "Generate five-minute signed upload and download URLs",
+    "Authorize access using the approval request role",
+    "Store object content in a private Cloud Storage staging bucket",
+    "Add unit, integration, and static policy tests",
+    "Produce evidence references for the staging candidate"
+  ],
+  "out_of_scope": [
+    "Production deployment",
+    "A general-purpose file management platform",
+    "Public bucket access",
+    "Multi-tenant SaaS isolation",
+    "Virus scanning or DLP platform",
+    "CMEK adoption without a new decision version",
+    "Automatic merge, approval, rollback, or production release"
+  ],
+  "allowed_paths": [
+    "internal/attachments/**",
+    "internal/storage/**",
+    "tests/attachments/**",
+    "api/attachments.openapi.yaml",
+    "deploy/staging/attachments.example.yaml"
+  ],
+  "forbidden_actions": [
+    "modify:infra/iam/**",
+    "create:public-storage-bucket",
+    "add:allUsers-objectViewer",
+    "deploy:production",
+    "read:deployment-secrets",
+    "change:retention-or-region-without-new-decision-version",
+    "merge-or-approve-release"
+  ],
+  "architecture_constraints": {
+    "api": "Existing Go service on Cloud Run",
+    "metadata": "Firestore",
+    "object_store": "Private Cloud Storage bucket in asia-east1",
+    "access_pattern": "Cloud Run authorizes first, then issues short-lived signed URL",
+    "bucket_public_access": false,
+    "signed_url_ttl_minutes": 5,
+    "lifecycle": "Delete objects after 365 days",
+    "production_change": false
+  },
+  "cost_constraints": {
+    "cost_status": "PARTIAL",
+    "known_drivers": [
+      "Stored bytes over the 365-day retention window",
+      "Download egress and user geography",
+      "Cloud Run requests and compute",
+      "Firestore reads, writes, and indexes",
+      "Cloud Build and Artifact Registry usage"
+    ],
+    "not_a_quote": true,
+    "required_follow_up": "Recalculate with observed staging traffic and current Google Cloud pricing before production approval."
+  },
+  "acceptance_tests": [
+    {
+      "id": "AT-01",
+      "name": "Applicant uploads an allowed file",
+      "expected": "Metadata is linked to the request and the object is private."
+    },
+    {
+      "id": "AT-02",
+      "name": "Reviewer downloads an allowed file",
+      "expected": "A five-minute signed URL is issued after role authorization."
+    },
+    {
+      "id": "AT-03",
+      "name": "Unrelated user requests the file",
+      "expected": "The API returns 403 and does not issue a URL."
+    },
+    {
+      "id": "AT-04",
+      "name": "File exceeds 25 MB or has a disallowed type",
+      "expected": "The request is rejected with a stable error and no object is accepted."
+    },
+    {
+      "id": "AT-05",
+      "name": "Candidate changes a forbidden path",
+      "expected": "The candidate is blocked even if functional tests pass."
+    }
+  ],
+  "required_checks": [
+    "changed-path manifest",
+    "unit tests",
+    "integration tests",
+    "static policy tests",
+    "container image digest",
+    "Cloud Build provenance",
+    "staging config hash",
+    "staging rollout and approval event",
+    "smoke test"
+  ],
+  "unknowns": [],
+  "evidence_refs": [
+    "evidence://CHG-2026-0017/source-snapshot",
+    "evidence://CHG-2026-0017/changed-paths",
+    "evidence://CHG-2026-0017/tests",
+    "evidence://CHG-2026-0017/build-provenance",
+    "evidence://CHG-2026-0017/staging-rollout"
+  ],
+  "authority": {
+    "can_modify_allowed_paths": true,
+    "can_run_tests": true,
+    "can_merge": false,
+    "can_approve": false,
+    "can_deploy_staging": false,
+    "can_deploy_production": false,
+    "can_change_policy": false
+  },
+  "approval": {
+    "decision_owner": "Business Owner (example)",
+    "technical_owner": "Solution Architect (example)",
+    "status": "APPROVED_FOR_STAGING_ONLY",
+    "expires_at": "2026-09-25T23:59:59+08:00"
+  },
+  "pack_hash": "sha256:example-agent-pack-4b21...",
+  "generated_at": "2026-09-11T10:00:00+08:00"
+}
