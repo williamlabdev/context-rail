@@ -4,7 +4,7 @@
   "status": "CURRENT",
   "project_id": "order-operations-portal",
   "schema_version": "context-pack/v1",
-  "generated_at": "2026-09-13T03:36:58Z",
+  "generated_at": "2026-09-13T06:44:32Z",
   "source_snapshot_hash": "sha256:8f283ad56c5679557b3364bbad88b956b69e663d0cab9989a6393468c42519da",
   "sources": [
     {
@@ -12,7 +12,7 @@
       "kind": "project-manifest",
       "version": "1",
       "content_hash": "sha256:1011009e94b0732c454d18060b4ddfcd2b43b8bde87d1dca163cf0e0841cc8ab",
-      "effective_time": "2026-09-13T03:36:58Z",
+      "effective_time": "2026-09-13T06:44:32Z",
       "access_scope": "repository-read"
     },
     {
@@ -20,7 +20,7 @@
       "kind": "human-entry",
       "version": "1",
       "content_hash": "sha256:866563b51beadf62862fe1b3b659afa620dd2d31b5dfdf8141742eb6fb7e1afa",
-      "effective_time": "2026-09-13T03:36:58Z",
+      "effective_time": "2026-09-13T06:44:32Z",
       "access_scope": "repository-read"
     },
     {
@@ -28,7 +28,7 @@
       "kind": "product-intent",
       "version": "1",
       "content_hash": "sha256:ce7b31686e33fd107c564cbdc6aeb127d0c46ebe7e5cc209365687a002cfbef7",
-      "effective_time": "2026-09-13T03:36:58Z",
+      "effective_time": "2026-09-13T06:44:32Z",
       "access_scope": "repository-read"
     },
     {
@@ -36,7 +36,7 @@
       "kind": "architecture-baseline",
       "version": "1",
       "content_hash": "sha256:719e27374a560e63371f1bd5d9f97620fe1e65b78421c03263c12d553894a42a",
-      "effective_time": "2026-09-13T03:36:58Z",
+      "effective_time": "2026-09-13T06:44:32Z",
       "access_scope": "repository-read"
     },
     {
@@ -44,7 +44,7 @@
       "kind": "engineering-operations",
       "version": "1",
       "content_hash": "sha256:e34e5fecf1d34b9e242b8eeaa3524c354e3ef1bcfcb1cb8ce230dcd1aba55da4",
-      "effective_time": "2026-09-13T03:36:58Z",
+      "effective_time": "2026-09-13T06:44:32Z",
       "access_scope": "repository-read"
     },
     {
@@ -52,7 +52,7 @@
       "kind": "environment-policy",
       "version": "1",
       "content_hash": "sha256:f21aeaaae4b870b50a80d68e5b2e3bdf791d3f343c143c27f371a3fdb191173f",
-      "effective_time": "2026-09-13T03:36:58Z",
+      "effective_time": "2026-09-13T06:44:32Z",
       "access_scope": "repository-read"
     },
     {
@@ -60,7 +60,7 @@
       "kind": "agent-behavior",
       "version": "1",
       "content_hash": "sha256:30907814bdc0829dd3231dc6cdcda438c3b8abc80f95ff33b0337088cff7230b",
-      "effective_time": "2026-09-13T03:36:58Z",
+      "effective_time": "2026-09-13T06:44:32Z",
       "access_scope": "repository-read"
     }
   ],

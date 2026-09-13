@@ -112,6 +112,6 @@ description: "Task list for the Manual Order Review Change Slice"
 
 **Purpose**: Close evidence gaps found after the brownfield implementation verification.
 
-- [ ] T024 Rebuild the canonical Context Pack and replace `sha256:pending-context-build` in `decisions/DR-001-manual-order-review.json` with the observed source snapshot hash per `plan: source snapshot` (partial).
+- [x] T024 Rebuild the canonical Context Pack and replace `sha256:pending-context-build` in `decisions/DR-001-manual-order-review.json` with the observed source snapshot hash per `plan: source snapshot` (partial).
 - [ ] T025 Obtain an independent reviewer identity, decision, timestamp and reviewed commit in `evidence/EB-001/code-review.md` per `SC-004` (missing).
 - [ ] T026 After T025 and authorized cloud configuration are available, deploy the reviewed image and record the Cloud Run staging revision in `evidence/EB-001/cloud-run-staging-receipt.json` per `REQ-001/AC-006` (missing).
