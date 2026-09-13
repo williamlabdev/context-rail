@@ -21,6 +21,8 @@ Spec Kit 負責協助形成可執行的 specification；ContextRail 負責判斷
 
 Template 內的 `work-orders/AWO-000-template.json` 與 `runs/ARR-000-template.json` 是可複製的結構化交接骨架。它們不會自動把 Request 變成 accepted，也不會把 `AgentRunRecord` 當成 Git／CI provenance；缺少人類 gate 時應保留 `PENDING`、`BLOCKED` 或 `NOT_STARTED`。
 
+`governance/role-assignments.json` 保存 actor identity 與可兼任的角色。角色可以重疊，但 independent reviewer／release approver 的 actor identity 必須符合 `separation_rules`。
+
 若某個 Spec Kit artifact 無法回指這些來源，狀態應為 `NEEDS_INPUT` 或 `STALE`，而不是直接進入 implementation。
 
 ## Pilot sequence

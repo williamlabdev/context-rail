@@ -1,18 +1,22 @@
 # Independent Code Review Evidence
 
-Status: `PASS`
+Status: `NEEDS_INPUT`
 
 Reviewer: `Founder`
 
-Review timestamp: `2026-09-13T10:35:53Z`
+Reviewer actor_id: `founder-001`
 
-Reviewed commit: `e76e62f8daf33a47ea4453a925f0665d6d6f0c50`
+Reviewer role: `founder`
 
-Decision: `ACCEPTED`
+Review timestamp: `<new human review required after multi-role contract change>`
 
-Notes: `Founder reviewed the human review packet, implementation scope, evidence and automated verification results. No blocking findings remain for the local candidate.`
+Reviewed commit: `<pending re-review commit>`
 
-Review scope: `REQ-001` / `DR-001`, current final candidate including `main.go`, `main_test.go`, `web/index.html`, ContextRail readiness／Context Pack validation, Work Order／Run Record, and staging gate scripts.
+Decision: `PENDING_REVIEW`
+
+Notes: `The previous Founder review was invalidated because the multi-role actor/separation contract changed. A new human review is required.`
+
+Review scope: `REQ-001` / `DR-001`, current final candidate including `main.go`, `main_test.go`, `web/index.html`, ContextRail readiness／Context Pack validation, role assignments, Work Order／Run Record, and staging gate scripts.
 
 Review questions:
 

@@ -4,6 +4,7 @@
 - Technical decision approver: `<REPLACE_ME>`
 - Independent code reviewer: must be separate from the change author.
 - Release approver: must be separate from the change author and reviewer where practical.
+- Role assignments must record actor identity and role for each human action. One actor may hold multiple roles, but independence rules are evaluated by actor identity.
 - Data classification and retention: `<REPLACE_ME>`
 - Required evidence for staging: accepted DecisionRecord, matching diff/commit, tests, build identity, target configuration and smoke.
 - Production policy: human approval required; default to protected/read-only until explicitly enabled.

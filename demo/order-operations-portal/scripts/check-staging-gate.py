@@ -15,6 +15,13 @@ def field(text: str, label: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+def action_value(human_decisions: dict, action: str) -> str:
+    value = human_decisions.get(action, "")
+    if isinstance(value, dict):
+        value = value.get("decision", "")
+    return str(value).upper()
+
+
 def fail(message: str) -> int:
     print(f"STAGING GATE BLOCKED: {message}", file=sys.stderr)
     return 2
@@ -34,12 +41,17 @@ def main() -> int:
         )
         context_pack = json.loads((root / "docs/ai/context-pack.json").read_text(encoding="utf-8"))
         review_text = (root / "evidence/EB-001/code-review.md").read_text(encoding="utf-8")
+        role_assignments = json.loads((root / "governance/role-assignments.json").read_text(encoding="utf-8"))
+        work_order = json.loads(
+            (root / "work-orders/AWO-001-manual-order-review.json").read_text(encoding="utf-8")
+        )
     except (OSError, json.JSONDecodeError) as exc:
         return fail(f"required governance artifact cannot be read: {exc}")
 
     if decision.get("status") != "ACCEPTED_FOR_STAGING":
         return fail("DecisionRecord status is not ACCEPTED_FOR_STAGING")
-    if str(decision.get("human_decisions", {}).get("allow_staging", "")).upper() not in {
+    human_decisions = decision.get("human_decisions", {})
+    if action_value(human_decisions, "allow_staging") not in {
         "ACCEPTED",
         "APPROVED",
         "TRUE",
@@ -52,10 +64,36 @@ def main() -> int:
     if field(review_text, "Status").upper() != "PASS":
         return fail("independent code review is not PASS")
     reviewer = field(review_text, "Reviewer").lower()
+    reviewer_actor_id = field(review_text, "Reviewer actor_id")
     if not reviewer or reviewer in {"unassigned", "unknown", "pending"}:
         return fail("independent reviewer identity is missing")
+    if not reviewer_actor_id:
+        return fail("independent reviewer actor_id is missing")
     if field(review_text, "Reviewed commit") != approved_commit:
         return fail("reviewed commit does not match APPROVED_COMMIT")
+    actors = {
+        actor.get("actor_id"): actor
+        for actor in role_assignments.get("actors", [])
+        if isinstance(actor, dict) and actor.get("actor_id")
+    }
+    if reviewer_actor_id not in actors:
+        return fail("reviewer actor_id is not declared in role assignments")
+    if work_order.get("status") in {"READY", "ISSUED", "ACCEPTED_FOR_EXECUTION"}:
+        issuer = work_order.get("issuer", {})
+        issuer_actor_id = issuer.get("actor_id")
+        issuer_role = issuer.get("actor_role")
+        if not issuer_actor_id or issuer.get("status") == "NOT_ISSUED":
+            return fail("active Work Order has no issued actor identity")
+        if issuer_actor_id not in actors:
+            return fail("Work Order issuer actor_id is not declared in role assignments")
+        if issuer_role not in actors[issuer_actor_id].get("roles", []):
+            return fail("Work Order issuer role is not assigned to that actor")
+        if issuer_actor_id == reviewer_actor_id:
+            return fail("Work Order issuer and independent reviewer must be different actors")
+        staging_decision = human_decisions.get("allow_staging", {})
+        staging_actor_id = staging_decision.get("actor_id") if isinstance(staging_decision, dict) else None
+        if staging_actor_id and staging_actor_id in {issuer_actor_id, reviewer_actor_id}:
+            return fail("staging approver must be different from issuer and reviewer")
     print("STAGING GATE PASS")
     return 0
 

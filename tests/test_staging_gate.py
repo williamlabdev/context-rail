@@ -42,12 +42,33 @@ class StagingGateTests(unittest.TestCase):
         decision_path.write_text(json.dumps(decision), encoding="utf-8")
         review_path = project / "evidence/EB-001/code-review.md"
         review_path.write_text(
-            "Status: `PASS`\nReviewer: `independent-reviewer`\nReviewed commit: `different-commit`\n",
+            "Status: `PASS`\nReviewer: `independent-reviewer`\nReviewer actor_id: `reviewer-pending`\nReviewed commit: `different-commit`\n",
             encoding="utf-8",
         )
         result = self.run_gate(project)
         self.assertEqual(result.returncode, 2)
         self.assertIn("reviewed commit does not match APPROVED_COMMIT", result.stderr)
+
+    def test_issued_work_order_cannot_share_reviewer_actor(self) -> None:
+        project = self.copy_demo()
+        decision_path = project / "decisions/DR-001-manual-order-review.json"
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        decision["status"] = "ACCEPTED_FOR_STAGING"
+        decision["human_decisions"]["allow_staging"] = {"decision": "ACCEPTED", "actor_id": "reviewer-pending"}
+        decision_path.write_text(json.dumps(decision), encoding="utf-8")
+        review_path = project / "evidence/EB-001/code-review.md"
+        review_path.write_text(
+            "Status: `PASS`\nReviewer: `Founder`\nReviewer actor_id: `founder-001`\nReviewed commit: `10876c68ad460d5dbf0edd584c1db7de2e2cdb17`\n",
+            encoding="utf-8",
+        )
+        work_order_path = project / "work-orders/AWO-001-manual-order-review.json"
+        work_order = json.loads(work_order_path.read_text(encoding="utf-8"))
+        work_order["status"] = "ISSUED"
+        work_order["issuer"]["status"] = "ISSUED"
+        work_order_path.write_text(json.dumps(work_order), encoding="utf-8")
+        result = self.run_gate(project)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("issuer and independent reviewer must be different", result.stderr)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@
   "policy_version": "<REPLACE_ME_POLICY_VERSION>",
   "status": "PENDING_HUMAN_ACCEPTANCE",
   "human_gate": "PENDING",
+  "issuer": {"actor_id": null, "actor_role": null, "status": "NOT_ISSUED"},
   "repository": "<REPLACE_ME_REPOSITORY>",
   "base_branch": "main",
   "target_branch": "<REPLACE_ME_FEATURE_BRANCH>",

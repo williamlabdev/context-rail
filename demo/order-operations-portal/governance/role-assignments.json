@@ -1,0 +1,25 @@
+{
+  "kind": "RoleAssignments",
+  "schema_version": "role-assignments/v1",
+  "project_id": "order-operations-portal",
+  "status": "CURRENT",
+  "actors": [
+    {
+      "actor_id": "founder-001",
+      "display_name": "Founder",
+      "identity_type": "human",
+      "roles": ["founder", "solution_architect"]
+    },
+    {
+      "actor_id": "reviewer-pending",
+      "display_name": "Independent reviewer (not assigned)",
+      "identity_type": "human",
+      "roles": ["independent_reviewer"],
+      "status": "UNASSIGNED"
+    }
+  ],
+  "separation_rules": {
+    "independent_code_review": {"requires_distinct_actor_from": ["work_order_issuer", "implementation_author"]},
+    "staging_approval": {"requires_distinct_actor_from": ["code_reviewer", "work_order_issuer"]}
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "kind": "RoleAssignments",
+  "schema_version": "role-assignments/v1",
+  "project_id": "<REPLACE_ME_PROJECT_ID>",
+  "status": "NEEDS_INPUT",
+  "actors": [
+    {
+      "actor_id": "<REPLACE_ME_ACTOR_ID>",
+      "display_name": "<REPLACE_ME_ACTOR_NAME>",
+      "identity_type": "human",
+      "roles": ["founder", "solution_architect"]
+    }
+  ],
+  "separation_rules": {
+    "independent_code_review": {"requires_distinct_actor_from": ["work_order_issuer", "implementation_author"]},
+    "staging_approval": {"requires_distinct_actor_from": ["code_reviewer", "work_order_issuer"]}
+  }
+}

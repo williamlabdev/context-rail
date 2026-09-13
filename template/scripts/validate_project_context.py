@@ -21,6 +21,7 @@ REQUIRED = (
     "docs/engineering/development.md",
     "docs/operations/environments.md",
     "docs/governance/policies.md",
+    "governance/role-assignments.json",
     "docs/ai/context-pack.json",
 )
 

@@ -106,7 +106,7 @@ class ReadinessInspectionTests(unittest.TestCase):
         decision["human_decisions"] = {"accept_request": "ACCEPTED", "allow_staging": "ACCEPTED"}
         decision_path.write_text(json.dumps(decision), encoding="utf-8")
         (project / "evidence/EB-001/code-review.md").write_text(
-            "Status: `PASS`\nReviewer: `independent-reviewer`\nReviewed commit: `10876c6`\n",
+            "Status: `PASS`\nReviewer: `independent-reviewer`\nReviewer actor_id: `reviewer-pending`\nReviewed commit: `10876c6`\n",
             encoding="utf-8",
         )
         report = self.inspect(project)[0]
@@ -119,7 +119,7 @@ class ReadinessInspectionTests(unittest.TestCase):
         local = report["readiness"]["ready_for_local_development"]
         staging = report["readiness"]["ready_for_staging"]
         verified = report["readiness"]["staging_verified"]
-        self.assertEqual(local["status"], "READY")
+        self.assertEqual(local["status"], "NEEDS_INPUT")
         self.assertFalse(any("Cloud Run" in reason for reason in local["reasons"]))
         self.assertEqual(staging["status"], "NEEDS_INPUT")
         self.assertTrue(any("human-approved staging" in reason for reason in staging["reasons"]))

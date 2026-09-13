@@ -84,6 +84,7 @@ class ContextToolTests(unittest.TestCase):
         self.assertTrue(pack["source_snapshot_hash"].startswith("sha256:"))
         self.assertTrue(all(source["content_hash"].startswith("sha256:") for source in pack["sources"]))
         self.assertIn("docs/governance/policies.md", [source["path"] for source in pack["sources"]])
+        self.assertIn("governance/role-assignments.json", [source["path"] for source in pack["sources"]])
 
     def test_validator_rejects_changed_source_hash(self) -> None:
         root = self.copy_template()

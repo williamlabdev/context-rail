@@ -79,6 +79,10 @@ spec:
       kind: governance-policy
       sourceOfTruth: true
       requiredFor: [decision, staging]
+    - path: governance/role-assignments.json
+      kind: role-assignments
+      sourceOfTruth: true
+      requiredFor: [work-order, staging]
     - path: AGENTS.md
       kind: agent-behavior
       sourceOfTruth: true

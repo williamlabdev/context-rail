@@ -83,7 +83,10 @@ def decision_is_human_accepted(decision: dict[str, Any], action: str = "accept_r
     if decision.get("status") not in required_statuses.get(action, set()):
         return False
     human = decision.get("human_decision") or decision.get("human_decisions") or {}
-    return str(human.get(action, "")).upper() in {"ACCEPTED", "APPROVED", "TRUE"}
+    action_value = human.get(action, "")
+    if isinstance(action_value, dict):
+        action_value = action_value.get("decision", "")
+    return str(action_value).upper() in {"ACCEPTED", "APPROVED", "TRUE"}
 
 
 def markdown_field(path: Path, label: str) -> str:
@@ -102,11 +105,14 @@ def review_evidence_state(root: Path) -> tuple[str, list[str]]:
     for path in review_files:
         status = markdown_field(path, "Status").upper()
         reviewer = markdown_field(path, "Reviewer").lower()
+        reviewer_actor_id = markdown_field(path, "Reviewer actor_id")
         reviewed_commit = markdown_field(path, "Reviewed commit")
         if status != "PASS":
             reasons.append(f"independent code review is {status or 'UNKNOWN'}: {path.relative_to(root)}")
         if not reviewer or reviewer in {"unassigned", "unknown", "pending"}:
             reasons.append(f"code review has no independent reviewer identity: {path.relative_to(root)}")
+        if status == "PASS" and not reviewer_actor_id:
+            reasons.append(f"code review has no reviewer actor_id: {path.relative_to(root)}")
         if status == "PASS" and not reviewed_commit:
             reasons.append(f"code review has no reviewed commit: {path.relative_to(root)}")
     return ("READY" if not reasons else "NEEDS_INPUT"), reasons
