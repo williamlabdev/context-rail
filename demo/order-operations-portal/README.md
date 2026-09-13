@@ -10,7 +10,7 @@ The demo is intentionally split into two parts:
 ## Demo path
 
 1. Create the Project from `project.yaml`.
-2. Validate the seven source documents and inspect `docs/ai/context-pack.json`.
+2. Validate the eight source documents and inspect `docs/ai/context-pack.json`.
 3. Submit `requests/REQ-001-manual-order-review.md`.
 4. Review `decisions/DR-001-manual-order-review.json` and its technical/non-technical summaries.
 5. Start a bounded implementation from the Agent Context Pack.
@@ -36,5 +36,6 @@ The manifest models the eventual source as one GitHub private repository. The UR
 - `docs/ai/context-pack.json` — derived context with source hashes.
 - `requests/` — original Request and acceptance criteria.
 - `decisions/` — canonical DecisionRecord and two audience views.
+- `work-orders/` and `runs/` — bounded handoff and honest Agent Run Record status.
 - `evidence/EB-001/` — test, review, build and Cloud Run receipt evidence.
 - `scripts/deploy-staging.sh` — real `gcloud run deploy` path with a safe preflight; without GCP access it writes a `BLOCKED` receipt rather than claiming deployment.

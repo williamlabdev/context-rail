@@ -11,6 +11,7 @@ Use the commands in `docs/engineering/development.md`. Report exact results, cha
 ## Agent handoff boundary
 
 - Exchange work through structured artifacts such as `Request`, `DecisionRecord`, `AgentWorkOrder` and `EvidenceBundle`.
+- Record each attempted bounded execution in `runs/` as an `AgentRunRecord`; `NOT_STARTED` or `NEEDS_INPUT` is valid when the human gate or evidence is missing.
 - Include project, request, decision, source snapshot, policy, input, output, evidence, status and human-gate references in each handoff.
 - Treat free-form agent conversation as coordination only, never as governance evidence or authorization.
 - Do not implement autonomous Agent-to-Agent orchestration in the P0 template path.

@@ -15,7 +15,7 @@
 7. 使用 venv 執行 `./.venv/bin/python -m unittest discover -s tests`，驗證 validator 與 Context Pack rebuild。
 
 Windows 對應執行檔為 `.venv\\Scripts\\python.exe`；不要依賴系統 Python 或全域安裝的 PyYAML。
-6. 從 `requests/REQ-000-template.md` 複製第一張 Request，讓 DecisionRecord、Agent Work Order、Engineering Evidence 與 Release Receipt 都沿用同一個 `project_id`／`request_id`。
+8. 從 `requests/REQ-000-template.md` 複製第一張 Request，讓 DecisionRecord、Agent Work Order、Agent Run Record、Engineering Evidence 與 Release Receipt 都沿用同一個 `project_id`／`request_id`。
 
 ## Template 內含內容
 
@@ -27,7 +27,7 @@ Windows 對應執行檔為 `.venv\\Scripts\\python.exe`；不要依賴系統 Pyt
 | `docs/operations/environments.md` | environment topology、promotion 與 production gate |
 | `AGENTS.md` | Agent scope、必要驗證、禁止動作與 escalation |
 | `docs/ai/context-pack.json` | 可重建的 derived context，不是 SSOT |
-| `requests/`、`decisions/`、`evidence/` | Request、DecisionRecord、雙版本摘要與 Evidence Bundle 的模板 |
+| `requests/`、`decisions/`、`work-orders/`、`runs/`、`evidence/` | Request、DecisionRecord、受限 Agent handoff、Run Record 與 Evidence Bundle 的模板 |
 | `integrations/spec-kit/` | Optional Spec Kit workflow 與 ContextRail artifact mapping |
 | `scripts/` | Project Context validation 與 Context Pack rebuild |
 | `SECURITY.md`、`.editorconfig`、`CONTRIBUTING.md` | 安全回報、格式與協作基線 |

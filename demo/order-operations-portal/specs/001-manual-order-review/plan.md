@@ -1,6 +1,6 @@
 # Implementation Plan: Manual Order Review
 
-**Branch**: `001-manual-order-review` (planned) | **Date**: 2026-09-13 | **Spec**: [spec.md](spec.md)
+**Branch**: `codex/001-manual-order-review` (current checkout) | **Date**: 2026-09-13 | **Spec**: [spec.md](spec.md)
 
 **Input**: `requests/REQ-001-manual-order-review.md`, `decisions/DR-001-manual-order-review.json`
 
@@ -45,6 +45,8 @@ demo/order-operations-portal/
 ├── web/index.html                  # review UI
 ├── requests/REQ-001-*.md           # canonical request
 ├── decisions/DR-001-*.json          # accepted decision and boundaries
+├── work-orders/AWO-001-*.json       # bounded handoff; currently human-gated
+├── runs/ARR-001-*.json               # honest run status; no execution claimed
 ├── evidence/EB-001/                 # test, build, review and receipt evidence
 └── specs/001-manual-order-review/   # Spec Kit pilot artifacts
 ```
@@ -56,7 +58,7 @@ demo/order-operations-portal/
 The spec and plan are inputs to `DR-001`, not replacements for it. The bounded execution handoff is:
 
 ```text
-REQ-001 → spec.md → DR-001 → plan.md / tasks.md → AgentRunRecord → EB-001 → review
+REQ-001 → spec.md → DR-001 → AWO-001 → plan.md / tasks.md → ARR-001 → EB-001 → review
 ```
 
 Required references: `project_id=order-operations-portal`, `request_id=REQ-001`, `decision_id=DR-001`, `policy_version=environments-v1`, and the source snapshot hash recorded when the canonical context is rebuilt.

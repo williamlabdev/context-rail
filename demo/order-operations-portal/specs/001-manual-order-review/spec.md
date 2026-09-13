@@ -1,6 +1,6 @@
 # Feature Specification: Manual Order Review
 
-**Feature Branch**: `001-manual-order-review` (planned; current checkout remains `develop`)
+**Feature Branch**: `codex/001-manual-order-review` (current checkout)
 
 **Created**: 2026-09-13
 
