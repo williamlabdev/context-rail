@@ -45,7 +45,8 @@ class ReadinessInspectionTests(unittest.TestCase):
         report = self.inspect(ROOT / "demo/order-operations-portal")[0]
         development = report["readiness"]["ready_for_local_development"]
         self.assertEqual(development["status"], "NEEDS_INPUT")
-        self.assertTrue(any("conflicts" in reason for reason in development["reasons"]))
+        self.assertTrue(any("no human-accepted" in reason for reason in development["reasons"]))
+        self.assertFalse(any("conflicts" in reason for reason in development["reasons"]))
 
     def test_request_acceptance_is_scoped_from_staging_and_production_gates(self) -> None:
         temp_dir = Path(tempfile.mkdtemp(prefix="context-rail-readiness-"))
@@ -54,6 +55,7 @@ class ReadinessInspectionTests(unittest.TestCase):
         shutil.copytree(ROOT / "demo/order-operations-portal", project)
         decision_path = project / "decisions/DR-001-manual-order-review.json"
         decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        decision["status"] = "ACCEPTED_FOR_DEVELOPMENT"
         decision["human_decisions"] = {
             "accept_request": "ACCEPTED",
             "allow_staging": "PENDING_STAGING_EVIDENCE",

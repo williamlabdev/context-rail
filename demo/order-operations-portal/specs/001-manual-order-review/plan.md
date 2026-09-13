@@ -30,7 +30,7 @@ The Change Slice is a stateless Go HTTP flow backed by seeded synthetic orders a
 
 ## Constitution Check
 
-- [x] Scope is limited to the accepted Request and `DR-001` allowed paths.
+- [x] Scope is limited to the proposed Request and `DR-001` allowed paths.
 - [x] Data is synthetic and process-local.
 - [x] Tests and build evidence are required.
 - [x] IAM, production and external side effects are forbidden.
@@ -55,7 +55,7 @@ demo/order-operations-portal/
 
 ## ContextRail handoff
 
-The spec and plan are inputs to `DR-001`, not replacements for it. The bounded execution handoff is:
+The spec and plan are inputs to `DR-001`, not replacements for it. The bounded execution handoff is blocked until the human gate is satisfied:
 
 ```text
 REQ-001 → spec.md → DR-001 → AWO-001 → plan.md / tasks.md → ARR-001 → EB-001 → review

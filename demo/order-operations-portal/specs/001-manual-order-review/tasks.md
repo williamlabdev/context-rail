@@ -29,7 +29,7 @@ description: "Task list for the Manual Order Review Change Slice"
 - [x] T005 [P] Confirm `project_id`, `request_id`, `decision_id` and `policy_version` references in `specs/001-manual-order-review/plan.md`.
 - [x] T006 [P] Confirm forbidden scope and staging/prod boundary in `decisions/DR-001-manual-order-review.json` and `docs/operations/environments.md`.
 
-**Checkpoint**: The implementation may proceed only within the accepted Change Slice and allowed paths.
+**Checkpoint**: Implementation may proceed only after human acceptance, and only within the Change Slice and allowed paths.
 
 ---
 
