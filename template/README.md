@@ -28,12 +28,15 @@ Windows 對應執行檔為 `.venv\\Scripts\\python.exe`；不要依賴系統 Pyt
 | `AGENTS.md` | Agent scope、必要驗證、禁止動作與 escalation |
 | `docs/ai/context-pack.json` | 可重建的 derived context，不是 SSOT |
 | `requests/`、`decisions/`、`evidence/` | Request、DecisionRecord、雙版本摘要與 Evidence Bundle 的模板 |
+| `integrations/spec-kit/` | Optional Spec Kit workflow 與 ContextRail artifact mapping |
 | `scripts/` | Project Context validation 與 Context Pack rebuild |
 | `SECURITY.md`、`.editorconfig`、`CONTRIBUTING.md` | 安全回報、格式與協作基線 |
 
 ## Governance boundary
 
 這個 template 只建立脈絡與證據的文件邊界，不會自動核准需求、執行 coding agent、修改 IAM 或部署 production。缺少文件、來源、review、build、target 或人類核准時，應保持 `NEEDS_INPUT`、`UNKNOWN`、`STALE` 或 `BLOCKED`。
+
+Spec Kit integration 是 optional。它可以協助產生 specification、plan 與 tasks，但不取代 ContextRail 的 DecisionRecord、policy、EvidenceBundle、environment gate 或 human approval。
 
 ## Source of truth
 
