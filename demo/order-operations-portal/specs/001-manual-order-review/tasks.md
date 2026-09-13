@@ -43,13 +43,13 @@ description: "Task list for the Manual Order Review Change Slice"
 
 - [ ] T007 [P] [US1] Add or update health and order-list behavior tests in `main_test.go` for `GET /healthz` and `GET /api/orders`.
 - [ ] T008 [P] [US1] Add or update review validation tests in `main_test.go` for invalid JSON, unsupported decisions and whitespace-only notes.
-- [ ] T009 [P] [US1] Add or update state-transition tests in `main_test.go` for valid approval, valid rejection and unknown order IDs.
+- [ ] T009 [P] [US1] Add or update state-transition tests in `main_test.go` for valid approval, valid rejection, repeated review and unknown order IDs.
 
 ### Implementation
 
-- [ ] T010 [US1] Implement the synthetic Order and Review Request behavior in `main.go` according to `specs/001-manual-order-review/data-model.md`.
-- [ ] T011 [US1] Implement the review endpoint contract in `main.go` according to `specs/001-manual-order-review/contracts/http.md`.
-- [ ] T012 [US1] Expose the seeded order list and review outcome in `web/index.html` without adding authentication or persistence.
+- [ ] T010 [US1] Verify the existing synthetic Order and Review Request behavior in `main.go` against `specs/001-manual-order-review/data-model.md`; update only if a documented gap exists.
+- [ ] T011 [US1] Verify the existing review endpoint in `main.go` against `specs/001-manual-order-review/contracts/http.md`; update only if a documented gap exists.
+- [ ] T012 [US1] Verify the seeded order list and review outcome in `web/index.html`; update only if a documented gap exists and do not add authentication or persistence.
 - [ ] T013 [US1] Keep changes within the allowed paths recorded in `decisions/DR-001-manual-order-review.json`.
 
 **Checkpoint**: User Story 1 is independently testable locally; no deployment authorization is implied.
@@ -106,4 +106,4 @@ description: "Task list for the Manual Order Review Change Slice"
 
 ## Traceability
 
-`FR-001` → T007, T010; `FR-002` → T008, T011; `FR-003` → T008, T011; `FR-004` → T009, T011, T012; `FR-005` → T009, T011; `FR-006` → T012; `FR-007` → T010, T013.
+`FR-001` → T007, T010; `FR-002` → T008, T011; `FR-003` → T008, T011; `FR-004` → T009, T011, T012; `FR-005` → T009, T011; `FR-006` → T012; `FR-007` → T010, T013; `FR-008` → T009, T011.

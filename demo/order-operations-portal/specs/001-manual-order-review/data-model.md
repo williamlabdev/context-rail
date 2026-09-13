@@ -27,6 +27,8 @@ Represents the operator's explicit decision for one order.
 ```text
 PENDING_REVIEW --(APPROVED + note)--> APPROVED
 PENDING_REVIEW --(REJECTED + note)--> REJECTED
+APPROVED --(valid review + note)--> APPROVED or REJECTED
+REJECTED --(valid review + note)--> APPROVED or REJECTED
 ```
 
-The prototype keeps state in process memory. Restarting the service resets the seeded orders; persistence is outside this Change Slice.
+The latest valid review replaces the previous status and note. The prototype keeps state in process memory. Restarting the service resets the seeded orders; persistence is outside this Change Slice.

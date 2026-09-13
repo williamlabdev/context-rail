@@ -28,11 +28,13 @@ As an operations staff member, I want to approve or reject a pending order with 
 2. **Given** a known order, **when** the operator submits `APPROVED` or `REJECTED` with a non-empty note, **then** the status and trimmed note are returned and displayed.
 3. **Given** a known order, **when** the note is empty or whitespace, **then** the request is rejected with a validation error and the order is unchanged.
 4. **Given** an unknown order ID, **when** a review is submitted, **then** the system clearly reports that the order does not exist and makes no review change.
+5. **Given** an order that was already reviewed, **when** the operator submits another valid decision with a note, **then** the latest decision and note replace the previous review state.
 
 ### Edge Cases
 
 - Invalid JSON returns `400`.
 - A decision other than `APPROVED` or `REJECTED` returns `400`.
+- A previously reviewed order may be reviewed again in this stateless demo; the latest valid decision and note replace the previous review state.
 - State is process-local and resets after restart; persistence is explicitly out of scope.
 - Authentication, authorization, payment, fulfillment and production deployment remain out of scope.
 
@@ -47,6 +49,7 @@ As an operations staff member, I want to approve or reject a pending order with 
 - **FR-005**: The system MUST clearly reject an unknown order without changing any order state.
 - **FR-006**: The browser UI MUST make the review result visible.
 - **FR-007**: The implementation MUST use synthetic, stateless data for this slice.
+- **FR-008**: The system MUST define repeated review behavior; in this demo, the latest valid decision and note replace the previous review state.
 
 ### Key Entities
 

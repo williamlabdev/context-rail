@@ -38,4 +38,6 @@ Validation and lookup failures:
 - `400` for invalid JSON, an unsupported decision or an empty/whitespace note.
 - `404` when the order ID does not exist.
 
+A known order may be reviewed more than once in this demo. Each valid review replaces the current status and note and returns the latest review timestamp.
+
 The contract has no authentication, persistence, payment, fulfillment or production side effect. Those capabilities require a new Request and DecisionRecord.
