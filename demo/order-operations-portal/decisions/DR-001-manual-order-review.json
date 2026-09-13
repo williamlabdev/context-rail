@@ -13,7 +13,7 @@
   "cost_assumptions": {"cloud_run": "small staging service; actual bill depends on account usage", "storage": "not used by this stateless slice", "firestore": "not used by this stateless slice"},
   "unknowns": ["real GitHub private repository URL", "GCP project, region and deploy identity", "whether a future production design needs persistence and authorization"],
   "policy_version": "environments-v1",
-  "source_snapshot_hash": "sha256:8f283ad56c5679557b3364bbad88b956b69e663d0cab9989a6393468c42519da",
+  "source_snapshot_hash": "sha256:b64847d5f2c2ffafdb7c87e0bd6d218b8fa3ef0474d386abb163e0398901402c",
   "evidence_refs": ["EB-001"],
   "human_decisions": {
     "accept_request": "PENDING_HUMAN_CONFIRMATION",

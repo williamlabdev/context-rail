@@ -83,6 +83,27 @@ class ContextToolTests(unittest.TestCase):
         pack = json.loads((root / "docs/ai/context-pack.json").read_text(encoding="utf-8"))
         self.assertTrue(pack["source_snapshot_hash"].startswith("sha256:"))
         self.assertTrue(all(source["content_hash"].startswith("sha256:") for source in pack["sources"]))
+        self.assertIn("docs/governance/policies.md", [source["path"] for source in pack["sources"]])
+
+    def test_validator_rejects_changed_source_hash(self) -> None:
+        root = self.copy_template()
+        pack_path = root / "docs/ai/context-pack.json"
+        pack = json.loads(pack_path.read_text(encoding="utf-8"))
+        pack["sources"][0]["content_hash"] = "sha256:" + ("0" * 64)
+        pack_path.write_text(json.dumps(pack), encoding="utf-8")
+        result = self.run_validator(root)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CONTEXT SOURCE HASH MISMATCH", result.stdout)
+
+    def test_validator_rejects_source_coverage_drift(self) -> None:
+        root = self.copy_template()
+        pack_path = root / "docs/ai/context-pack.json"
+        pack = json.loads(pack_path.read_text(encoding="utf-8"))
+        pack["sources"] = pack["sources"][:-1]
+        pack_path.write_text(json.dumps(pack), encoding="utf-8")
+        result = self.run_validator(root)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exactly match declared source-of-truth", result.stdout)
 
 
 if __name__ == "__main__":

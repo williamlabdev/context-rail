@@ -47,6 +47,42 @@ class ReadinessInspectionTests(unittest.TestCase):
         self.assertEqual(development["status"], "NEEDS_INPUT")
         self.assertTrue(any("conflicts" in reason for reason in development["reasons"]))
 
+    def test_request_acceptance_is_scoped_from_staging_and_production_gates(self) -> None:
+        temp_dir = Path(tempfile.mkdtemp(prefix="context-rail-readiness-"))
+        self.addCleanup(shutil.rmtree, temp_dir)
+        project = temp_dir / "order-operations-portal"
+        shutil.copytree(ROOT / "demo/order-operations-portal", project)
+        decision_path = project / "decisions/DR-001-manual-order-review.json"
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        decision["human_decisions"] = {
+            "accept_request": "ACCEPTED",
+            "allow_staging": "PENDING_STAGING_EVIDENCE",
+            "allow_production": "BLOCKED_IN_DEMO",
+        }
+        decision_path.write_text(json.dumps(decision), encoding="utf-8")
+        report = self.inspect(project)[0]
+        self.assertEqual(report["readiness"]["ready_for_local_development"]["status"], "READY")
+        self.assertEqual(report["readiness"]["ready_for_staging"]["status"], "NEEDS_INPUT")
+
+    def test_rejected_request_is_not_human_accepted(self) -> None:
+        temp_dir = Path(tempfile.mkdtemp(prefix="context-rail-readiness-"))
+        self.addCleanup(shutil.rmtree, temp_dir)
+        project = temp_dir / "order-operations-portal"
+        shutil.copytree(ROOT / "demo/order-operations-portal", project)
+        decision_path = project / "decisions/DR-001-manual-order-review.json"
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        decision["status"] = "ACCEPTED"
+        decision["human_decisions"] = {
+            "accept_request": "REJECTED",
+            "allow_staging": "ACCEPTED",
+            "allow_production": "ACCEPTED",
+        }
+        decision_path.write_text(json.dumps(decision), encoding="utf-8")
+        report = self.inspect(project)[0]
+        development = report["readiness"]["ready_for_local_development"]
+        self.assertEqual(development["status"], "NEEDS_INPUT")
+        self.assertTrue(any("no human-accepted" in reason for reason in development["reasons"]))
+
     def test_local_development_does_not_require_cloud_run(self) -> None:
         report = self.inspect(ROOT / "demo/order-operations-portal")[0]
         local = report["readiness"]["ready_for_local_development"]

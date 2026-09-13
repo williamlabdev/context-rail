@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -22,6 +23,10 @@ REQUIRED = (
     "docs/governance/policies.md",
     "docs/ai/context-pack.json",
 )
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def validate(root: Path, strict: bool) -> list[str]:
@@ -95,8 +100,42 @@ def validate(root: Path, strict: bool) -> list[str]:
                 source_path = root / source["path"]
                 if not source_path.is_file():
                     errors.append(f"CONTEXT SOURCE MISSING {source['path']}")
+                    continue
+                expected_hash = f"sha256:{sha256(source_path)}"
+                if source.get("content_hash") != expected_hash:
+                    errors.append(f"CONTEXT SOURCE HASH MISMATCH {source['path']}")
                 if not str(source.get("content_hash", "")).startswith("sha256:"):
                     errors.append(f"context source hash missing: {source['path']}")
+            if isinstance(manifest, dict) and isinstance(manifest.get("spec"), dict):
+                declared_paths = [
+                    document.get("path")
+                    for document in manifest["spec"].get("documents", [])
+                    if isinstance(document, dict) and document.get("sourceOfTruth", True) is not False
+                ]
+                actual_paths = [
+                    source.get("path") for source in source_paths if isinstance(source, dict)
+                ]
+                if actual_paths != declared_paths:
+                    errors.append(
+                        "context pack sources must exactly match declared source-of-truth documents"
+                    )
+                declared_kinds = {
+                    document.get("path"): document.get("kind")
+                    for document in manifest["spec"].get("documents", [])
+                    if isinstance(document, dict)
+                }
+                for source in source_paths:
+                    if isinstance(source, dict) and source.get("path") in declared_kinds:
+                        if source.get("kind") != declared_kinds[source["path"]]:
+                            errors.append(f"CONTEXT SOURCE KIND MISMATCH {source['path']}")
+                snapshot_input = "\n".join(
+                    f"{source.get('path')}={source.get('content_hash')}"
+                    for source in source_paths
+                    if isinstance(source, dict)
+                ).encode()
+                expected_snapshot = f"sha256:{hashlib.sha256(snapshot_input).hexdigest()}"
+                if context_pack.get("source_snapshot_hash") != expected_snapshot:
+                    errors.append("context pack source snapshot hash mismatch")
     except Exception as exc:  # pragma: no cover - exact parser message is environment-specific.
         errors.append(f"context-pack.json is not valid JSON: {exc}")
 

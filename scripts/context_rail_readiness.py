@@ -74,12 +74,52 @@ def find_decisions(root: Path) -> list[dict[str, Any]]:
     return decisions
 
 
-def decision_is_human_accepted(decision: dict[str, Any]) -> bool:
-    if decision.get("status") not in {"ACCEPTED", "ACCEPTED_FOR_DEVELOPMENT", "ACCEPTED_FOR_STAGING"}:
+def decision_is_human_accepted(decision: dict[str, Any], action: str = "accept_request") -> bool:
+    required_statuses = {
+        "accept_request": {"ACCEPTED", "ACCEPTED_FOR_DEVELOPMENT", "ACCEPTED_FOR_STAGING"},
+        "allow_staging": {"ACCEPTED_FOR_STAGING"},
+    }
+    if decision.get("status") not in required_statuses.get(action, set()):
         return False
     human = decision.get("human_decision") or decision.get("human_decisions") or {}
-    values = json.dumps(human).upper()
-    return not any(marker in values for marker in ("PENDING", "UNKNOWN", "BLOCKED"))
+    return str(human.get(action, "")).upper() in {"ACCEPTED", "APPROVED", "TRUE"}
+
+
+def markdown_field(path: Path, label: str) -> str:
+    prefix = f"{label}:"
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip().startswith(prefix):
+            return line.split(":", 1)[1].strip().strip("`")
+    return ""
+
+
+def review_evidence_state(root: Path) -> tuple[str, list[str]]:
+    review_files = list((root / "evidence").glob("**/code-review.md"))
+    if not review_files:
+        return "NEEDS_INPUT", ["independent code review is missing"]
+    reasons: list[str] = []
+    for path in review_files:
+        status = markdown_field(path, "Status").upper()
+        reviewer = markdown_field(path, "Reviewer").lower()
+        reviewed_commit = markdown_field(path, "Reviewed commit")
+        if status != "PASS":
+            reasons.append(f"independent code review is {status or 'UNKNOWN'}: {path.relative_to(root)}")
+        if not reviewer or reviewer in {"unassigned", "unknown", "pending"}:
+            reasons.append(f"code review has no independent reviewer identity: {path.relative_to(root)}")
+        if status == "PASS" and not reviewed_commit:
+            reasons.append(f"code review has no reviewed commit: {path.relative_to(root)}")
+    return ("READY" if not reasons else "NEEDS_INPUT"), reasons
+
+
+def decision_matches_context_snapshot(
+    decision: dict[str, Any], document_by_path: dict[str, dict[str, Any]], root: Path
+) -> bool:
+    expected = str(decision.get("source_snapshot_hash", ""))
+    context_document = document_by_path.get("docs/ai/context-pack.json")
+    if not expected or not context_document or context_document.get("status") != "DERIVED":
+        return False
+    pack = load_json(root / "docs/ai/context-pack.json") or {}
+    return pack.get("source_snapshot_hash") == expected
 
 
 def evidence_state(root: Path) -> tuple[str, list[str]]:
@@ -87,17 +127,31 @@ def evidence_state(root: Path) -> tuple[str, list[str]]:
     if not evidence_root.is_dir():
         return "NEEDS_INPUT", ["Evidence Bundle is missing"]
     reasons: list[str] = []
-    review_files = list(evidence_root.glob("**/code-review.md"))
-    if not review_files or any("REVIEW_REQUIRED" in path.read_text(encoding="utf-8") for path in review_files):
-        reasons.append("independent code review is not PASS")
+    review_status, review_reasons = review_evidence_state(root)
+    if review_status != "READY":
+        reasons.extend(review_reasons)
     receipts = list(evidence_root.glob("**/*receipt*.json"))
     if not receipts:
         reasons.append("release receipt is missing")
     else:
-        for path in receipts:
-            receipt = load_json(path) or {}
-            if receipt.get("status") != "PASS":
-                reasons.append(f"release receipt is {receipt.get('status', 'UNKNOWN')}: {path.relative_to(root)}")
+        manifest = yaml.safe_load((root / "project.yaml").read_text(encoding="utf-8"))
+        staging = next(
+            (
+                environment
+                for environment in manifest.get("spec", {}).get("environments", [])
+                if environment.get("id") == "staging"
+            ),
+            {},
+        )
+        expected_target = staging.get("targetRef")
+        matching_pass = any(
+            (receipt := (load_json(path) or {})).get("status") == "PASS"
+            and receipt.get("environment") == "staging"
+            and receipt.get("target") == expected_target
+            for path in receipts
+        )
+        if not matching_pass:
+            reasons.append("no PASS staging receipt matches the manifest target")
     return ("READY" if not reasons else "NEEDS_INPUT"), reasons
 
 
@@ -113,9 +167,9 @@ def cloud_testing_evidence_state(root: Path) -> tuple[str, list[str]]:
     build_files = list(evidence_root.glob("**/build-output.txt"))
     if not build_files or any("Result: PASS" not in path.read_text(encoding="utf-8") for path in build_files):
         reasons.append("build evidence is not PASS")
-    review_files = list(evidence_root.glob("**/code-review.md"))
-    if not review_files or any("REVIEW_REQUIRED" in path.read_text(encoding="utf-8") for path in review_files):
-        reasons.append("independent code review is not PASS")
+    review_status, review_reasons = review_evidence_state(root)
+    if review_status != "READY":
+        reasons.extend(review_reasons)
     return ("READY" if not reasons else "NEEDS_INPUT"), reasons
 
 
@@ -130,7 +184,11 @@ def inspect_project(root: Path) -> dict[str, Any]:
     decision_docs = [item for item in spec.get("documents", []) if "decision" in item.get("requiredFor", [])]
     decision_blockers = [document_by_path[item["path"]]["status"] for item in decision_docs]
     decisions = find_decisions(root)
-    human_accepted = any(decision_is_human_accepted(decision) for decision in decisions)
+    accepted_decisions = [
+        decision for decision in decisions if decision_is_human_accepted(decision, "accept_request")
+    ]
+    human_accepted = bool(accepted_decisions)
+    staging_accepted = any(decision_is_human_accepted(decision, "allow_staging") for decision in decisions)
     has_accepted_status = any(
         decision.get("status") in {"ACCEPTED", "ACCEPTED_FOR_DEVELOPMENT", "ACCEPTED_FOR_STAGING"}
         for decision in decisions
@@ -144,6 +202,13 @@ def inspect_project(root: Path) -> dict[str, Any]:
         local_development_reasons.append("no human-accepted DecisionRecord found")
     if has_accepted_status and not human_accepted:
         local_development_reasons.append("DecisionRecord status conflicts with pending human decision")
+    development_docs = [item for item in documents if "development" in item.get("requiredFor", [])]
+    if any(item["status"] != "CURRENT" for item in development_docs):
+        local_development_reasons.append("required development documents are not all CURRENT")
+    if accepted_decisions and not any(
+        decision_matches_context_snapshot(decision, document_by_path, root) for decision in accepted_decisions
+    ):
+        local_development_reasons.append("accepted DecisionRecord does not match the current Context Pack snapshot")
     local_development_ready = "READY" if not local_development_reasons else "NEEDS_INPUT"
     cloud_testing_evidence, cloud_testing_reasons = cloud_testing_evidence_state(root)
     cloud_testing_reasons = list(cloud_testing_reasons)
@@ -156,6 +221,8 @@ def inspect_project(root: Path) -> dict[str, Any]:
         staging_reasons.insert(0, "local development readiness is not READY")
     if cloud_testing_ready != "READY":
         staging_reasons.insert(0, "cloud testing readiness is not READY")
+    if not staging_accepted:
+        staging_reasons.insert(0, "no human-approved staging DecisionRecord found")
     staging_ready = "READY" if staging_evidence == "READY" and not staging_reasons else "NEEDS_INPUT"
     production = "BLOCKED"
     return {

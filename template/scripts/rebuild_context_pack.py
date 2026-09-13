@@ -4,24 +4,13 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
-import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
-
-
-SOURCES = (
-    ("project.yaml", "project-manifest"),
-    ("README.md", "human-entry"),
-    ("vision.md", "product-intent"),
-    ("architecture.md", "architecture-baseline"),
-    ("docs/engineering/development.md", "engineering-operations"),
-    ("docs/operations/environments.md", "environment-policy"),
-    ("AGENTS.md", "agent-behavior"),
-)
 
 
 def utc_now() -> str:
@@ -32,19 +21,29 @@ def sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def declared_sources(manifest: dict) -> list[tuple[str, str]]:
+    documents = manifest.get("spec", {}).get("documents", [])
+    return [
+        (str(document["path"]), str(document["kind"]))
+        for document in documents
+        if document.get("sourceOfTruth", True) is not False
+    ]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, help="Project root to rebuild; defaults to this template root")
     args = parser.parse_args()
     root = args.root.resolve() if args.root else Path(__file__).resolve().parents[1]
     manifest = yaml.safe_load((root / "project.yaml").read_text(encoding="utf-8"))
+    sources = declared_sources(manifest)
     generated_at = utc_now()
     has_placeholders = any(
         "<REPLACE_ME" in (root / relative).read_text(encoding="utf-8")
-        for relative, _kind in SOURCES
+        for relative, _kind in sources
     )
     documents = []
-    for relative, kind in SOURCES:
+    for relative, kind in sources:
         content = (root / relative).read_bytes()
         documents.append(
             {

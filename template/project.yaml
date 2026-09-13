@@ -75,6 +75,10 @@ spec:
       kind: environment-policy
       sourceOfTruth: true
       requiredFor: [decision, staging]
+    - path: docs/governance/policies.md
+      kind: governance-policy
+      sourceOfTruth: true
+      requiredFor: [decision, staging]
     - path: AGENTS.md
       kind: agent-behavior
       sourceOfTruth: true

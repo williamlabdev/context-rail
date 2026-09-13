@@ -1,6 +1,6 @@
 # EB-001 — Engineering Evidence Bundle
 
-This bundle is the evidence index for `REQ-001` / `DR-001`. The local implementation evidence below is tied to source commit `10876c68ad460d5dbf0edd584c1db7de2e2cdb17` and source snapshot `sha256:8f283ad56c5679557b3364bbad88b956b69e663d0cab9989a6393468c42519da`. No container image digest or Cloud Run revision is claimed.
+This bundle is the evidence index for `REQ-001` / `DR-001`. The local implementation evidence below is tied to source commit `10876c68ad460d5dbf0edd584c1db7de2e2cdb17` and source snapshot `sha256:b64847d5f2c2ffafdb7c87e0bd6d218b8fa3ef0474d386abb163e0398901402c`. No container image digest or Cloud Run revision is claimed.
 
 | Evidence | Status | Meaning |
 | --- | --- | --- |
