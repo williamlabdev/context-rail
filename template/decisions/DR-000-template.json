@@ -1,0 +1,18 @@
+{
+  "decision_id": "DR-000",
+  "project_id": "<REPLACE_ME_PROJECT_ID>",
+  "request_id": "REQ-000",
+  "version": 1,
+  "status": "PENDING_HUMAN_DECISION",
+  "selected_option": null,
+  "alternatives": [],
+  "scope": {"allowed_paths": [], "forbidden_paths": []},
+  "architecture_impact": [],
+  "cost_assumptions": [],
+  "unknowns": [],
+  "acceptance_criteria": ["<REPLACE_ME>"],
+  "source_snapshot_hash": null,
+  "policy_version": "<REPLACE_ME>",
+  "evidence_refs": [],
+  "human_decision": {"actor": null, "at": null, "decision": null, "reason": null}
+}

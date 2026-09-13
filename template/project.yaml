@@ -1,0 +1,85 @@
+apiVersion: context-rail/v1alpha1
+kind: Project
+metadata:
+  id: <REPLACE_ME_PROJECT_ID>
+  name: <REPLACE_ME_PROJECT_NAME>
+  version: 1
+  classification: internal
+spec:
+  purpose: <REPLACE_ME_ONE_SENTENCE_PURPOSE>
+  owners:
+    technical: <REPLACE_ME_TECHNICAL_OWNER>
+    business: <REPLACE_ME_BUSINESS_OWNER>
+  repository:
+    provider: github
+    visibility: private
+    url: github.com/<REPLACE_ME_ORG>/<REPLACE_ME_REPOSITORY>
+    defaultBranch: main
+  services:
+    - id: <REPLACE_ME_SERVICE_ID>
+      repository: <REPLACE_ME_REPOSITORY>
+      path: .
+      role: primary
+  environments:
+    - id: development
+      type: development
+      sequence: 1
+      targetRef: local-or-feature-branch
+      requiredEvidence: [local-test]
+    - id: testing
+      type: testing
+      sequence: 2
+      targetRef: ci
+      requiredEvidence: [test, build, code-review]
+    - id: staging
+      type: staging
+      sequence: 3
+      targetRef: <REPLACE_ME_CLOUD_RUN_STAGING_TARGET>
+      requiredEvidence: [decision-record, code-review, test, build, smoke]
+    - id: production
+      type: production
+      sequence: 4
+      targetRef: protected/read-only
+      requiredEvidence: [release-approval, staging-receipt, smoke]
+      action: human-gated
+  promotionPolicy:
+    developmentToTesting: test, build and independent code review required
+    testingToStaging: accepted DecisionRecord, matching commit, build identity and smoke required
+    stagingToProduction: separate human release approval required
+  commands:
+    test: <REPLACE_ME_TEST_COMMAND>
+    build: <REPLACE_ME_BUILD_COMMAND>
+    run: <REPLACE_ME_LOCAL_RUN_COMMAND>
+  documents:
+    - path: project.yaml
+      kind: project-manifest
+      sourceOfTruth: true
+      requiredFor: [decision, development, staging]
+    - path: README.md
+      kind: human-entry
+      sourceOfTruth: true
+      requiredFor: [decision, development]
+    - path: vision.md
+      kind: product-intent
+      sourceOfTruth: true
+      requiredFor: [decision]
+    - path: architecture.md
+      kind: architecture-baseline
+      sourceOfTruth: true
+      requiredFor: [decision, work-order]
+    - path: docs/engineering/development.md
+      kind: engineering-operations
+      sourceOfTruth: true
+      requiredFor: [development, staging]
+    - path: docs/operations/environments.md
+      kind: environment-policy
+      sourceOfTruth: true
+      requiredFor: [decision, staging]
+    - path: AGENTS.md
+      kind: agent-behavior
+      sourceOfTruth: true
+      requiredFor: [development, work-order]
+    - path: docs/ai/context-pack.json
+      kind: derived-context
+      sourceOfTruth: false
+      requiredFor: [work-order]

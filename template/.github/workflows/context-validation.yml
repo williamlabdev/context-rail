@@ -1,0 +1,22 @@
+name: Project Context Validation
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Create virtual environment
+        run: python -m venv .venv
+      - name: Install validation dependency
+        run: .venv/bin/python -m pip install -r requirements.txt
+      - name: Validate Project Context structure
+        run: .venv/bin/python scripts/validate_project_context.py
+      - name: Test validation tools
+        run: .venv/bin/python -m unittest discover -s tests

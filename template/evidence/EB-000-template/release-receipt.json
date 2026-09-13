@@ -1,0 +1,13 @@
+{
+  "receipt_id": "RECEIPT-000",
+  "status": "NEEDS_INPUT",
+  "project_id": "<REPLACE_ME_PROJECT_ID>",
+  "decision_id": "DR-000",
+  "environment": "<REPLACE_ME>",
+  "commit": null,
+  "image_digest": null,
+  "target": null,
+  "revision": null,
+  "smoke": null,
+  "production": {"status": "BLOCKED_UNTIL_HUMAN_GATE", "deployed": false}
+}
