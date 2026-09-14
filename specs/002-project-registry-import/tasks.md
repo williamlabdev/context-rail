@@ -8,15 +8,15 @@ description: "Task list for the Project Registry read-only import Change Slice"
 
 **Prerequisites**: [spec.md](spec.md), [plan.md](plan.md), [REQ-002](../../requests/REQ-002-project-registry-import.md), [DR-002](../../decisions/DR-002-project-registry-import.json)
 
-**Status**: Planned; implementation is blocked until `DR-002` receives a human decision.
+**Status**: `DR-002` accepted for local development; implementation is blocked until `AWO-002` is issued.
 
 ## Phase 1: Governance and contract setup
 
 **Purpose**: Establish the bounded execution context before implementation work.
 
-- [ ] T001 Review `vision.md`, `roadmap.md`, `architecture.md` and `docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md` against `specs/002-project-registry-import/spec.md`.
-- [ ] T002 Obtain and record the human decision for `decisions/DR-002-project-registry-import.json`.
-- [ ] T003 [P] Confirm the current source commit and the two fixture roots in `evidence/EB-002/README.md`.
+- [x] T001 Review `vision.md`, `roadmap.md`, `architecture.md` and `docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md` against `specs/002-project-registry-import/spec.md`.
+- [x] T002 Obtain and record the human decision for `decisions/DR-002-project-registry-import.json`.
+- [x] T003 [P] Confirm the current source commit and the two fixture roots in `evidence/EB-002/README.md`.
 - [ ] T004 [P] Create an `AWO-002` only after T002, with paths and checks limited to `DR-002`.
 
 **Checkpoint**: No implementation file may be changed before T002 is accepted and the work order is issued.

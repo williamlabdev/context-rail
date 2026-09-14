@@ -8,7 +8,7 @@
 
 Implement the first ContextRail core read boundary as a read-only Project Registry operation. The operation will consume explicitly supplied Project roots, validate the Project manifest, normalize the declared relationships and readiness inspection into a versioned snapshot, and expose the result without writing to the consumer Project. The existing Python importer remains the contract oracle and regression reference while the product runtime follows the Go modular-monolith direction.
 
-Implementation is not authorized until a human accepts `DR-002`. This plan is the technical candidate that follows the Request; it does not itself grant a Work Order, repository write scope or deployment permission.
+`DR-002` is accepted for local development, but implementation is not authorized until the bounded `AWO-002` is issued. This plan is the technical candidate that follows the Request; it does not itself grant repository write scope or deployment permission.
 
 ## Technical Context
 
@@ -37,9 +37,9 @@ Implementation is not authorized until a human accepts `DR-002`. This plan is th
 - [x] Bounded and reversible change: implementation paths are limited by DR-002; the consumer Project is read-only.
 - [x] Deterministic gates and human authority: tests can block; no inspection result approves a Project or deployment.
 - [x] Evidence is part of the deliverable: fixture comparison, test/build output and mutation check are required.
-- [x] Structured handoff: an AgentWorkOrder is not issued until DR-002 is accepted.
+- [x] Structured handoff: `DR-002` is accepted; the AgentWorkOrder remains bounded to the approved local paths and checks.
 
-**Gate status**: PASS for planning; implementation remains `PENDING_HUMAN_DECISION`.
+**Gate status**: PASS for planning; `DR-002` is `ACCEPTED_FOR_DEVELOPMENT`; implementation awaits `AWO-002`.
 
 ## Existing contract and adapter boundary
 
@@ -114,7 +114,7 @@ No constitution violation is proposed. A YAML dependency is conditional and must
 ## ContextRail handoff
 
 ```text
-REQ-002 → spec.md → DR-002 → plan.md/tasks.md → AWO-002 (future) → ARR-002 → EB-002 → review
+REQ-002 → spec.md → DR-002 → plan.md/tasks.md → AWO-002 → ARR-002 → EB-002 → review
 ```
 
 `DR-002` is the governance SSOT. If the Request, source contract or policy changes, this plan and tasks become stale and require reconciliation before implementation.
