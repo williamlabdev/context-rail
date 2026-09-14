@@ -121,8 +121,7 @@ class ReadinessInspectionTests(unittest.TestCase):
         verified = report["readiness"]["staging_verified"]
         self.assertEqual(local["status"], "READY")
         self.assertFalse(any("Cloud Run" in reason for reason in local["reasons"]))
-        self.assertEqual(staging["status"], "NEEDS_INPUT")
-        self.assertTrue(any("human-approved staging" in reason for reason in staging["reasons"]))
+        self.assertEqual(staging["status"], "READY")
         self.assertEqual(verified["status"], "NEEDS_INPUT")
         self.assertTrue(any("receipt" in reason for reason in verified["reasons"]))
 

@@ -29,7 +29,16 @@ class StagingGateTests(unittest.TestCase):
         )
 
     def test_pending_staging_decision_blocks_before_cloud_access(self) -> None:
-        result = self.run_gate(self.copy_demo())
+        project = self.copy_demo()
+        decision_path = project / "decisions/DR-001-manual-order-review.json"
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        decision["status"] = "ACCEPTED_FOR_DEVELOPMENT"
+        decision["human_decisions"]["allow_staging"] = {
+            "decision": "PENDING_STAGING_EVIDENCE",
+            "actor_id": None,
+        }
+        decision_path.write_text(json.dumps(decision), encoding="utf-8")
+        result = self.run_gate(project)
         self.assertEqual(result.returncode, 2)
         self.assertIn("DecisionRecord status is not ACCEPTED_FOR_STAGING", result.stderr)
 
@@ -122,6 +131,8 @@ class StagingGateTests(unittest.TestCase):
             "Status: `PASS`\nReview type: `AI_REVIEW`\nReviewer: `ContextRail AI review agent`\nReviewer actor_id: `context-rail-ai-reviewer-001`\nReviewed commit: `10876c68ad460d5dbf0edd584c1db7de2e2cdb17`\n",
             encoding="utf-8",
         )
+        controls_path = project / "evidence/EB-001/single-operator-controls.md"
+        controls_path.write_text("Status: `NEEDS_INPUT`\n", encoding="utf-8")
         work_order_path = project / "work-orders/AWO-001-manual-order-review.json"
         work_order = json.loads(work_order_path.read_text(encoding="utf-8"))
         work_order["status"] = "ISSUED"
