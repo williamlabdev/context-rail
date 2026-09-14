@@ -1,13 +1,17 @@
-# EB-003 — VS-002 prerequisite check
+# EB-003 — VS-002 Project Registry／Context UI
 
 - Checked at: 2026-09-14 Asia/Taipei
-- Current source commit: `6e7e6e62dd76f0a296a7ff28360e9150dc127825`
-- Scope: local read-only prerequisite verification for VS-002
+- Current source commit: `0ecc1da`
+- Scope: local read-only implementation and verification for VS-002
 - Cloud Run, IAM and production: not used
 
-## Result
+## Start here
 
-`ACCEPTED_FOR_LOCAL_DEVELOPMENT`: VS-001 has delivered the reusable Go contract/package and its evidence bundle, and the human review accepted this local scope.
+先讀 [HUMAN_REVIEW_PACKET.zh-TW.md](HUMAN_REVIEW_PACKET.zh-TW.md)。它是給人看的結論與導覽；本目錄的 command output 是可追溯的原始證據。
+
+## Prerequisite result
+
+`ACCEPTED_FOR_LOCAL_DEVELOPMENT`: VS-001 has delivered the reusable Go contract/package and its evidence bundle, and the human review accepted this local scope. This is a prerequisite result, not the final VS-002 review result.
 
 Evidence for this result:
 
@@ -34,6 +38,17 @@ Python 3.9.6
 
 The first four lines correspond to Go, Node.js, npm and the project-local Python interpreter used for this check (`template/.venv/bin/python`).
 
-## Consequence
+## Current implementation checkpoint
 
-`AWO-003` may now be issued for the separately accepted VS-002 scope. VS-001's local Work Order does not authorize VS-002 paths.
+The VS-002 local Work Order has been issued and the current checkpoint includes the read-only Go HTTP boundary, React workspace, focused tests and a positive browser journey. The remaining work is explicit failure-state coverage and final evidence capture.
+
+`AWO-003` is limited to the VS-002 paths. VS-001's local Work Order does not authorize VS-002 paths.
+
+## Evidence index
+
+- `HUMAN_REVIEW_PACKET.zh-TW.md` — human-readable review guide and current boundary
+- `go-test-output.txt` — planned final Go test output
+- `go-quality-output.txt` — planned final `go vet` and build output
+- `frontend-quality-output.txt` — planned final frontend checks
+- `browser-output.txt` — planned browser journey output
+- `README.md` — scope, provenance and evidence index
