@@ -6,7 +6,7 @@
 
 **Created**: 2026-09-14
 
-**Status**: Draft; pending `DR-003` human decision
+**Status**: Accepted for local development; blocked on VS-001 prerequisite (`DR-002`)
 
 **Input**: [REQ-003](../../requests/REQ-003-project-registry-context-ui.md) and [DR-003](../../decisions/DR-003-project-registry-context-ui.json)
 
@@ -109,4 +109,4 @@ As a Project owner, I want the workspace to explain loading, empty and failure s
 - Local fixture-backed execution is sufficient for this slice; Cloud Run is a later environment slice.
 - The initial UI can be a focused workspace rather than a complete navigation shell, provided the registry-to-detail journey is complete.
 - Project creation, editing, archiving, authentication, membership, persistence, uploads, RAG, Gemini, agent execution and deployment remain out of scope.
-- `DR-003` must be accepted by a human before implementation files are changed. This specification does not grant a Work Order or environment authorization.
+- `DR-003` is accepted for local development/testing only. VS-001 must first deliver an accepted reusable Go package and evidence before VS-002 implementation begins. This specification does not grant a Work Order or environment authorization.

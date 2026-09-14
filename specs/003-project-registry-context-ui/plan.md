@@ -8,7 +8,7 @@
 
 Implement the first user-visible ContextRail journey on top of the VS-001 normalized Project Registry contract. A small Go read API will expose explicitly supplied fixture-backed Project records, and a React/TypeScript workspace will let a Project owner select a Project and inspect registry, Documents / AI Context and readiness states. The browser surface is read-only and must preserve stale, missing, conflict, unknown and undeclared information.
 
-The feature depends on VS-001's contract and implementation boundary. It does not add Project writes, authentication, persistence, provider crawling, RAG or deployment. `DR-003` must be accepted and a bounded Work Order issued before implementation files are changed.
+The feature depends on VS-001's contract and implementation boundary. It does not add Project writes, authentication, persistence, provider crawling, RAG or deployment. `DR-003` is accepted for local development, but VS-001 must complete its reusable package/evidence and a bounded Work Order must be issued before implementation files are changed.
 
 ## Technical Context
 
@@ -32,14 +32,14 @@ The feature depends on VS-001's contract and implementation boundary. It does no
 
 ## Constitution Check
 
-- [x] Contract before execution: REQ-003, DR-003, spec, plan and tasks are linked; implementation is gated by human acceptance.
+- [x] Contract before execution: REQ-003, DR-003, spec, plan and tasks are linked; implementation is gated by human acceptance and the VS-001 prerequisite.
 - [x] Provenance over assertion: source path, source version/observed time and readiness reason remain visible; no uncertain state is upgraded.
 - [x] Bounded and reversible change: paths are limited to DR-003; fixture roots are read-only; browser actions do not mutate governance records.
 - [x] Deterministic gates and human authority: UI status is informational; no screen state approves a Project or deployment.
 - [x] Evidence is part of the deliverable: backend tests, frontend tests, browser evidence, build identity and zero-mutation proof are required.
-- [x] Structured handoff: implementation waits for DR-003 and AWO-003; no agent or UI action receives write permission.
+- [x] Structured handoff: implementation waits for the accepted VS-001 prerequisite and AWO-003; no agent or UI action receives write permission.
 
-**Gate status**: PASS for planning; implementation remains `PENDING_HUMAN_DECISION`.
+**Gate status**: PASS for planning; `DR-003` is `ACCEPTED_FOR_DEVELOPMENT`; implementation remains `BLOCKED_BY_DR-002_AND_AWO-003`.
 
 ## Dependencies and design decisions
 
@@ -49,7 +49,7 @@ The feature depends on VS-001's contract and implementation boundary. It does no
 4. Fixture configuration is explicit and local. No endpoint accepts arbitrary filesystem traversal or arbitrary remote URLs.
 5. The UI has no mutation controls in this slice. Future write actions require a new Request/Decision and cannot be added as a convenience to this plan.
 6. VS-001 is a hard prerequisite: its Go package/contract implementation and evidence must be accepted before VS-002 implementation begins. If VS-001 is not complete, VS-002 stops at contract design and does not create a duplicate registry model.
-7. Research decisions are implementation candidates pending human acceptance of `DR-003`; they do not override its `unknowns` or authorize dependencies.
+7. Research decisions are implementation candidates within the accepted local-development scope; they do not override `unknowns`, authorize dependencies or permit staging/production activity.
 
 ## Project Structure
 

@@ -8,20 +8,20 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 **Prerequisites**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [API contract](contracts/api.md), [UI contract](contracts/ui.md), [REQ-003](../../requests/REQ-003-project-registry-context-ui.md), [DR-003](../../decisions/DR-003-project-registry-context-ui.json)
 
-**Status**: Planned; implementation is blocked until `DR-003` receives a human decision and `AWO-003` is issued.
+**Status**: `DR-003` accepted for local development; implementation is blocked until `DR-002`, VS-001 evidence and `AWO-003` are complete.
 
 ## Phase 1: Setup
 
 **Purpose**: Establish the full-stack workspace without changing consumer Projects.
 
-- [ ] T001 Review `vision.md`, `roadmap.md`, `architecture.md`, `docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md` and the VS-001 artifacts before implementation.
-- [ ] T002 Obtain and record the human decision for `decisions/DR-003-project-registry-context-ui.json`.
-- [ ] T003 Create `work-orders/AWO-003-project-registry-context-ui.json` only after T002, with paths and checks limited to `DR-003`.
+- [x] T001 Review `vision.md`, `roadmap.md`, `architecture.md`, `docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md` and the VS-001 artifacts before implementation.
+- [x] T002 Obtain and record the human decision for `decisions/DR-003-project-registry-context-ui.json`.
+- [ ] T003 Create `work-orders/AWO-003-project-registry-context-ui.json` only after T002 and T004, with paths and checks limited to `DR-003`.
 - [ ] T004 Verify that VS-001 has a completed reusable Go contract/package and evidence; record the prerequisite result, current source commit, fixture roots and local tool versions in `evidence/EB-003/README.md`.
 - [ ] T005 [P] Create the root Go module in `go.mod` and `go.sum` only if VS-001 has not already established them; pin only required dependencies.
 - [ ] T006 [P] Initialize the frontend package in `frontend/package.json` and `frontend/package-lock.json` with pinned React/TypeScript/Vite and browser-test dependencies; add `frontend/tsconfig.json`, `frontend/vite.config.ts`, `frontend/playwright.config.ts` and the `dev`, `typecheck`, `build`, `test` and `test:e2e` scripts.
 
-**Checkpoint**: No implementation file may be changed before T002 is accepted and T003 is issued.
+**Checkpoint**: No implementation file may be changed before T002 is accepted, T004 confirms the VS-001 prerequisite, and T003 is issued.
 
 ## Phase 2: Foundational contracts
 
@@ -106,9 +106,9 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 ## Dependencies and execution order
 
-- Phase 1 blocks all implementation phases; T002 and T003 are mandatory governance gates.
+- Phase 1 blocks all implementation phases; T002, T003 and T004 are mandatory governance/dependency gates.
 - Phase 2 freezes the shared API/UI contract before story implementation.
-- User Story 1 depends on completed VS-001 evidence and the Phase 2 contracts; it is the MVP.
+- User Story 1 depends on completed VS-001 evidence, AWO-003 and the Phase 2 contracts; it is the MVP.
 - User Story 2 depends on the read path from User Story 1 but can add status coverage independently once the boundary exists.
 - User Story 3 depends on the application shell from User Story 1 and can then be tested independently with controlled local states.
 - Phase 6 depends on all selected stories and must finish before review preparation.
