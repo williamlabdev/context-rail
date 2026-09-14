@@ -60,7 +60,7 @@
     "REQ-002/AC-006"
   ],
   "source_snapshot_hash": null,
-  "source_commit": "2844a4fbd1ecf1aa523f9264e86ade9b37be866b",
+  "source_commit": "e5d6821a3c920a8b1b9b05422a5db6f52685e08a",
   "source_refs": [
     "vision.md",
     "roadmap.md",
