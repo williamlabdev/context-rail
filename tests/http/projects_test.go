@@ -117,7 +117,7 @@ func TestWriteMethodsAreNotRoutes(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/v1/projects", nil)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
-	assertError(t, response, http.StatusMethodNotAllowed, "REGISTRY_UNAVAILABLE")
+	assertError(t, response, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED")
 }
 
 func assertError(t *testing.T, response *httptest.ResponseRecorder, status int, code string) {
