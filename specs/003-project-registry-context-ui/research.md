@@ -2,6 +2,8 @@
 
 **Date**: 2026-09-14
 
+**Status**: Candidate decisions pending human acceptance of `DR-003`
+
 ## Decision 1: Reuse the VS-001 normalized contract
 
 - **Decision**: VS-002 consumes the VS-001 `ProjectRegistrySnapshot` semantics and does not create a second Project/Document/Readiness model.

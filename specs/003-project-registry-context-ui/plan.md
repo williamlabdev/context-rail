@@ -48,6 +48,8 @@ The feature depends on VS-001's contract and implementation boundary. It does no
 3. The browser receives explicit status values and provenance fields. It must not infer readiness from an empty error-free response.
 4. Fixture configuration is explicit and local. No endpoint accepts arbitrary filesystem traversal or arbitrary remote URLs.
 5. The UI has no mutation controls in this slice. Future write actions require a new Request/Decision and cannot be added as a convenience to this plan.
+6. VS-001 is a hard prerequisite: its Go package/contract implementation and evidence must be accepted before VS-002 implementation begins. If VS-001 is not complete, VS-002 stops at contract design and does not create a duplicate registry model.
+7. Research decisions are implementation candidates pending human acceptance of `DR-003`; they do not override its `unknowns` or authorize dependencies.
 
 ## Project Structure
 
@@ -85,6 +87,9 @@ internal/http/
 frontend/
 ├── package.json
 ├── package-lock.json
+├── tsconfig.json
+├── vite.config.ts
+├── playwright.config.ts
 ├── index.html
 ├── src/
 │   ├── App.tsx
@@ -111,11 +116,11 @@ evidence/EB-003/
 
 ## Implementation sequence
 
-1. Confirm VS-001 is available as a reusable package or record the exact contract adapter needed to consume it; do not duplicate semantics.
+1. Confirm VS-001 is complete and available as a reusable package with evidence; otherwise stop before implementation and do not duplicate semantics.
 2. Freeze API and UI contracts from the spec and fixtures.
 3. Write Go contract/handler tests and frontend state tests before implementation.
 4. Implement the read API, then the registry/detail/context UI.
-5. Build the frontend, serve it through the local service, and execute the browser journey.
+5. Build the frontend, serve it through the local service at the fixed local address in `quickstart.md`, and execute the browser journey.
 6. Compare fixture outputs, verify zero mutation, record EvidenceBundle and prepare review.
 
 ## Post-design Constitution Check

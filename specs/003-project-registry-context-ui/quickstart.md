@@ -15,6 +15,7 @@ Terminal A 啟動 local service：
 
 ```bash
 go run ./cmd/context-rail \
+  --addr 127.0.0.1:8080 \
   --fixture-root demo/order-operations-portal \
   --fixture-root examples/support-insights
 ```
@@ -28,11 +29,11 @@ npm --prefix frontend ci
 npm --prefix frontend run typecheck
 npm --prefix frontend run build
 npm --prefix frontend run test
-npm --prefix frontend run test:e2e
+BASE_URL=http://127.0.0.1:8080 npm --prefix frontend run test:e2e
 go build ./...
 ```
 
-The browser test must start the local Go service with both fixture roots explicitly configured, then open the served workspace. During implementation, the exact host/port flag may be added, but the fixture roots and read-only behavior must remain the same.
+The local service listens on `127.0.0.1:8080` for this slice and serves the built frontend. The browser test uses `BASE_URL` and must not start a second service with a different fixture configuration. During implementation, changing the address requires updating this quickstart, the Go entry point task and the browser test configuration together.
 
 ## Positive journey
 

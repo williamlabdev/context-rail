@@ -17,9 +17,9 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 - [ ] T001 Review `vision.md`, `roadmap.md`, `architecture.md`, `docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md` and the VS-001 artifacts before implementation.
 - [ ] T002 Obtain and record the human decision for `decisions/DR-003-project-registry-context-ui.json`.
 - [ ] T003 Create `work-orders/AWO-003-project-registry-context-ui.json` only after T002, with paths and checks limited to `DR-003`.
-- [ ] T004 [P] Record the current source commit, fixture roots and local tool versions in `evidence/EB-003/README.md`.
+- [ ] T004 Verify that VS-001 has a completed reusable Go contract/package and evidence; record the prerequisite result, current source commit, fixture roots and local tool versions in `evidence/EB-003/README.md`.
 - [ ] T005 [P] Create the root Go module in `go.mod` and `go.sum` only if VS-001 has not already established them; pin only required dependencies.
-- [ ] T006 [P] Initialize the frontend package in `frontend/package.json` and `frontend/package-lock.json` with pinned React/TypeScript/Vite and browser-test dependencies.
+- [ ] T006 [P] Initialize the frontend package in `frontend/package.json` and `frontend/package-lock.json` with pinned React/TypeScript/Vite and browser-test dependencies; add `frontend/tsconfig.json`, `frontend/vite.config.ts`, `frontend/playwright.config.ts` and the `dev`, `typecheck`, `build`, `test` and `test:e2e` scripts.
 
 **Checkpoint**: No implementation file may be changed before T002 is accepted and T003 is issued.
 
@@ -32,8 +32,8 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 - [ ] T009 [P] Add contract assertions in `tests/registry/contract_test.go` that `STALE`, `MISSING`, `CONFLICT`, `UNKNOWN` and `UNDECLARED` survive the VS-001-to-API boundary.
 - [ ] T010 [P] Add service error tests in `tests/http/projects_test.go` for `PROJECT_NOT_FOUND`, `PROJECT_INVALID`, `PROJECT_UNAVAILABLE` and `REGISTRY_UNAVAILABLE`.
 - [ ] T011 [P] Add frontend workspace-state tests in `frontend/tests/state/workspaceState.test.ts` for `LOADING`, `READY`, `EMPTY` and `ERROR`.
-- [ ] T012 [US1] Reuse the VS-001 normalized Project model in `internal/projectregistry/` and document any required contract adapter without creating a second semantic model.
-- [ ] T013 [US1] Implement safe local fixture configuration for the two explicit roots in `cmd/context-rail/` without arbitrary filesystem traversal or remote URL crawling.
+- [ ] T012 Reuse the VS-001 normalized Project model in `internal/projectregistry/` and document any required contract adapter without creating a second semantic model.
+- [ ] T013 Implement safe local fixture configuration for the two explicit roots in `cmd/context-rail/` without arbitrary filesystem traversal or remote URL crawling.
 
 **Checkpoint**: Contract tests define the read-only boundary and fail for missing API/UI behavior; no user story may add mutation routes.
 
@@ -47,7 +47,7 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 - [ ] T014 [US1] Implement the Project list and detail handlers in `internal/http/projects.go` for the exact read routes in `specs/003-project-registry-context-ui/contracts/api.md`.
 - [ ] T015 [US1] Implement safe JSON error responses in `internal/http/errors.go` without secret or credential values.
-- [ ] T016 [US1] Wire the read-only service and static frontend host in `cmd/context-rail/main.go`; expose no write route.
+- [ ] T016 [US1] Wire the read-only service and static frontend host in `cmd/context-rail/main.go`, including the fixed `--addr 127.0.0.1:8080` default; expose no write route.
 
 ### Frontend implementation
 
@@ -108,14 +108,14 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 - Phase 1 blocks all implementation phases; T002 and T003 are mandatory governance gates.
 - Phase 2 freezes the shared API/UI contract before story implementation.
-- User Story 1 depends on VS-001 and the Phase 2 contracts; it is the MVP.
+- User Story 1 depends on completed VS-001 evidence and the Phase 2 contracts; it is the MVP.
 - User Story 2 depends on the read path from User Story 1 but can add status coverage independently once the boundary exists.
 - User Story 3 depends on the application shell from User Story 1 and can then be tested independently with controlled local states.
 - Phase 6 depends on all selected stories and must finish before review preparation.
 
 ## Parallel opportunities
 
-- T004–T006 can run in parallel after the human gate and Work Order exist.
+- T005–T006 can run in parallel after T002–T004 pass and the Work Order exists.
 - T007–T011 can be prepared in parallel because they touch separate contract/test concerns.
 - T017, T018, T020, T021 and T023 can be prepared in parallel after the API shape is fixed.
 - T024 and T025 can proceed after the US1 components and local service are available.
