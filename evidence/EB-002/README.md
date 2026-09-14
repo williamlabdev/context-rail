@@ -32,6 +32,7 @@ Python 3.9.6 (template/.venv/bin/python)
 - `build-output.txt` — `go build ./...`
 - `oracle-comparison.txt` — Go/Python normalized snapshot comparison
 - `mutation-check.txt` — before/after hashes for both consumer fixtures
+- `CTR_FRESH_EYES_2026-09-14.zh-TW.md` — AI CTR/Fresh-eyes review
 
 Implementation commit: `38c965f09e0b3001ec8b1a699a7e42d854c406a3`.
 

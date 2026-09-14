@@ -53,7 +53,7 @@ description: "Task list for the Project Registry read-only import Change Slice"
 - [x] T018 [P] Run `go build ./...` and record exact output in `evidence/EB-002/build-output.txt`.
 - [x] T019 Compare the Go snapshot with the Python oracle and record differences or limitations in `docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_CORE_2026-09-14.zh-TW.md`.
 - [x] T020 Recompute source hashes and record the zero-mutation result in `evidence/EB-002/mutation-check.txt` and `evidence/EB-002/README.md`.
-- [ ] T021 Prepare review evidence; do not mark staging or production ready from this local slice.
+- [x] T021 Prepare review evidence; do not mark staging or production ready from this local slice. See `evidence/EB-002/CTR_FRESH_EYES_2026-09-14.zh-TW.md`.
 
 ## Dependencies and execution order
 
