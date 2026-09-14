@@ -1,0 +1,90 @@
+{
+  "decision_id": "DR-003",
+  "project_id": "context-rail",
+  "request_id": "REQ-003",
+  "version": 1,
+  "status": "PENDING_HUMAN_DECISION",
+  "risk_level": "low",
+  "selected_option": "go_read_api_react_read_only_workspace",
+  "alternatives": [
+    {
+      "id": "api_only_contract",
+      "status": "delivered_as_vs_001",
+      "reason": "It proves the normalized contract but does not give a human a browser-visible product journey."
+    },
+    {
+      "id": "full_project_workspace_crud",
+      "status": "deferred",
+      "reason": "Writes, membership and persistence would expand the slice before the read-only user journey is validated."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "go.mod",
+      "go.sum",
+      "cmd/context-rail/",
+      "internal/projectregistry/",
+      "internal/http/",
+      "frontend/",
+      "tests/registry/",
+      "tests/frontend/",
+      "docs/validation/",
+      "evidence/EB-003/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "project-crud-writes",
+      "auth-and-membership",
+      "secrets",
+      "iam",
+      "cloud-deployment",
+      "production-targets"
+    ]
+  },
+  "architecture_impact": [
+    "Adds the first user-visible React read surface described by the ContextRail architecture.",
+    "Exposes the VS-001 normalized registry contract through a small read-only Go boundary.",
+    "Makes source status and readiness reason visible without turning derived context into SSOT.",
+    "Keeps fixture-backed local execution separate from provider discovery and cloud runtime."
+  ],
+  "cost_assumptions": [
+    "Local execution uses no Cloud Run, Firestore or paid connector.",
+    "Frontend dependencies must be pinned and installed locally; no production hosting is included."
+  ],
+  "unknowns": [
+    "Final frontend bundler and browser test runner after the local toolchain check.",
+    "Whether the product API should serve static frontend assets in this slice or run as separate local processes.",
+    "Future authentication and Project membership policy."
+  ],
+  "acceptance_criteria": [
+    "REQ-003/AC-001",
+    "REQ-003/AC-002",
+    "REQ-003/AC-003",
+    "REQ-003/AC-004",
+    "REQ-003/AC-005",
+    "REQ-003/AC-006",
+    "REQ-003/AC-007"
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "b5220916e3ca4ba093e5b11f27bc43a99e5ca831",
+  "source_refs": [
+    "vision.md",
+    "roadmap.md",
+    "architecture.md",
+    "docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md",
+    "docs/planning/CONTEXT_RAIL_VERTICAL_SLICES_V1.zh-TW.md",
+    "specs/002-project-registry-import/spec.md",
+    "specs/002-project-registry-import/plan.md"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_IMPORT_2026-09-14.zh-TW.md"
+  ],
+  "human_decision": {
+    "actor": null,
+    "role": null,
+    "at": null,
+    "decision": null,
+    "reason": null
+  }
+}
