@@ -6,7 +6,7 @@
 
 **Created**: 2026-09-14
 
-**Status**: Accepted for local development; blocked on VS-001 evidence acceptance and `AWO-003`
+**Status**: Accepted for local development; ready for `AWO-003`
 
 **Input**: [REQ-003](../../requests/REQ-003-project-registry-context-ui.md) and [DR-003](../../decisions/DR-003-project-registry-context-ui.json)
 
@@ -109,4 +109,4 @@ As a Project owner, I want the workspace to explain loading, empty and failure s
 - Local fixture-backed execution is sufficient for this slice; Cloud Run is a later environment slice.
 - The initial UI can be a focused workspace rather than a complete navigation shell, provided the registry-to-detail journey is complete.
 - Project creation, editing, archiving, authentication, membership, persistence, uploads, RAG, Gemini, agent execution and deployment remain out of scope.
-- `DR-003` is accepted for local development/testing only. VS-001 now has a delivered Go package and evidence, but its implementation/evidence still requires human or independent review acceptance before VS-002 implementation begins. This specification does not grant `AWO-003` or environment authorization.
+- `DR-003` is accepted for local development/testing only. VS-001 implementation/evidence has been human-reviewed and accepted for local development. VS-002 implementation still requires the bounded `AWO-003`; this specification does not grant environment authorization.

@@ -7,7 +7,7 @@
 
 ## Result
 
-`READY_FOR_REVIEW`: VS-001 has delivered the reusable Go contract/package and its evidence bundle, but the AI review is not a substitute for human or independent reviewer acceptance.
+`ACCEPTED_FOR_LOCAL_DEVELOPMENT`: VS-001 has delivered the reusable Go contract/package and its evidence bundle, and the human review accepted this local scope.
 
 Evidence for this result:
 
@@ -15,6 +15,7 @@ Evidence for this result:
 - `work-orders/AWO-002-project-registry-import.json` is `ISSUED` with a valid canonical hash.
 - `specs/002-project-registry-import/tasks.md` records T001–T021 complete for the local slice.
 - The reusable Go package, local CLI, contract tests and `evidence/EB-002/` are present and verified.
+- `evidence/EB-002/HUMAN_REVIEW_PACKET.zh-TW.md` records the human review result and its local-only boundary.
 - The existing Python importer remains the contract oracle/reference; it is not the VS-001 Go runtime package.
 
 ## Explicit fixture roots
@@ -35,4 +36,4 @@ The first four lines correspond to Go, Node.js, npm and the project-local Python
 
 ## Consequence
 
-Do not create `AWO-003` or change VS-002 implementation files until the VS-001 implementation/evidence receives human or independent review acceptance. VS-001's local Work Order does not authorize VS-002 paths.
+`AWO-003` may now be issued for the separately accepted VS-002 scope. VS-001's local Work Order does not authorize VS-002 paths.
