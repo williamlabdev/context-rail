@@ -8,7 +8,7 @@
 
 Implement the first user-visible ContextRail journey on top of the VS-001 normalized Project Registry contract. A small Go read API will expose explicitly supplied fixture-backed Project records, and a React/TypeScript workspace will let a Project owner select a Project and inspect registry, Documents / AI Context and readiness states. The browser surface is read-only and must preserve stale, missing, conflict, unknown and undeclared information.
 
-The feature depends on VS-001's contract and implementation boundary. It does not add Project writes, authentication, persistence, provider crawling, RAG or deployment. `DR-003` is accepted for local development, but VS-001 must complete its reusable package/evidence and a bounded Work Order must be issued before implementation files are changed.
+The feature depends on VS-001's contract and implementation boundary. It does not add Project writes, authentication, persistence, provider crawling, RAG or deployment. `DR-003` is accepted for local development and VS-001 has delivered its reusable package/evidence, but that evidence must be accepted by human or independent review and a bounded Work Order must be issued before implementation files are changed.
 
 ## Technical Context
 
@@ -37,9 +37,9 @@ The feature depends on VS-001's contract and implementation boundary. It does no
 - [x] Bounded and reversible change: paths are limited to DR-003; fixture roots are read-only; browser actions do not mutate governance records.
 - [x] Deterministic gates and human authority: UI status is informational; no screen state approves a Project or deployment.
 - [x] Evidence is part of the deliverable: backend tests, frontend tests, browser evidence, build identity and zero-mutation proof are required.
-- [x] Structured handoff: implementation waits for the accepted VS-001 prerequisite and AWO-003; no agent or UI action receives write permission.
+- [x] Structured handoff: implementation waits for human/independent acceptance of the VS-001 evidence and AWO-003; no agent or UI action receives write permission.
 
-**Gate status**: PASS for planning; `DR-003` is `ACCEPTED_FOR_DEVELOPMENT`; implementation remains `BLOCKED_BY_DR-002_AND_AWO-003`.
+**Gate status**: PASS for planning; `DR-003` is `ACCEPTED_FOR_DEVELOPMENT`; VS-001 implementation/evidence is available for review; implementation remains `BLOCKED_BY_VS-001_REVIEW_AND_AWO-003`.
 
 ## Dependencies and design decisions
 

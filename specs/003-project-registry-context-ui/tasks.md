@@ -8,7 +8,7 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 **Prerequisites**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [API contract](contracts/api.md), [UI contract](contracts/ui.md), [REQ-003](../../requests/REQ-003-project-registry-context-ui.md), [DR-003](../../decisions/DR-003-project-registry-context-ui.json)
 
-**Status**: `DR-003` accepted for local development; implementation is blocked until `DR-002`, VS-001 evidence and `AWO-003` are complete.
+**Status**: `DR-003` accepted for local development; VS-001 implementation/evidence is available for review; implementation is blocked until VS-001 evidence is accepted and `AWO-003` is issued.
 
 ## Phase 1: Setup
 
@@ -17,7 +17,7 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 - [x] T001 Review `vision.md`, `roadmap.md`, `architecture.md`, `docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md` and the VS-001 artifacts before implementation.
 - [x] T002 Obtain and record the human decision for `decisions/DR-003-project-registry-context-ui.json`.
 - [ ] T003 Create `work-orders/AWO-003-project-registry-context-ui.json` only after T002 and T004, with paths and checks limited to `DR-003`.
-- [x] T004 Verify that VS-001 has a completed reusable Go contract/package and evidence; record the prerequisite result, current source commit, fixture roots and local tool versions in `evidence/EB-003/README.md`. Result: `BLOCKED`; the reusable Go package and EB-002 are not yet present.
+- [x] T004 Verify that VS-001 has a completed reusable Go contract/package and evidence; record the prerequisite result, current source commit, fixture roots and local tool versions in `evidence/EB-003/README.md`. Result: `READY_FOR_REVIEW`; see `evidence/EB-002/CTR_FRESH_EYES_2026-09-14.zh-TW.md`.
 - [ ] T005 [P] Create the root Go module in `go.mod` and `go.sum` only if VS-001 has not already established them; pin only required dependencies.
 - [ ] T006 [P] Initialize the frontend package in `frontend/package.json` and `frontend/package-lock.json` with pinned React/TypeScript/Vite and browser-test dependencies; add `frontend/tsconfig.json`, `frontend/vite.config.ts`, `frontend/playwright.config.ts` and the `dev`, `typecheck`, `build`, `test` and `test:e2e` scripts.
 
