@@ -1,0 +1,9 @@
+Command: compare Go CLI snapshot with scripts/context_rail_registry.py using template/.venv/bin/python for both explicit fixture roots.
+Project roots: demo/order-operations-portal, examples/support-insights
+Comparison: PASS (normalized snapshots equal after removing runtime-generated observed_at)
+Read-only: PASS (Go contract and before/after hash check cover source mutation)
+
+Limitations:
+- This compares checked-in fixtures only.
+- It does not claim provider crawling, Cloud Run behavior, IAM behavior or production readiness.
+- The Python implementation is a comparison oracle/reference for this local check, not a second runtime authority.

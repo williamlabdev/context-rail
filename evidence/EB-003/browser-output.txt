@@ -1,0 +1,12 @@
+Command: PLAYWRIGHT_EXECUTABLE_PATH=<pinned local Chrome for Testing> npm --prefix frontend run test:e2e
+
+Running 4 tests using 1 worker
+✓ browses both Projects and replaces detail state on switching
+✓ shows an explicit loading state while the registry response is delayed
+✓ shows an explicit empty state without a create action
+✓ shows an explicit unavailable state without stale detail or mutation controls
+
+4 passed (1.9s)
+
+Read-only assertion: all observed browser request methods were GET; no mutation control matched create/edit/archive/upload/approve/deploy.
+Result: PASS

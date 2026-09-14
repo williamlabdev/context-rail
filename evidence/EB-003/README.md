@@ -1,7 +1,7 @@
 # EB-003 — VS-002 Project Registry／Context UI
 
 - Checked at: 2026-09-14 Asia/Taipei
-- Current source commit: `0ecc1da`
+- Current source commit: `25204a5`
 - Scope: local read-only implementation and verification for VS-002
 - Cloud Run, IAM and production: not used
 
@@ -38,17 +38,32 @@ Python 3.9.6
 
 The first four lines correspond to Go, Node.js, npm and the project-local Python interpreter used for this check (`template/.venv/bin/python`).
 
-## Current implementation checkpoint
+## Implementation result
 
-The VS-002 local Work Order has been issued and the current checkpoint includes the read-only Go HTTP boundary, React workspace, focused tests and a positive browser journey. The remaining work is explicit failure-state coverage and final evidence capture.
+`IMPLEMENTATION_COMPLETE_PENDING_HUMAN_REVIEW`: the bounded local slice includes the read-only Go HTTP boundary, React workspace, uncertain-state preservation, explicit loading/empty/error journeys, focused tests and browser evidence. This result is not a staging or production release decision.
 
 `AWO-003` is limited to the VS-002 paths. VS-001's local Work Order does not authorize VS-002 paths.
 
 ## Evidence index
 
 - `HUMAN_REVIEW_PACKET.zh-TW.md` — human-readable review guide and current boundary
-- `go-test-output.txt` — planned final Go test output
-- `go-quality-output.txt` — planned final `go vet` and build output
-- `frontend-quality-output.txt` — planned final frontend checks
-- `browser-output.txt` — planned browser journey output
+- `go-test-output.txt` — exact Go test output
+- `go-quality-output.txt` — exact `go vet`, build and module verification output
+- `frontend-quality-output.txt` — exact frontend audit, typecheck, unit test and build output
+- `browser-output.txt` — exact Playwright browser journey output
+- `oracle-comparison.txt` — Go/Python normalized snapshot comparison
+- `mutation-check.txt` — consumer fixture hash comparison before/after read-only import
 - `README.md` — scope, provenance and evidence index
+
+## Verification result
+
+| Layer | Result | Evidence |
+| --- | --- | --- |
+| Go contract/API | PASS | [go-test-output.txt](go-test-output.txt) |
+| Go quality/module integrity | PASS | [go-quality-output.txt](go-quality-output.txt) |
+| Frontend quality | PASS | [frontend-quality-output.txt](frontend-quality-output.txt) |
+| Browser journeys | PASS: 4 tests | [browser-output.txt](browser-output.txt) |
+| Go/Python oracle comparison | PASS with `observed_at` excluded | [oracle-comparison.txt](oracle-comparison.txt) |
+| Consumer fixture mutation | PASS: hashes unchanged | [mutation-check.txt](mutation-check.txt) |
+
+The final human review may accept or reject this local implementation. No evidence in EB-003 authorizes Cloud Run, IAM, staging or production.

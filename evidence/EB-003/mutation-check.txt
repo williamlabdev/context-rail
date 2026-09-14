@@ -1,0 +1,7 @@
+Command: hash both consumer fixture trees, run the Go read-only import, hash both trees again, then compare.
+
+PASS: consumer fixture hashes unchanged before and after read-only import
+
+Checked roots:
+- demo/order-operations-portal
+- examples/support-insights

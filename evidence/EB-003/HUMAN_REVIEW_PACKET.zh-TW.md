@@ -9,9 +9,10 @@
 | Feature | VS-002：Project Registry／Documents & AI Context 唯讀工作區 |
 | DecisionRecord | `DR-003 / ACCEPTED_FOR_DEVELOPMENT` |
 | Work Order | `AWO-003 / ISSUED` |
-| Reviewed source | `0ecc1da`（目前實作 checkpoint） |
+| Reviewed source | `25204a5`（實作與 evidence capture checkpoint） |
 | Scope | 本機 development/testing；不含 Cloud Run、IAM、production |
-| VS-002 final review | 尚未宣告；需完成剩餘 failure-state evidence 後再 review |
+| VS-002 implementation | `IMPLEMENTATION_COMPLETE_PENDING_HUMAN_REVIEW` |
+| VS-002 final review | 尚未宣告；這頁提供人審入口，不代替人類決定 |
 
 ## 這個 slice 實際展示什麼
 
@@ -47,7 +48,7 @@
 | Browser journey | 兩個 Project、切換、STALE/UNDECLARED、無 mutation controls | `browser-output.txt` |
 | Provenance | source-vs-derived document、stale source reason、readiness reasons | `frontend/src/components/DocumentStatusList.tsx`、`ReadinessSummary.tsx` |
 
-原始 output 若尚未存在，代表該項目仍在 final evidence capture 階段，不應先標成 PASS。
+各項原始 output 已放在本 bundle；若要核對，請先看下表，再打開對應檔案，不需要從 log 第一行開始閱讀。
 
 ## 判讀規則
 

@@ -1,0 +1,12 @@
+Command: go vet ./...
+Output: (none)
+Exit: 0
+
+Command: go build ./...
+Output: (none)
+Exit: 0
+
+Command: go mod verify
+all modules verified
+
+Result: PASS

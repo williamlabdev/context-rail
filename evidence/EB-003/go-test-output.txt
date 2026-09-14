@@ -1,0 +1,9 @@
+Command: go test -count=1 ./...
+
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+ok  	context-rail/tests/http	0.654s
+ok  	context-rail/tests/registry	0.418s
+
+Result: PASS
