@@ -67,6 +67,7 @@ type manifestDocument struct {
 	Path          string   `yaml:"path"`
 	Kind          string   `yaml:"kind"`
 	SourceOfTruth *bool    `yaml:"sourceOfTruth"`
+	Status        string   `yaml:"status"`
 	RequiredFor   []string `yaml:"requiredFor"`
 }
 
@@ -168,9 +169,12 @@ func documentStatuses(root string, values []manifestDocument) ([]DocumentStatus,
 		if err != nil {
 			return nil, err
 		}
-		status := "MISSING"
-		if info, statErr := os.Stat(path); statErr == nil && info.Mode().IsRegular() {
-			status = "CURRENT"
+		status := value.Status
+		if status == "" {
+			status = "MISSING"
+			if info, statErr := os.Stat(path); statErr == nil && info.Mode().IsRegular() {
+				status = "CURRENT"
+			}
 		}
 		document := DocumentStatus{Path: value.Path, Kind: value.Kind, SourceOfTruth: sourceOfTruth(value), Status: status}
 		if !document.SourceOfTruth && status == "CURRENT" {

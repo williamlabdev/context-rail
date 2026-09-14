@@ -76,6 +76,62 @@ func TestProjectDetailReturnsIndependentRecord(t *testing.T) {
 	}
 }
 
+func TestProjectsListPreservesAllGovernedStatuses(t *testing.T) {
+	root := t.TempDir()
+	manifest := `apiVersion: context-rail/v1alpha1
+kind: Project
+metadata:
+  id: status-fixture
+  name: Status Fixture
+spec:
+  documents:
+    - path: current.md
+      kind: source
+      status: CURRENT
+    - path: stale.md
+      kind: source
+      status: STALE
+    - path: missing.md
+      kind: source
+      status: MISSING
+    - path: conflict.md
+      kind: source
+      status: CONFLICT
+    - path: unknown.md
+      kind: source
+      status: UNKNOWN
+    - path: undeclared.md
+      kind: source
+      status: UNDECLARED
+`
+	if err := os.WriteFile(filepath.Join(root, "project.yaml"), []byte(manifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	handler := registryhttp.NewServer([]string{root})
+	request := httptest.NewRequest(http.MethodGet, "/v1/projects", nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	snapshot := decodeSnapshot(t, response)
+	if len(snapshot.Projects) != 1 {
+		t.Fatalf("project count = %d", len(snapshot.Projects))
+	}
+	statuses := map[string]string{}
+	for _, document := range snapshot.Projects[0].Documents {
+		statuses[document.Path] = document.Status
+	}
+	for path, expected := range map[string]string{
+		"current.md": "CURRENT", "stale.md": "STALE", "missing.md": "MISSING",
+		"conflict.md": "CONFLICT", "unknown.md": "UNKNOWN", "undeclared.md": "UNDECLARED",
+	} {
+		if statuses[path] != expected {
+			t.Fatalf("document %s status = %q, want %q", path, statuses[path], expected)
+		}
+	}
+}
+
 func TestUnknownProjectReturnsNotFoundError(t *testing.T) {
 	handler := registryhttp.NewServer(fixtureRoots(t))
 	request := httptest.NewRequest(http.MethodGet, "/v1/projects/not-configured", nil)
