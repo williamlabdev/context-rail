@@ -1,0 +1,91 @@
+{
+  "kind": "AgentWorkOrder",
+  "schema_version": "agent-work-order/v1",
+  "work_order_id": "AWO-003",
+  "project_id": "context-rail",
+  "request_id": "REQ-003",
+  "change_id": "project-registry-context-ui",
+  "change_version": 1,
+  "decision_id": "DR-003",
+  "source_snapshot_hash": null,
+  "policy_version": "project-workspace-v1",
+  "status": "ISSUED",
+  "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+  "reason": "DR-003 and the VS-001 implementation/evidence are accepted for bounded local development. This Work Order authorizes only the fixture-backed read-only Go boundary and React/TypeScript workspace; it does not authorize Project CRUD, authentication, secrets, IAM, cloud deployment or production activity.",
+  "issuer": {
+    "actor_id": "founder-001",
+    "actor_role": "founder_and_solution_architect",
+    "status": "ISSUED"
+  },
+  "repository": "context-rail (current local checkout; no remote configured)",
+  "base_branch": "codex/001-manual-order-review",
+  "target_branch": "codex/001-manual-order-review",
+  "target_environment_id": "development",
+  "allowed_transition": "development-to-testing",
+  "allowed_paths": [
+    "go.mod",
+    "go.sum",
+    "cmd/context-rail/",
+    "internal/projectregistry/",
+    "internal/http/",
+    "frontend/",
+    "tests/registry/",
+    "tests/http/",
+    "tests/browser/",
+    "tests/frontend/",
+    "docs/validation/",
+    "evidence/EB-003/"
+  ],
+  "forbidden_actions": [
+    "consumer-source-mutation",
+    "project-crud-writes",
+    "auth-and-membership",
+    "secret-access",
+    "iam-change",
+    "cloud-deployment",
+    "production-deploy",
+    "provider-crawling",
+    "context-pack-rebuild"
+  ],
+  "acceptance_ids": [
+    "REQ-003/AC-001",
+    "REQ-003/AC-002",
+    "REQ-003/AC-003",
+    "REQ-003/AC-004",
+    "REQ-003/AC-005",
+    "REQ-003/AC-006",
+    "REQ-003/AC-007"
+  ],
+  "required_checks": [
+    "go test ./...",
+    "go vet ./...",
+    "go build ./...",
+    "npm --prefix frontend ci",
+    "npm --prefix frontend run typecheck",
+    "npm --prefix frontend run test",
+    "npm --prefix frontend run build",
+    "BASE_URL=http://127.0.0.1:8080 npm --prefix frontend run test:e2e",
+    "before-after consumer and governance hash comparison",
+    "AI CTR/Fresh-eyes review"
+  ],
+  "input_refs": [
+    "requests/REQ-003-project-registry-context-ui.md",
+    "decisions/DR-003-project-registry-context-ui.json",
+    "specs/003-project-registry-context-ui/spec.md",
+    "specs/003-project-registry-context-ui/plan.md",
+    "specs/003-project-registry-context-ui/research.md",
+    "specs/003-project-registry-context-ui/data-model.md",
+    "specs/003-project-registry-context-ui/contracts/api.md",
+    "specs/003-project-registry-context-ui/contracts/ui.md",
+    "specs/003-project-registry-context-ui/tasks.md",
+    "evidence/EB-002/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_CORE_2026-09-14.zh-TW.md"
+  ],
+  "output_paths": [
+    "runs/ARR-003-project-registry-context-ui.json",
+    "evidence/EB-003/",
+    "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_CONTEXT_UI_2026-09-14.zh-TW.md"
+  ],
+  "expires_at": null,
+  "work_order_hash": "sha256:571b0003d2552bb9660869a6b41bea6b1f3a7038c501fb775e9126a21d41a5f1"
+}
