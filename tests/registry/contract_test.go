@@ -102,7 +102,7 @@ func TestImportNormalizesSingularAndPluralServices(t *testing.T) {
 	if len(order.Services) != 1 || order.Services[0].ID != "order-operations-web" || order.Services[0].Path != "." {
 		t.Fatalf("singular service was not normalized: %#v", order.Services)
 	}
-	if len(support.Services) != 1 || support.Services[0].Repository != "support-insights" {
+	if len(support.Services) != 1 || support.Services[0].Repository == nil || *support.Services[0].Repository != "support-insights" {
 		t.Fatalf("plural service was not normalized: %#v", support.Services)
 	}
 }
