@@ -1,7 +1,7 @@
 # ContextRail Vertical Slice Map v1
 
 Status: working baseline
-Version: 1.0
+Version: 1.1
 Updated: 2026-09-14
 Scope: ContextRail P0 core product
 
@@ -20,13 +20,41 @@ Spec Kit 用來把已選定的 slice 形成 `spec.md`、`plan.md` 與 `tasks.md`
 | Slice | 使用者結果 | 主要治理鏈 | 目前狀態 | 下一個明確出口 |
 | --- | --- | --- | --- | --- |
 | VS-001 Project Registry read-only import | 看見 Project、repo、service、environment、文件、context 與 readiness 的可追溯 snapshot | Request → Decision → Spec Kit → read-only importer → contract evidence | Contract spike PASS；core API 未實作 | 完成 `REQ-002` 的 core read-only API decision |
-| VS-002 Documents / AI Context | 找到缺件、過期、衝突與衍生 Context Pack 的來源 | Request → Decision → Spec Kit → document registry/context view → evidence | NOT_STARTED | 定義 UI state/action contract |
+| VS-002 Project Registry / Documents & AI Context UI | 在瀏覽器看見 Project registry、文件 provenance、context 與 readiness 狀態 | Request → Decision → Spec Kit → Go read API → React read-only UI → browser evidence | NOT_STARTED；前後端 slice | 定義 UI state/action contract 與 API contract |
 | VS-003 Project lifecycle and topology | 建立、修改、封存 Project，並以 immutable topology version 管理 environments | Request → Decision → Spec Kit → API/UI → audit evidence | NOT_STARTED | 先完成 VS-001 的資料讀取契約 |
 | VS-004 Change Decision Pack | 一份 accepted DecisionRecord 同時產生人類摘要與 Agent Context Pack | Request → architecture impact → Decision → Spec Kit → render evidence | Demo proven；core NOT_STARTED | 將 demo artifact mapping 移植到 core contract |
 | VS-005 Agent handoff and candidate review | 受限 Work Order 產生 feature branch/PR，並由 evidence/review gate 判斷候選 | Decision → AWO → Agent Run → Evidence → Review | Demo proven；core NOT_STARTED | 定義外部 agent adapter 的最小 read-back contract |
 | VS-006 Staging promotion and receipt | 只把通過 gate 的 commit/digest/config 推到 staging 並產生 receipt | Candidate review → environment gate → deploy → smoke → receipt | Demo pre-deploy gate proven；real runtime NOT_STARTED | 先完成 VS-003 的 target/config contract |
 
-## 3. 本輪選擇：VS-001
+## 3. VS-002 的前後端邊界
+
+VS-002 是第一個完整的 full-stack slice，建立在 VS-001 的 normalized read contract 上。它至少要讓 Project owner 在瀏覽器完成一次可驗證的 read-only journey：選擇或開啟 Project，看到 registry/context/readiness，並能理解哪些資料可用、哪些資料 stale/missing/unknown。
+
+### Backend included
+
+- 將 VS-001 normalized snapshot 以穩定的 read-only API 暴露給 UI；
+- 支援 Project list 與 Project detail/workspace 所需的最小查詢；
+- 保留 source root、observed time、document status、context status 與 readiness reason；
+- 回傳 loading 以外的 empty、invalid、unavailable/error 狀態所需的結構化錯誤；
+- 不新增寫入、CRUD、membership、auth、Firestore、RAG 或 deployment。
+
+### Frontend included
+
+- Project Registry 清單或選擇入口；
+- Project detail / Documents & AI Context read-only view；
+- `CURRENT`、`STALE`、`MISSING`、`CONFLICT`、`UNKNOWN`、`UNDECLARED` 的明確視覺狀態；
+- loading、empty、error 與 read-only 狀態；
+- 至少一條瀏覽器操作路徑與可重現的 browser/integration evidence。
+
+### Frontend and backend excluded
+
+- Project create/update/archive、文件上傳、Context Pack rebuild、人工決策操作；
+- authentication、authorization、tenant membership 與 real private-repository connector；
+- Cloud Run、IAM、production promotion 與任何外部寫入。
+
+VS-002 的 PASS 表示「使用者可以從 UI 讀懂一個已匯入 Project 的治理脈絡」。它不表示 Project CRUD 完成，也不表示 readiness 等於 authorization。
+
+## 4. 本輪選擇：VS-001
 
 ### 使用者結果
 
@@ -59,20 +87,20 @@ Solution Architect 或 Project owner 可以用一個唯讀操作取得 Project R
 
 VS-001 的 PASS 只表示「可以安全地讀取與正規化契約 fixture」。它不表示 Project 已經能被建立、不表示 source 已確認、不表示 staging/production ready，也不授予任何 agent 或人員寫入權限。
 
-## 4. 選擇理由與裁切
+## 5. 選擇理由與裁切
 
 VS-001 是後續所有 slice 的共同讀取邊界：沒有穩定的 Project、source、document 與 readiness contract，VS-002 到 VS-006 會把資料對應重新寫在各自功能裡，最後產生多份不一致的 context。先完成唯讀 contract 也能在沒有 Cloud Run、Firestore 或付費 connector 的情況下驗證 Project Context Contract。
 
 本輪不把既有 Python importer 直接升格為產品 runtime。它是 contract oracle／spike；`REQ-002` 的 plan 會決定 Go modular monolith 如何消費同一份 normalized contract，並保留 read-back 與 evidence boundary。
 
-## 5. 對應 roadmap 與 architecture
+## 6. 對應 roadmap 與 architecture
 
 - Roadmap P0-A：Project Registry、Repository/ProjectRepository、Service、ProjectDocument 與 Context Pack provenance。
 - Roadmap Week 1：Go API skeleton、Project Registry、manifest validation 與 source contract。
 - Architecture domain：Project 是治理邊界；Repository/Service 是可多對多關聯；ContextPack 是 derived projection。
 - Project Context Contract：import → validate → rebuild 是明確動作；readiness 必須保留 missing/stale/conflict/derived 狀態。
 
-## 6. 完成定義
+## 7. 完成定義
 
 VS-001 只有同時滿足以下條件才可標記為 core slice complete：
 
