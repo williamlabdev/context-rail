@@ -26,7 +26,7 @@ The top-level read result consumed by the UI.
 | `documents` | array | yes | Source/derived document status and provenance. |
 | `decisions` | array | yes | Observed decision records; no approval inference. |
 | `readiness` | object/array | yes | Derived readiness with reason and evidence state. |
-| `context.status` | string | yes | Preserve `CURRENT`, `PARTIAL`, `STALE`, `MISSING` or `UNKNOWN`. |
+| `context.status` | string | yes | Preserve `DERIVED`, `PARTIAL`, `STALE`, `MISSING` or `UNKNOWN`; `DERIVED` means the Context Pack is a derived observation, not an approval. |
 | `read_only` | boolean | yes | Must be `true` for this slice. |
 | `observed_at` | timestamp | yes | Observation time for the record. |
 

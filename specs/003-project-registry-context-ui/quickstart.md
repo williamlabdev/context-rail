@@ -11,7 +11,15 @@
 
 ## Expected local flow
 
-The exact script names are finalized during implementation, but the verification path must remain equivalent to:
+Terminal A 啟動 local service：
+
+```bash
+go run ./cmd/context-rail \
+  --fixture-root demo/order-operations-portal \
+  --fixture-root examples/support-insights
+```
+
+Terminal B 執行驗證：
 
 ```bash
 go test ./...
@@ -24,7 +32,7 @@ npm --prefix frontend run test:e2e
 go build ./...
 ```
 
-The browser test must start the local Go service with both fixture roots explicitly configured, then open the served workspace.
+The browser test must start the local Go service with both fixture roots explicitly configured, then open the served workspace. During implementation, the exact host/port flag may be added, but the fixture roots and read-only behavior must remain the same.
 
 ## Positive journey
 

@@ -27,11 +27,11 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 **Purpose**: Freeze the shared backend/frontend boundary before story work.
 
-- [ ] T007 [P] [US1] Add Go HTTP contract tests for `GET /v1/projects` and `GET /v1/projects/{project_id}` in `tests/http/projects_test.go` using the API contract in `contracts/api.md`.
-- [ ] T008 [P] [US1] Add frontend API type and parsing tests in `frontend/tests/api/projectRegistry.test.ts` for `ProjectRegistrySnapshot` and `ProjectRegistryError`.
-- [ ] T009 [P] [US2] Add contract assertions in `tests/registry/contract_test.go` that `STALE`, `MISSING`, `CONFLICT`, `UNKNOWN` and `UNDECLARED` survive the VS-001-to-API boundary.
-- [ ] T010 [P] [US3] Add service error tests in `tests/http/projects_test.go` for `PROJECT_NOT_FOUND`, `PROJECT_INVALID`, `PROJECT_UNAVAILABLE` and `REGISTRY_UNAVAILABLE`.
-- [ ] T011 [P] [US3] Add frontend workspace-state tests in `frontend/tests/state/workspaceState.test.ts` for `LOADING`, `READY`, `EMPTY` and `ERROR`.
+- [ ] T007 [P] Add Go HTTP contract tests for `GET /v1/projects` and `GET /v1/projects/{project_id}` in `tests/http/projects_test.go` using the API contract in `contracts/api.md`.
+- [ ] T008 [P] Add frontend API type and parsing tests in `frontend/tests/api/projectRegistry.test.ts` for `ProjectRegistrySnapshot` and `ProjectRegistryError`.
+- [ ] T009 [P] Add contract assertions in `tests/registry/contract_test.go` that `STALE`, `MISSING`, `CONFLICT`, `UNKNOWN` and `UNDECLARED` survive the VS-001-to-API boundary.
+- [ ] T010 [P] Add service error tests in `tests/http/projects_test.go` for `PROJECT_NOT_FOUND`, `PROJECT_INVALID`, `PROJECT_UNAVAILABLE` and `REGISTRY_UNAVAILABLE`.
+- [ ] T011 [P] Add frontend workspace-state tests in `frontend/tests/state/workspaceState.test.ts` for `LOADING`, `READY`, `EMPTY` and `ERROR`.
 - [ ] T012 [US1] Reuse the VS-001 normalized Project model in `internal/projectregistry/` and document any required contract adapter without creating a second semantic model.
 - [ ] T013 [US1] Implement safe local fixture configuration for the two explicit roots in `cmd/context-rail/` without arbitrary filesystem traversal or remote URL crawling.
 
