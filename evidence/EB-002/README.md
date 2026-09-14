@@ -31,6 +31,7 @@ Python 3.9.6 (template/.venv/bin/python)
 - `vet-output.txt` — `go vet ./...`
 - `build-output.txt` — `go build ./...`
 - `oracle-comparison.txt` — Go/Python normalized snapshot comparison
+- `mutation-check.txt` — before/after hashes for both consumer fixtures
 
 Implementation commit: `38c965f09e0b3001ec8b1a699a7e42d854c406a3`.
 

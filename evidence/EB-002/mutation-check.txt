@@ -1,0 +1,13 @@
+Command: hash both consumer fixture trees, run `go run ./cmd/context-rail` with both roots, then hash them again.
+
+demo/order-operations-portal
+before: sha256:8c11fba796633db6fe52d265d76cd67405925fa666540ce0f3ecf76c8988f75b
+after:  sha256:8c11fba796633db6fe52d265d76cd67405925fa666540ce0f3ecf76c8988f75b
+equal:  True
+
+examples/support-insights
+before: sha256:ce656cf732138076af870ea61f568d7e3a5e79daf357ed65f8df02faded9cbc3
+after:  sha256:ce656cf732138076af870ea61f568d7e3a5e79daf357ed65f8df02faded9cbc3
+equal:  True
+
+Result: PASS

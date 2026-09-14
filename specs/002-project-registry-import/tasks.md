@@ -27,22 +27,22 @@ description: "Task list for the Project Registry read-only import Change Slice"
 
 **Independent Test**: Run the registry contract tests against `demo/order-operations-portal` and `examples/support-insights`, then compare the relevant fields with the existing Python oracle.
 
-- [ ] T005 [P] [US1] Add a valid-fixture contract test in `tests/registry/contract_test.go`.
-- [ ] T006 [P] [US1] Add singular/plural service normalization coverage in `tests/registry/contract_test.go`.
-- [ ] T007 [P] [US1] Add stale, missing, unknown and undeclared status coverage in `tests/registry/contract_test.go`.
-- [ ] T008 [P] [US1] Add malformed/missing manifest error coverage in `tests/registry/contract_test.go`.
-- [ ] T009 [P] [US1] Add source hash immutability coverage in `tests/registry/mutation_test.go`.
+- [x] T005 [P] [US1] Add a valid-fixture contract test in `tests/registry/contract_test.go`.
+- [x] T006 [P] [US1] Add singular/plural service normalization coverage in `tests/registry/contract_test.go`.
+- [x] T007 [P] [US1] Add stale, missing, unknown and undeclared status coverage in `tests/registry/contract_test.go`.
+- [x] T008 [P] [US1] Add malformed/missing manifest error coverage in `tests/registry/contract_test.go`.
+- [x] T009 [P] [US1] Add source hash immutability coverage in `tests/registry/mutation_test.go`.
 
 **Checkpoint**: Tests define the accepted contract and fail for an unimplemented registry package.
 
 ## Phase 3: Read-only registry implementation
 
-- [ ] T010 [US1] Define the versioned snapshot and normalized Project models in `internal/projectregistry/model.go`.
-- [ ] T011 [US1] Implement read-only manifest validation and relationship normalization in `internal/projectregistry/manifest.go`.
-- [ ] T012 [US1] Implement readiness/document status mapping in `internal/projectregistry/readiness.go`.
-- [ ] T013 [US1] Implement multi-root import orchestration and explicit error handling in `internal/projectregistry/registry.go`.
-- [ ] T014 [US1] Add a local/API entry point in `cmd/context-rail/main.go` only if the contract tests show it does not expand scope.
-- [ ] T015 [US1] Keep all implementation changes within the paths allowed by `DR-002`.
+- [x] T010 [US1] Define the versioned snapshot and normalized Project models in `internal/projectregistry/model.go`.
+- [x] T011 [US1] Implement read-only manifest validation and relationship normalization in `internal/projectregistry/manifest.go`.
+- [x] T012 [US1] Implement readiness/document status mapping in `internal/projectregistry/readiness.go`.
+- [x] T013 [US1] Implement multi-root import orchestration and explicit error handling in `internal/projectregistry/registry.go`.
+- [x] T014 [US1] Add a local/API entry point in `cmd/context-rail/main.go` only if the contract tests show it does not expand scope.
+- [x] T015 [US1] Keep all implementation changes within the paths allowed by `DR-002`.
 
 **Checkpoint**: Both fixtures return independently identified snapshots and no consumer source is modified.
 
@@ -52,7 +52,7 @@ description: "Task list for the Project Registry read-only import Change Slice"
 - [x] T017 [P] Run `go vet ./...` and record exact output in `evidence/EB-002/vet-output.txt`.
 - [x] T018 [P] Run `go build ./...` and record exact output in `evidence/EB-002/build-output.txt`.
 - [x] T019 Compare the Go snapshot with the Python oracle and record differences or limitations in `docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_CORE_2026-09-14.zh-TW.md`.
-- [ ] T020 Recompute source hashes and record the zero-mutation result in `evidence/EB-002/README.md`.
+- [x] T020 Recompute source hashes and record the zero-mutation result in `evidence/EB-002/mutation-check.txt` and `evidence/EB-002/README.md`.
 - [ ] T021 Prepare review evidence; do not mark staging or production ready from this local slice.
 
 ## Dependencies and execution order
