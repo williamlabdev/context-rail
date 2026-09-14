@@ -3,7 +3,7 @@
   "project_id": "context-rail",
   "request_id": "REQ-003",
   "version": 1,
-  "status": "PENDING_HUMAN_DECISION",
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
   "risk_level": "low",
   "selected_option": "go_read_api_react_read_only_workspace",
   "alternatives": [
@@ -68,7 +68,7 @@
     "REQ-003/AC-007"
   ],
   "source_snapshot_hash": null,
-  "source_commit": "f44ba5d5a35b1a9d1b541704b8324e9558294362",
+  "source_commit": "a816c105158af7d79c3c406cc1b58457a8d2b590",
   "source_refs": [
     "vision.md",
     "roadmap.md",
@@ -87,13 +87,14 @@
   ],
   "policy_version": "project-workspace-v1",
   "evidence_refs": [
-    "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_IMPORT_2026-09-14.zh-TW.md"
+    "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_IMPORT_2026-09-14.zh-TW.md",
+    "docs/reviews/CONTEXT_RAIL_VS002_CTR_FRESH_EYES_2026-09-14-R2.zh-TW.md"
   ],
   "human_decision": {
-    "actor": null,
-    "role": null,
-    "at": null,
-    "decision": null,
-    "reason": null
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-14T09:20:48Z",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Human review accepted the read-only Go API and React workspace scope for local development/testing. This does not authorize staging, production, IAM, or cloud deployment."
   }
 }
