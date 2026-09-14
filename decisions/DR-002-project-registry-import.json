@@ -1,0 +1,83 @@
+{
+  "decision_id": "DR-002",
+  "project_id": "context-rail",
+  "request_id": "REQ-002",
+  "version": 1,
+  "status": "PENDING_HUMAN_DECISION",
+  "risk_level": "low",
+  "selected_option": "go_read_only_registry_over_python_contract_oracle",
+  "alternatives": [
+    {
+      "id": "python_runtime_registry",
+      "status": "contract_oracle_only",
+      "reason": "Existing Python importer is useful for validation but does not match the planned Go product API runtime boundary."
+    },
+    {
+      "id": "cloud_backed_registry",
+      "status": "deferred",
+      "reason": "Firestore, connectors and cloud deployment add cost and authorization before the read-only contract is proven."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "go.mod",
+      "go.sum",
+      "cmd/context-rail/",
+      "internal/projectregistry/",
+      "tests/registry/",
+      "docs/validation/",
+      "evidence/EB-002/"
+    ],
+    "forbidden_paths": [
+      "production-targets",
+      "iam",
+      "secrets",
+      "consumer-source-mutation",
+      "cloud-deployment"
+    ]
+  },
+  "architecture_impact": [
+    "Introduces the first Go product boundary for a read-only Project Registry.",
+    "Keeps filesystem manifest import behind a contract-oriented adapter.",
+    "Treats the Python importer as a comparison oracle, not as the ContextRail source of truth.",
+    "Does not add persistence, authentication, provider connectors or deployment control."
+  ],
+  "cost_assumptions": [
+    "Local execution has no Cloud Run, Firestore or connector cost.",
+    "Go standard library is preferred; any YAML dependency must be pinned and evidenced before implementation."
+  ],
+  "unknowns": [
+    "Final Go API routing and storage interfaces after the contract spike.",
+    "Whether production consumers require a YAML parser beyond the current fixture shapes.",
+    "Authentication and Project membership policy for a future API surface."
+  ],
+  "acceptance_criteria": [
+    "REQ-002/AC-001",
+    "REQ-002/AC-002",
+    "REQ-002/AC-003",
+    "REQ-002/AC-004",
+    "REQ-002/AC-005",
+    "REQ-002/AC-006"
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "2844a4fbd1ecf1aa523f9264e86ade9b37be866b",
+  "source_refs": [
+    "vision.md",
+    "roadmap.md",
+    "architecture.md",
+    "docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md",
+    "docs/planning/CONTEXT_RAIL_VERTICAL_SLICES_V1.zh-TW.md",
+    "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_IMPORT_2026-09-14.zh-TW.md"
+  ],
+  "policy_version": "project-registry-v1",
+  "evidence_refs": [
+    "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_IMPORT_2026-09-14.zh-TW.md"
+  ],
+  "human_decision": {
+    "actor": null,
+    "role": null,
+    "at": null,
+    "decision": null,
+    "reason": null
+  }
+}
