@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	registryhttp "context-rail/internal/http"
 	"context-rail/internal/projectregistry"
@@ -129,6 +130,52 @@ spec:
 		if statuses[path] != expected {
 			t.Fatalf("document %s status = %q, want %q", path, statuses[path], expected)
 		}
+	}
+}
+
+func TestLocalFixtureScenariosExposeExplicitEmptyAndErrors(t *testing.T) {
+	testCases := []struct {
+		name       string
+		scenario   string
+		statusCode int
+		code       string
+	}{
+		{name: "empty", scenario: "empty", statusCode: http.StatusOK},
+		{name: "invalid", scenario: "invalid", statusCode: http.StatusUnprocessableEntity, code: "PROJECT_INVALID"},
+		{name: "unavailable", scenario: "unavailable", statusCode: http.StatusServiceUnavailable, code: "PROJECT_UNAVAILABLE"},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			handler := registryhttp.NewServerWithOptions(fixtureRoots(t), registryhttp.ServerOptions{Scenario: testCase.scenario})
+			request := httptest.NewRequest(http.MethodGet, "/v1/projects", nil)
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != testCase.statusCode {
+				t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+			}
+			if testCase.code == "" {
+				snapshot := decodeSnapshot(t, response)
+				if len(snapshot.Projects) != 0 {
+					t.Fatalf("project count = %d", len(snapshot.Projects))
+				}
+				return
+			}
+			assertError(t, response, testCase.statusCode, testCase.code)
+		})
+	}
+}
+
+func TestLocalFixtureScenarioCanDelayResponses(t *testing.T) {
+	handler := registryhttp.NewServerWithOptions(fixtureRoots(t), registryhttp.ServerOptions{Delay: 25 * time.Millisecond})
+	request := httptest.NewRequest(http.MethodGet, "/v1/projects", nil)
+	response := httptest.NewRecorder()
+	started := time.Now()
+	handler.ServeHTTP(response, request)
+	if elapsed := time.Since(started); elapsed < 25*time.Millisecond {
+		t.Fatalf("response returned after %s; want at least 25ms", elapsed)
+	}
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
 	}
 }
 

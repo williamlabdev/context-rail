@@ -7,18 +7,32 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"context-rail/internal/projectregistry"
 )
 
 // Server exposes the read-only Project Registry HTTP boundary.
 type Server struct {
-	roots []string
+	roots   []string
+	options ServerOptions
+}
+
+// ServerOptions controls deterministic local fixture scenarios for verification.
+// It does not enable writes, remote discovery or arbitrary filesystem access.
+type ServerOptions struct {
+	Scenario string
+	Delay    time.Duration
 }
 
 // NewServer creates a registry server with explicit, local Project roots.
 func NewServer(roots []string) *Server {
-	return &Server{roots: append([]string(nil), roots...)}
+	return NewServerWithOptions(roots, ServerOptions{})
+}
+
+// NewServerWithOptions creates a registry server with explicit local verification options.
+func NewServerWithOptions(roots []string, options ServerOptions) *Server {
+	return &Server{roots: append([]string(nil), roots...), options: options}
 }
 
 func (server *Server) ServeHTTP(response http.ResponseWriter, request *http.Request) {
@@ -46,7 +60,16 @@ func (server *Server) ServeHTTP(response http.ResponseWriter, request *http.Requ
 }
 
 func (server *Server) writeList(response http.ResponseWriter) {
-	snapshot, err := projectregistry.Import(server.roots)
+	if server.options.Scenario == "empty" {
+		writeJSON(response, http.StatusOK, projectregistry.Snapshot{
+			Kind: "ProjectRegistrySnapshot", SchemaVersion: "project-registry/v1", Projects: []projectregistry.ProjectEntry{},
+		})
+		return
+	}
+	if server.writeScenarioError(response) {
+		return
+	}
+	snapshot, err := server.importSnapshot()
 	if err != nil {
 		writeImportError(response, err)
 		return
@@ -55,7 +78,14 @@ func (server *Server) writeList(response http.ResponseWriter) {
 }
 
 func (server *Server) writeDetail(response http.ResponseWriter, projectID string) {
-	snapshot, err := projectregistry.Import(server.roots)
+	if server.options.Scenario == "empty" {
+		writeError(response, http.StatusNotFound, "PROJECT_NOT_FOUND", "The requested Project is not configured for this local registry.")
+		return
+	}
+	if server.writeScenarioError(response) {
+		return
+	}
+	snapshot, err := server.importSnapshot()
 	if err != nil {
 		writeImportError(response, err)
 		return
@@ -68,6 +98,26 @@ func (server *Server) writeDetail(response http.ResponseWriter, projectID string
 		}
 	}
 	writeError(response, http.StatusNotFound, "PROJECT_NOT_FOUND", "The requested Project is not configured for this local registry.")
+}
+
+func (server *Server) importSnapshot() (projectregistry.Snapshot, error) {
+	if server.options.Delay > 0 {
+		time.Sleep(server.options.Delay)
+	}
+	return projectregistry.Import(server.roots)
+}
+
+func (server *Server) writeScenarioError(response http.ResponseWriter) bool {
+	switch server.options.Scenario {
+	case "invalid":
+		writeError(response, http.StatusUnprocessableEntity, "PROJECT_INVALID", "A configured Project is invalid and cannot be included in the read-only registry.")
+		return true
+	case "unavailable":
+		writeError(response, http.StatusServiceUnavailable, "PROJECT_UNAVAILABLE", "A configured Project is unavailable to the local registry.")
+		return true
+	default:
+		return false
+	}
 }
 
 func writeJSON(response http.ResponseWriter, status int, value any) {
