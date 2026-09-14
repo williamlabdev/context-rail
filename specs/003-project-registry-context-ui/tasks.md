@@ -18,8 +18,8 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 - [x] T002 Obtain and record the human decision for `decisions/DR-003-project-registry-context-ui.json`.
 - [x] T003 Create `work-orders/AWO-003-project-registry-context-ui.json` only after T002 and T004, with paths and checks limited to `DR-003`. Issued with canonical hash `sha256:571b0003d2552bb9660869a6b41bea6b1f3a7038c501fb775e9126a21d41a5f1`.
 - [x] T004 Verify that VS-001 has a completed reusable Go contract/package and evidence; record the prerequisite result, current source commit, fixture roots and local tool versions in `evidence/EB-003/README.md`. Result: `ACCEPTED_FOR_LOCAL_DEVELOPMENT`; see `evidence/EB-002/HUMAN_REVIEW_PACKET.zh-TW.md`.
-- [ ] T005 [P] Create the root Go module in `go.mod` and `go.sum` only if VS-001 has not already established them; pin only required dependencies.
-- [ ] T006 [P] Initialize the frontend package in `frontend/package.json` and `frontend/package-lock.json` with pinned React/TypeScript/Vite and browser-test dependencies; add `frontend/tsconfig.json`, `frontend/vite.config.ts`, `frontend/playwright.config.ts` and the `dev`, `typecheck`, `build`, `test` and `test:e2e` scripts.
+- [x] T005 [P] Create the root Go module in `go.mod` and `go.sum` only if VS-001 has not already established them; pin only required dependencies. Reused the module established by VS-001.
+- [x] T006 [P] Initialize the frontend package in `frontend/package.json` and `frontend/package-lock.json` with pinned React/TypeScript/Vite and browser-test dependencies; add `frontend/tsconfig.json`, `frontend/vite.config.ts`, `frontend/playwright.config.ts` and the `dev`, `typecheck`, `build`, `test` and `test:e2e` scripts. `npm ci` and `npm audit --audit-level=moderate` pass.
 
 **Checkpoint**: No implementation file may be changed before T002 is accepted, T004 confirms the VS-001 prerequisite, and T003 is issued.
 
