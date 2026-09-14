@@ -27,13 +27,13 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 **Purpose**: Freeze the shared backend/frontend boundary before story work.
 
-- [ ] T007 [P] Add Go HTTP contract tests for `GET /v1/projects` and `GET /v1/projects/{project_id}` in `tests/http/projects_test.go` using the API contract in `contracts/api.md`.
-- [ ] T008 [P] Add frontend API type and parsing tests in `frontend/tests/api/projectRegistry.test.ts` for `ProjectRegistrySnapshot` and `ProjectRegistryError`.
-- [ ] T009 [P] Add contract assertions in `tests/registry/contract_test.go` that `STALE`, `MISSING`, `CONFLICT`, `UNKNOWN` and `UNDECLARED` survive the VS-001-to-API boundary.
-- [ ] T010 [P] Add service error tests in `tests/http/projects_test.go` for `PROJECT_NOT_FOUND`, `PROJECT_INVALID`, `PROJECT_UNAVAILABLE` and `REGISTRY_UNAVAILABLE`.
-- [ ] T011 [P] Add frontend workspace-state tests in `frontend/tests/state/workspaceState.test.ts` for `LOADING`, `READY`, `EMPTY` and `ERROR`.
-- [ ] T012 Reuse the VS-001 normalized Project model in `internal/projectregistry/` and document any required contract adapter without creating a second semantic model.
-- [ ] T013 Implement safe local fixture configuration for the two explicit roots in `cmd/context-rail/` without arbitrary filesystem traversal or remote URL crawling.
+- [x] T007 [P] Add Go HTTP contract tests for `GET /v1/projects` and `GET /v1/projects/{project_id}` in `tests/http/projects_test.go` using the API contract in `contracts/api.md`.
+- [x] T008 [P] Add frontend API type and parsing tests in `frontend/tests/api/projectRegistry.test.ts` for `ProjectRegistrySnapshot` and `ProjectRegistryError`.
+- [x] T009 [P] Add contract assertions in `tests/registry/contract_test.go` that `STALE`, `MISSING`, `CONFLICT`, `UNKNOWN` and `UNDECLARED` survive the VS-001-to-API boundary; HTTP passthrough is also covered in `tests/http/projects_test.go`.
+- [x] T010 [P] Add service error tests in `tests/http/projects_test.go` for `PROJECT_NOT_FOUND`, `PROJECT_INVALID`, `PROJECT_UNAVAILABLE` and `REGISTRY_UNAVAILABLE`.
+- [x] T011 [P] Add frontend workspace-state tests in `frontend/tests/state/workspaceState.test.ts` for `LOADING`, `READY`, `EMPTY` and `ERROR`.
+- [x] T012 Reuse the VS-001 normalized Project model in `internal/projectregistry/` and document any required contract adapter without creating a second semantic model.
+- [x] T013 Implement safe local fixture configuration for the two explicit roots in `cmd/context-rail/` without arbitrary filesystem traversal or remote URL crawling.
 
 **Checkpoint**: Contract tests define the read-only boundary and fail for missing API/UI behavior; no user story may add mutation routes.
 
@@ -45,24 +45,24 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 ### Backend/API implementation
 
-- [ ] T014 [US1] Implement the Project list and detail handlers in `internal/http/projects.go` for the exact read routes in `specs/003-project-registry-context-ui/contracts/api.md`.
-- [ ] T015 [US1] Implement safe JSON error responses in `internal/http/errors.go` without secret or credential values.
-- [ ] T016 [US1] Wire the read-only service and static frontend host in `cmd/context-rail/main.go`, including the fixed `--addr 127.0.0.1:8080` default; expose no write route.
+- [x] T014 [US1] Implement the Project list and detail handlers in `internal/http/projects.go` for the exact read routes in `specs/003-project-registry-context-ui/contracts/api.md`.
+- [x] T015 [US1] Implement safe JSON error responses in `internal/http/errors.go` without secret or credential values.
+- [x] T016 [US1] Wire the read-only service and static frontend host in `cmd/context-rail/main.go`, including the fixed `--addr 127.0.0.1:8080` default; expose no write route.
 
 ### Frontend implementation
 
-- [ ] T017 [P] [US1] Implement the registry fetch and Project selection client in `frontend/src/api/projectRegistry.ts`.
-- [ ] T018 [P] [US1] Implement the registry list and selection surface in `frontend/src/components/ProjectRegistry.tsx`.
-- [ ] T019 [US1] Implement the selected Project context page in `frontend/src/pages/ProjectContextPage.tsx` with repositories, services, environments, decisions, documents, context and readiness sections.
-- [ ] T020 [P] [US1] Implement source-versus-derived document presentation in `frontend/src/components/DocumentStatusList.tsx` with path/version fields.
-- [ ] T021 [P] [US1] Implement the non-authoritative status presentation in `frontend/src/components/ReadinessSummary.tsx` and `frontend/src/components/StatusBadge.tsx`.
-- [ ] T022 [US1] Compose the registry-to-detail journey in `frontend/src/App.tsx` and keep all interactions read-only.
-- [ ] T023 [P] [US1] Add focused layout and status styles in `frontend/src/styles/` without adding a generic design system.
+- [x] T017 [P] [US1] Implement the registry fetch and Project selection client in `frontend/src/api/projectRegistry.ts`.
+- [x] T018 [P] [US1] Implement the registry list and selection surface in `frontend/src/components/ProjectRegistry.tsx`.
+- [x] T019 [US1] Implement the selected Project context page in `frontend/src/pages/ProjectContextPage.tsx` with repositories, services, environments, decisions, documents, context and readiness sections.
+- [x] T020 [P] [US1] Implement source-versus-derived document presentation in `frontend/src/components/DocumentStatusList.tsx` with path/version fields.
+- [x] T021 [P] [US1] Implement the non-authoritative status presentation in `frontend/src/components/ReadinessSummary.tsx` and `frontend/src/components/StatusBadge.tsx`.
+- [x] T022 [US1] Compose the registry-to-detail journey in `frontend/src/App.tsx` and keep all interactions read-only.
+- [x] T023 [P] [US1] Add focused layout and status styles in `frontend/src/styles/` without adding a generic design system.
 
 ### Verification
 
-- [ ] T024 [P] [US1] Add frontend component/integration tests in `frontend/tests/components/projectContext.test.tsx` for list, selection, detail rendering and Project switching.
-- [ ] T025 [US1] Add the positive browser journey in `tests/browser/project-context.spec.ts` covering both fixture-backed Projects and zero cross-Project leakage.
+- [x] T024 [P] [US1] Add frontend component/integration tests in `frontend/tests/components/projectContext.test.tsx` for list, selection, detail rendering and Project switching.
+- [x] T025 [US1] Add the positive browser journey in `tests/browser/project-context.spec.ts` covering both fixture-backed Projects and zero cross-Project leakage.
 
 **Checkpoint**: The registry-to-detail browser journey is independently usable; it does not imply Project readiness, approval or deployment authorization.
 
@@ -72,11 +72,11 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 **Independent Test**: Open fixtures that contain stale Context Pack/source drift and undeclared values, then verify the exact states and readiness reasons in the browser.
 
-- [ ] T026 [US2] Preserve document/context/readiness status and reason fields through `internal/projectregistry/` and `internal/http/projects.go` without upgrading uncertain values.
-- [ ] T027 [P] [US2] Add status fixtures and API assertions in `tests/registry/contract_test.go` for `STALE`, `MISSING`, `CONFLICT`, `UNKNOWN` and `UNDECLARED`.
-- [ ] T028 [P] [US2] Add frontend status rendering tests in `frontend/tests/components/statusRendering.test.tsx` proving uncertain states are not rendered as `CURRENT` or `PASS`.
-- [ ] T029 [US2] Add readiness reason and source provenance rendering to `frontend/src/components/ReadinessSummary.tsx` and `frontend/src/components/DocumentStatusList.tsx`.
-- [ ] T030 [US2] Add the uncertain-context browser journey to `tests/browser/project-context.spec.ts` and record the observed labels/reasons.
+- [x] T026 [US2] Preserve document/context/readiness status and reason fields through `internal/projectregistry/` and `internal/http/projects.go` without upgrading uncertain values.
+- [x] T027 [P] [US2] Add status fixtures and API assertions in `tests/registry/contract_test.go` for `STALE`, `MISSING`, `CONFLICT`, `UNKNOWN` and `UNDECLARED`.
+- [x] T028 [P] [US2] Add frontend status rendering tests in `frontend/tests/components/statusRendering.test.tsx` proving uncertain states are not rendered as `CURRENT` or `PASS`.
+- [x] T029 [US2] Add readiness reason and source provenance rendering to `frontend/src/components/ReadinessSummary.tsx` and `frontend/src/components/DocumentStatusList.tsx`.
+- [x] T030 [US2] Add the uncertain-context browser journey to `tests/browser/project-context.spec.ts` and record the observed labels/reasons.
 
 **Checkpoint**: Negative and uncertain states remain visible and non-authoritative.
 
@@ -86,23 +86,23 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 
 **Independent Test**: Run delayed, empty and invalid/unavailable fixture configurations and verify explicit UI states with no write requests.
 
-- [ ] T031 [P] [US3] Add controllable delay, empty and invalid/unavailable local fixtures in `cmd/context-rail/` and `tests/http/projects_test.go` without changing consumer sources.
-- [ ] T032 [US3] Implement loading, empty and error transitions in `frontend/src/App.tsx` and `frontend/src/components/WorkspaceState.tsx`.
-- [ ] T033 [P] [US3] Add component tests in `frontend/tests/components/workspaceState.test.tsx` for loading, empty and error messages.
-- [ ] T034 [US3] Add delayed, empty and error browser journeys in `tests/browser/project-context.spec.ts` and assert that no mutation request is issued.
-- [ ] T035 [US3] Verify the UI contains no create, edit, archive, upload, approve or deploy control in `frontend/src/`.
+- [x] T031 [P] [US3] Add controllable delay, empty and invalid/unavailable local fixtures in `cmd/context-rail/` and `tests/http/projects_test.go` without changing consumer sources.
+- [x] T032 [US3] Implement loading, empty and error transitions in `frontend/src/App.tsx` and `frontend/src/components/WorkspaceState.tsx`.
+- [x] T033 [P] [US3] Add component tests in `frontend/tests/components/workspaceState.test.tsx` for loading, empty and error messages.
+- [x] T034 [US3] Add delayed, empty and error browser journeys in `tests/browser/project-context.spec.ts` and assert that no mutation request is issued.
+- [x] T035 [US3] Verify the UI contains no create, edit, archive, upload, approve or deploy control in `frontend/src/`.
 
 **Checkpoint**: All required UI state families are explicit and read-only.
 
 ## Phase 6: Polish and evidence
 
-- [ ] T036 [P] Run Go contract/unit tests and record exact output in `evidence/EB-003/go-test-output.txt`.
-- [ ] T037 [P] Run `go vet ./...` and `go build ./...`; record exact output in `evidence/EB-003/go-quality-output.txt`.
-- [ ] T038 [P] Run frontend typecheck, unit/integration tests and production build; record exact output in `evidence/EB-003/frontend-quality-output.txt`.
-- [ ] T039 [P] Run the Playwright browser journeys and record exact output plus browser evidence in `evidence/EB-003/browser-output.txt`.
-- [ ] T040 Compare Go/API output with the VS-001 Python oracle and record limitations in `docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_CONTEXT_UI_2026-09-14.zh-TW.md`.
-- [ ] T041 Recompute before/after hashes for both consumer Projects and governance artifacts; record zero-mutation result in `evidence/EB-003/README.md`.
-- [ ] T042 Prepare review evidence in `evidence/EB-003/README.md` and keep staging/production status out of this local slice.
+- [x] T036 [P] Run Go contract/unit tests and record exact output in `evidence/EB-003/go-test-output.txt`.
+- [x] T037 [P] Run `go vet ./...` and `go build ./...`; record exact output in `evidence/EB-003/go-quality-output.txt`.
+- [x] T038 [P] Run frontend typecheck, unit/integration tests and production build; record exact output in `evidence/EB-003/frontend-quality-output.txt`.
+- [x] T039 [P] Run the Playwright browser journeys and record exact output plus browser evidence in `evidence/EB-003/browser-output.txt`.
+- [x] T040 Compare Go/API output with the VS-001 Python oracle and record limitations in `docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_CONTEXT_UI_2026-09-14.zh-TW.md`.
+- [x] T041 Recompute before/after hashes for both consumer Projects and governance artifacts; record zero-mutation result in `evidence/EB-003/README.md`.
+- [x] T042 Prepare review evidence in `evidence/EB-003/README.md` and keep staging/production status out of this local slice.
 
 ## Dependencies and execution order
 

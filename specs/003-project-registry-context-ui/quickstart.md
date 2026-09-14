@@ -56,6 +56,17 @@ The local service listens on `127.0.0.1:8080` for this slice and serves the buil
 - Request a missing or malformed Project root and verify an explicit error state with no source mutation.
 - Delay the read response and verify loading state does not present old data as current.
 
+For deterministic local verification, the service also supports bounded fixture scenarios:
+
+```bash
+go run ./cmd/context-rail --fixture-root demo/order-operations-portal --fixture-scenario empty
+go run ./cmd/context-rail --fixture-root demo/order-operations-portal --fixture-scenario invalid
+go run ./cmd/context-rail --fixture-root demo/order-operations-portal --fixture-scenario unavailable
+go run ./cmd/context-rail --fixture-root demo/order-operations-portal --fixture-delay-ms 250
+```
+
+These scenarios are local test controls only; they do not change consumer Projects or add write routes.
+
 ## Evidence required
 
 Record exact commands, source commit, changed paths, browser test result and before/after hashes in `evidence/EB-003/`. Do not record Cloud Run, IAM, staging or production evidence for this local slice.
