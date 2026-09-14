@@ -25,4 +25,13 @@ npm 11.11.0
 Python 3.9.6 (template/.venv/bin/python)
 ```
 
-This baseline records the accepted development boundary. Contract tests, implementation output, build output, oracle comparison and zero-mutation evidence are added by the remaining tasks.
+## Evidence index
+
+- `test-output.txt` — Go contract and mutation tests
+- `vet-output.txt` — `go vet ./...`
+- `build-output.txt` — `go build ./...`
+- `oracle-comparison.txt` — Go/Python normalized snapshot comparison
+
+Implementation commit: `38c965f09e0b3001ec8b1a699a7e42d854c406a3`.
+
+The Go snapshot matches the Python oracle for both fixtures after removing the runtime-generated `observed_at`. The contract suite also compares complete fixture tree hashes before and after import.

@@ -1,0 +1,4 @@
+Command: compare the Go CLI snapshot with scripts/context_rail_registry.py for both explicit fixture roots, excluding observed_at because it is generated at runtime.
+Project roots: demo/order-operations-portal, examples/support-insights
+Comparison: PASS (normalized snapshots equal after removing observed_at)
+Read-only: PASS (Go contract test includes tree hash comparison)

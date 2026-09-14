@@ -1,0 +1,3 @@
+Command: go build ./...
+Observed: no output
+Result: PASS

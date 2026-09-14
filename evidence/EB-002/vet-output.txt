@@ -1,0 +1,3 @@
+Command: go vet ./...
+Observed: no output
+Result: PASS
