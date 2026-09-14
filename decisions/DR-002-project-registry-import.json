@@ -3,7 +3,7 @@
   "project_id": "context-rail",
   "request_id": "REQ-002",
   "version": 1,
-  "status": "PENDING_HUMAN_DECISION",
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
   "risk_level": "low",
   "selected_option": "go_read_only_registry_over_python_contract_oracle",
   "alternatives": [
@@ -60,7 +60,7 @@
     "REQ-002/AC-006"
   ],
   "source_snapshot_hash": null,
-  "source_commit": "e5d682118d729d9e4a0034e3cfaf649a897f189d",
+  "source_commit": "b8a70e00f3e6cb49f2058fb8a359485e59624bef",
   "source_refs": [
     "vision.md",
     "roadmap.md",
@@ -74,10 +74,10 @@
     "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_IMPORT_2026-09-14.zh-TW.md"
   ],
   "human_decision": {
-    "actor": null,
-    "role": null,
-    "at": null,
-    "decision": null,
-    "reason": null
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-14T10:57:36Z",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Human review accepted the read-only Go Project Registry package for local development/testing. This does not authorize Cloud Run, IAM, secrets, consumer-source mutation or production activity."
   }
 }
