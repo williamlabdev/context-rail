@@ -4,3 +4,6 @@
 # Reproducible previews and render QA workspaces
 /output/
 /tmp/
+
+# Spec Kit agent integrations may contain machine-local credentials or state.
+.agents/
