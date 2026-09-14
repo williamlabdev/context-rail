@@ -1,6 +1,7 @@
 package registry_test
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -126,7 +127,13 @@ func TestImportPreservesUncertainStatuses(t *testing.T) {
 }
 
 func TestImportRejectsInvalidManifestWithoutPartialSnapshot(t *testing.T) {
-	invalidRoot := filepath.Join(workspaceRoot(t), "tests", "registry", "fixtures", "invalid")
+	invalidRoot := filepath.Join(t.TempDir(), "invalid")
+	if err := os.MkdirAll(invalidRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(invalidRoot, "project.yaml"), []byte("kind: NotAProject\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	snapshot, err := projectregistry.Import([]string{invalidRoot})
 	if err == nil {
 		t.Fatal("invalid manifest unexpectedly imported")
@@ -140,7 +147,7 @@ func TestImportRejectsInvalidManifestWithoutPartialSnapshot(t *testing.T) {
 }
 
 func TestImportRejectsMissingManifest(t *testing.T) {
-	missingRoot := filepath.Join(workspaceRoot(t), "tests", "registry", "fixtures", "missing")
+	missingRoot := filepath.Join(t.TempDir(), "missing")
 	_, err := projectregistry.Import([]string{missingRoot})
 	if err == nil {
 		t.Fatal("missing manifest unexpectedly imported")
