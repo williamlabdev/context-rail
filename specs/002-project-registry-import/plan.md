@@ -39,7 +39,7 @@ Implement the first ContextRail core read boundary as a read-only Project Regist
 - [x] Evidence is part of the deliverable: fixture comparison, test/build output and mutation check are required.
 - [x] Structured handoff: `DR-002` is accepted; the AgentWorkOrder remains bounded to the approved local paths and checks.
 
-**Gate status**: PASS for planning; `DR-002` is `ACCEPTED_FOR_DEVELOPMENT`; implementation awaits `AWO-002`.
+**Gate status**: PASS; `DR-002` is `ACCEPTED_FOR_DEVELOPMENT` and `AWO-002` is `ISSUED` for local development only.
 
 ## Existing contract and adapter boundary
 

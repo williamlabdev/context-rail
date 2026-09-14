@@ -6,7 +6,7 @@
 
 **Created**: 2026-09-14
 
-**Status**: Accepted for local development; implementation awaits `AWO-002`
+**Status**: Accepted for local development; `AWO-002` issued
 
 **Input**: [REQ-002](../../requests/REQ-002-project-registry-import.md) and [DR-002](../../decisions/DR-002-project-registry-import.json)
 
@@ -92,4 +92,4 @@ As a Solution Architect, I want to inspect multiple explicitly supplied Projects
 - The current Python importer is a comparison oracle for the contract spike, not the product's long-term runtime boundary.
 - The product implementation is expected to fit the Go modular-monolith direction in `architecture.md`; implementation details belong in `plan.md`, not this user-facing specification.
 - Authentication, membership, persistence, RAG, Gemini, Cloud Run, IAM and production release remain out of scope.
-- `DR-002` is accepted for local development/testing only. Implementation still requires the bounded `AWO-002`; local planning and execution artifacts do not imply staging authorization.
+- `DR-002` is accepted for local development/testing only and the bounded `AWO-002` is issued. Local execution artifacts do not imply staging authorization.
