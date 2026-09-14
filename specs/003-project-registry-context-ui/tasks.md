@@ -17,7 +17,7 @@ description: "Task list for the Project Registry and Documents AI Context read-o
 - [x] T001 Review `vision.md`, `roadmap.md`, `architecture.md`, `docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md` and the VS-001 artifacts before implementation.
 - [x] T002 Obtain and record the human decision for `decisions/DR-003-project-registry-context-ui.json`.
 - [ ] T003 Create `work-orders/AWO-003-project-registry-context-ui.json` only after T002 and T004, with paths and checks limited to `DR-003`.
-- [ ] T004 Verify that VS-001 has a completed reusable Go contract/package and evidence; record the prerequisite result, current source commit, fixture roots and local tool versions in `evidence/EB-003/README.md`.
+- [x] T004 Verify that VS-001 has a completed reusable Go contract/package and evidence; record the prerequisite result, current source commit, fixture roots and local tool versions in `evidence/EB-003/README.md`. Result: `BLOCKED`; the reusable Go package and EB-002 are not yet present.
 - [ ] T005 [P] Create the root Go module in `go.mod` and `go.sum` only if VS-001 has not already established them; pin only required dependencies.
 - [ ] T006 [P] Initialize the frontend package in `frontend/package.json` and `frontend/package-lock.json` with pinned React/TypeScript/Vite and browser-test dependencies; add `frontend/tsconfig.json`, `frontend/vite.config.ts`, `frontend/playwright.config.ts` and the `dev`, `typecheck`, `build`, `test` and `test:e2e` scripts.
 
