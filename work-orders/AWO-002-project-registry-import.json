@@ -1,0 +1,72 @@
+{
+  "kind": "AgentWorkOrder",
+  "schema_version": "agent-work-order/v1",
+  "work_order_id": "AWO-002",
+  "project_id": "context-rail",
+  "request_id": "REQ-002",
+  "change_id": "project-registry-import",
+  "change_version": 1,
+  "decision_id": "DR-002",
+  "source_snapshot_hash": null,
+  "policy_version": "project-registry-v1",
+  "status": "ISSUED",
+  "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+  "reason": "DR-002 is accepted for bounded local read-only development. This Work Order authorizes the VS-001 Go Project Registry package and its contract evidence only; it does not authorize Cloud Run, IAM, secrets, consumer-source mutation, provider crawling, Context Pack rebuild or production activity.",
+  "issuer": {
+    "actor_id": "founder-001",
+    "actor_role": "founder_and_solution_architect",
+    "status": "ISSUED"
+  },
+  "repository": "context-rail (current local checkout; no remote configured)",
+  "base_branch": "codex/001-manual-order-review",
+  "target_branch": "codex/001-manual-order-review",
+  "target_environment_id": "development",
+  "allowed_transition": "development-to-testing",
+  "allowed_paths": [
+    "go.mod",
+    "go.sum",
+    "cmd/context-rail/",
+    "internal/projectregistry/",
+    "tests/registry/",
+    "docs/validation/",
+    "evidence/EB-002/"
+  ],
+  "forbidden_actions": [
+    "production-deploy",
+    "cloud-deployment",
+    "iam-change",
+    "secret-access",
+    "consumer-source-mutation",
+    "provider-crawling",
+    "context-pack-rebuild"
+  ],
+  "acceptance_ids": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006"
+  ],
+  "required_checks": [
+    "go test ./...",
+    "go vet ./...",
+    "go build ./...",
+    "Python oracle comparison",
+    "before-after source hash comparison"
+  ],
+  "input_refs": [
+    "requests/REQ-002-project-registry-import.md",
+    "decisions/DR-002-project-registry-import.json",
+    "specs/002-project-registry-import/spec.md",
+    "specs/002-project-registry-import/plan.md",
+    "specs/002-project-registry-import/tasks.md"
+  ],
+  "output_paths": [
+    "runs/ARR-002-project-registry-import.json",
+    "evidence/EB-002/",
+    "docs/validation/CONTEXT_RAIL_PROJECT_REGISTRY_CORE_2026-09-14.zh-TW.md"
+  ],
+  "expires_at": null,
+  "work_order_hash": "sha256:85b03f2b9ac0ae991e5aef1df47bfd507652383ea68cead6744cf15f4b76ea6e"
+}
