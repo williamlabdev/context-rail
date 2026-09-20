@@ -586,6 +586,15 @@ func (service *Service) view(change *Change, facts *ProjectFacts) View {
 		}
 		view.WorkOrder = &order
 	}
+	if view.Staleness.Stale || (view.WorkOrder != nil && view.WorkOrder.Status == "STALE") {
+		// Candidates produced under a stale contract cannot be accepted; show it.
+		view.Change.Candidates = append([]Candidate(nil), change.Candidates...)
+		for index := range view.Change.Candidates {
+			if view.Change.Candidates[index].Status == "EVALUATED" {
+				view.Change.Candidates[index].Status = "STALE"
+			}
+		}
+	}
 	return view
 }
 

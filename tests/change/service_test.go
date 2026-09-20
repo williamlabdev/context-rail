@@ -28,7 +28,7 @@ func (topologySource) Baseline(projectID string) (*topology.Baseline, error) {
 	return &topology.Baseline{ProjectID: "demo", Environments: []topology.Environment{
 		{ID: "development", Type: "development", Sequence: 1, TargetRef: "local", RequiredEvidence: []string{"local-test"}},
 		{ID: "testing", Type: "testing", Sequence: 2, TargetRef: "ci", RequiredEvidence: []string{"test", "build"}},
-		{ID: "staging", Type: "staging", Sequence: 3, TargetRef: "cloud-run/demo-staging", RequiredEvidence: []string{"decision-record", "smoke"}},
+		{ID: "staging", Type: "staging", Sequence: 3, TargetRef: "cloud-run/demo-staging", RequiredEvidence: []string{"decision-record", "review", "single-operator-controls", "test", "build", "smoke"}},
 		{ID: "production", Type: "production", Sequence: 4, TargetRef: "protected", RequiredEvidence: []string{"release-approval"}},
 	}}, nil
 }

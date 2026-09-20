@@ -1,6 +1,8 @@
 package http_test
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"testing"
@@ -166,5 +168,168 @@ func TestChangeErrorMapping(t *testing.T) {
 		if response.Code != tc.status || payload["code"] != tc.code {
 			t.Fatalf("%s: expected %d %s, got %d %s", tc.name, tc.status, tc.code, response.Code, response.Body.String())
 		}
+	}
+}
+
+// fakeReadBack stands in for the GitHub adapter: it "observes" a diff that
+// includes one path the operator did not declare.
+type fakeReadBack struct{}
+
+func (fakeReadBack) Name() string { return "github" }
+func (fakeReadBack) Observe(_ context.Context, request change.ReadBackRequest) (*change.Observation, error) {
+	if request.Repository != "example/order-operations-portal" {
+		return nil, fmt.Errorf("unknown repository %s", request.Repository)
+	}
+	return &change.Observation{
+		Source: "github", Branch: request.Head, BaseBranch: request.Base, BaseCommit: "base000", HeadCommit: "head111",
+		ChangedPaths: []string{"main.go", "infra/iam/public-bucket.yaml"},
+		Checks:       []change.CheckResult{{Name: "test", Status: "PASS", EvidenceRef: "https://ci/1"}, {Name: "build", Status: "PASS", EvidenceRef: "https://ci/2"}},
+		Reviews:      []change.ReviewEvidence{{Reviewer: "reviewer-2", Kind: "human", Verdict: "APPROVED", EvidenceRef: "https://pr/1#r1"}},
+	}, nil
+}
+
+func newGovernanceMuxWithReadBack(t *testing.T) *http.ServeMux {
+	t.Helper()
+	roots := fixtureRoots(t)
+	stateDir := filepath.Join(t.TempDir(), "state")
+	topologyStore, _ := topology.NewFileStore(stateDir)
+	changeStore, _ := change.NewFileStore(stateDir)
+	topologyService := topology.NewService(topologyStore, topology.NewRegistrySource(roots))
+	changeService := change.NewService(changeStore, change.NewRegistrySource(roots, topologyService), nil)
+	mux := http.NewServeMux()
+	registryhttp.NewTopologyHandler(topologyService).Register(mux)
+	registryhttp.NewChangesHandler(changeService).WithReadBack(fakeReadBack{}).Register(mux)
+	mux.Handle("/v1/", registryhttp.NewServer(roots))
+	return mux
+}
+
+func issueWorkOrderOverHTTP(t *testing.T, mux *http.ServeMux) map[string]any {
+	t.Helper()
+	base := "/v1/projects/order-operations-portal/changes"
+	response, _ := call(t, mux, http.MethodPost, base, map[string]any{
+		"reason": "open", "request": map[string]any{
+			"title": "Manual order review", "objective": "Approve or reject order exceptions", "target_environment_id": "staging",
+			"acceptance_criteria": []map[string]string{{"text": "note required"}}, "allowed_paths": []string{"main.go", "web/index.html", "main_test.go"},
+			"business_constraints": map[string]string{"data_classification": "internal", "expected_monthly_volume": "500"},
+		},
+	})
+	if response.Code != http.StatusOK {
+		t.Fatalf("create: %s", response.Body.String())
+	}
+	response, _ = call(t, mux, http.MethodPost, base+"/CHG-001/decision", map[string]any{"decision": "ACCEPT", "selected_option": "minimal_reversible_slice", "rationale": "ok"})
+	if response.Code != http.StatusOK {
+		t.Fatalf("decide: %s", response.Body.String())
+	}
+	response, payload := call(t, mux, http.MethodPost, base+"/CHG-001/work-order", map[string]any{"reason": "issue", "issuer": "founder-001"})
+	if response.Code != http.StatusOK {
+		t.Fatalf("work-order: %s", response.Body.String())
+	}
+	return payload["work_order"].(map[string]any)
+}
+
+func TestCandidateSubmissionAndDecisionOverHTTP(t *testing.T) {
+	mux := newGovernanceMux(t)
+	order := issueWorkOrderOverHTTP(t, mux)
+	base := "/v1/projects/order-operations-portal/changes/CHG-001/candidates"
+	run := map[string]any{"run_id": "ARR-001", "work_order_id": order["work_order_id"], "work_order_hash": order["work_order_hash"], "started_by": "dev-1", "started_at": "2026-09-21T02:00:00Z",
+		"agent": map[string]string{"name": "claude-code", "provider": "anthropic", "model": "claude-fable-5-1", "version": "1"}}
+	// UI-10: out-of-scope path → BLOCKED with the path named.
+	response, payload := call(t, mux, http.MethodPost, base, map[string]any{
+		"reason": "agent run finished", "run": run,
+		"observation": map[string]any{
+			"branch": order["target_branch"], "base_branch": "main", "head_commit": "abc123",
+			"changed_paths": []string{"main.go", "infra/iam/public-bucket.yaml"},
+			"checks":        []map[string]string{{"name": "test", "status": "PASS"}, {"name": "build", "status": "PASS"}},
+			"reviews":       []map[string]string{{"reviewer": "reviewer-2", "kind": "human", "verdict": "APPROVED"}},
+		},
+	})
+	if response.Code != http.StatusOK {
+		t.Fatalf("submit: %d %s", response.Code, response.Body.String())
+	}
+	candidates := payload["change"].(map[string]any)["candidates"].([]any)
+	first := candidates[0].(map[string]any)
+	if first["candidate_id"] != "CAND-001" || first["verdict"] != change.VerdictBlocked {
+		t.Fatalf("expected CAND-001 BLOCKED, got %v %v", first["candidate_id"], first["verdict"])
+	}
+	violations := first["violations"].([]any)
+	if len(violations) != 1 || violations[0].(map[string]any)["path"] != "infra/iam/public-bucket.yaml" {
+		t.Fatalf("violation must name the path: %v", violations)
+	}
+	response, payload = call(t, mux, http.MethodPost, base+"/CAND-001/decision", map[string]any{"decision": "ACCEPT", "rationale": "tests are green"})
+	if response.Code != http.StatusConflict || payload["code"] != change.CodeCandidateBlocked {
+		t.Fatalf("blocked candidate must be 409, got %d %s", response.Code, response.Body.String())
+	}
+	// Fixed candidate → acceptable → accepted by an independent human.
+	response, payload = call(t, mux, http.MethodPost, base, map[string]any{
+		"reason": "fixed scope", "run": run,
+		"observation": map[string]any{
+			"branch": order["target_branch"], "base_branch": "main", "head_commit": "def456",
+			"changed_paths": []string{"main.go", "main_test.go"},
+			"checks":        []map[string]string{{"name": "test", "status": "PASS"}, {"name": "build", "status": "PASS"}},
+			"reviews":       []map[string]string{{"reviewer": "reviewer-2", "kind": "human", "verdict": "APPROVED"}},
+		},
+	})
+	if response.Code != http.StatusOK {
+		t.Fatalf("submit 2: %s", response.Body.String())
+	}
+	candidates = payload["change"].(map[string]any)["candidates"].([]any)
+	second := candidates[1].(map[string]any)
+	if second["candidate_id"] != "CAND-002" || second["verdict"] != change.VerdictAcceptable {
+		t.Fatalf("expected CAND-002 acceptable, got %v: %v", second["verdict"], second["gates"])
+	}
+	response, payload = call(t, mux, http.MethodPost, base+"/CAND-002/decision", map[string]any{"decision": "ACCEPT", "role": "solution_architect", "rationale": "independent review present"})
+	if response.Code != http.StatusOK {
+		t.Fatalf("accept: %d %s", response.Code, response.Body.String())
+	}
+	if payload["change"].(map[string]any)["status"] != change.StatusCandidateAccepted {
+		t.Fatalf("change must be CANDIDATE_ACCEPTED: %v", payload["change"].(map[string]any)["status"])
+	}
+	response, payload = call(t, mux, http.MethodPost, base+"/CAND-009/decision", map[string]any{"decision": "REJECT", "rationale": "x"})
+	if response.Code != http.StatusNotFound || payload["code"] != change.CodeCandidateNotFound {
+		t.Fatalf("unknown candidate must be 404, got %d", response.Code)
+	}
+}
+
+func TestCandidateReadBackOverridesDeclaration(t *testing.T) {
+	mux := newGovernanceMuxWithReadBack(t)
+	order := issueWorkOrderOverHTTP(t, mux)
+	base := "/v1/projects/order-operations-portal/changes/CHG-001/candidates"
+	run := map[string]any{"run_id": "ARR-001", "work_order_id": order["work_order_id"], "work_order_hash": order["work_order_hash"], "started_by": "dev-1", "started_at": "2026-09-21T02:00:00Z"}
+	// The operator declares a clean diff; the provider read-back shows an extra IAM file.
+	response, payload := call(t, mux, http.MethodPost, base, map[string]any{
+		"reason": "read back from github", "run": run,
+		"observation": map[string]any{"changed_paths": []string{"main.go"}, "checks": []map[string]string{{"name": "local-smoke", "status": "PASS", "evidence_ref": "evidence/local-smoke.txt"}}},
+		"read_back":   map[string]string{"source": "github", "repository": "example/order-operations-portal", "base": "main", "head": order["target_branch"].(string)},
+	})
+	if response.Code != http.StatusOK {
+		t.Fatalf("submit: %d %s", response.Code, response.Body.String())
+	}
+	candidate := payload["change"].(map[string]any)["candidates"].([]any)[0].(map[string]any)
+	observation := candidate["observation"].(map[string]any)
+	if observation["source"] != "github" || observation["head_commit"] != "head111" {
+		t.Fatalf("read-back must replace the declaration: %v", observation)
+	}
+	if candidate["verdict"] != change.VerdictBlocked {
+		t.Fatalf("observed IAM change must block even though the operator declared only main.go: %v", candidate["gates"])
+	}
+	names := []string{}
+	for _, check := range observation["checks"].([]any) {
+		names = append(names, check.(map[string]any)["name"].(string))
+	}
+	if len(names) != 3 || names[2] != "local-smoke" {
+		t.Fatalf("declared local evidence must be kept alongside provider checks: %v", names)
+	}
+	response, payload = call(t, mux, http.MethodPost, base, map[string]any{
+		"reason": "wrong repo", "run": run, "observation": map[string]any{},
+		"read_back": map[string]string{"source": "github", "repository": "example/other", "base": "main", "head": "x"},
+	})
+	if response.Code != http.StatusBadGateway || payload["code"] != "READ_BACK_FAILED" {
+		t.Fatalf("read-back failure must be 502 READ_BACK_FAILED, got %d %s", response.Code, response.Body.String())
+	}
+	plain := newGovernanceMux(t)
+	issueWorkOrderOverHTTP(t, plain)
+	response, payload = call(t, plain, http.MethodPost, base, map[string]any{"reason": "x", "run": run, "observation": map[string]any{}, "read_back": map[string]string{"source": "github", "repository": "a/b", "base": "main", "head": "h"}})
+	if response.Code != http.StatusUnprocessableEntity || payload["code"] != "READ_BACK_UNAVAILABLE" {
+		t.Fatalf("no adapter must be 422 READ_BACK_UNAVAILABLE, got %d %s", response.Code, response.Body.String())
 	}
 }

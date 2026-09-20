@@ -31,6 +31,7 @@ const (
 	envStateDir     = "CONTEXT_RAIL_STATE_DIR" // governance state (topology versions, change ledger); JSON files in P0
 	envGeminiKey    = "GEMINI_API_KEY"         // optional: enables the Gemini decision advisor (candidates only)
 	envGeminiModel  = "CONTEXT_RAIL_GEMINI_MODEL"
+	envGitHubToken  = "GITHUB_TOKEN" // optional: enables GitHub read-back of candidates
 )
 
 const shutdownGrace = 10 * time.Second
@@ -140,7 +141,13 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 	changeService := change.NewService(changeStore, change.NewRegistrySource(roots, topologyService), advisor)
 	mux := http.NewServeMux()
 	registryhttp.NewTopologyHandler(topologyService).Register(mux)
-	registryhttp.NewChangesHandler(changeService).Register(mux)
+	changesHandler := registryhttp.NewChangesHandler(changeService)
+	readBackName := "none"
+	if token := os.Getenv(envGitHubToken); token != "" {
+		changesHandler = changesHandler.WithReadBack(change.NewGitHubReadBack(token))
+		readBackName = "github"
+	}
+	changesHandler.Register(mux)
 	mux.Handle("/v1/", registryhttp.NewServerWithOptions(roots, options))
 	mux.Handle("/healthz", registryhttp.NewHealthHandler(mode))
 	mux.Handle("/", registryhttp.NewStaticHandler(staticDir))
@@ -159,8 +166,8 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 
 	errs := make(chan error, 1)
 	go func() {
-		fmt.Fprintf(os.Stderr, "ContextRail workspace listening on http://%s (mode=%s fixtures=%v static=%s state=%s advisor=%s scenario=%s delay_ms=%d)\n",
-			addr, mode, []string(roots), staticDir, stateDir, advisorName, options.Scenario, options.Delay/time.Millisecond)
+		fmt.Fprintf(os.Stderr, "ContextRail workspace listening on http://%s (mode=%s fixtures=%v static=%s state=%s advisor=%s read_back=%s scenario=%s delay_ms=%d)\n",
+			addr, mode, []string(roots), staticDir, stateDir, advisorName, readBackName, options.Scenario, options.Delay/time.Millisecond)
 		errs <- server.ListenAndServe()
 	}()
 

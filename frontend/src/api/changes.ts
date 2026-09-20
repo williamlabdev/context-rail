@@ -79,9 +79,32 @@ export interface AgentWorkOrder {
   issued_at: string; expires_at: string; work_order_hash: string;
 }
 
+export interface AgentRun {
+  kind?: string; schema_version?: string; run_id: string; work_order_id: string; work_order_hash: string;
+  agent: { name: string; provider: string; model: string; version: string };
+  adapter?: string; started_by: string; started_at?: string; finished_at?: string; declared_commands?: string[]; declared_changed_paths?: string[];
+}
+export interface CheckResult { name: string; status: string; evidence_ref?: string; observed_at?: string }
+export interface ReviewEvidence { reviewer: string; kind: "human" | "ai" | string; verdict: string; evidence_ref?: string; at?: string }
+export interface Observation {
+  source?: string; repository?: string; branch: string; base_branch?: string; base_commit?: string; head_commit: string; pull_request?: string;
+  changed_paths: string[]; checks: CheckResult[]; reviews: ReviewEvidence[];
+  compensating_controls?: { declared: boolean; evidence_ref?: string; reason?: string } | null; observed_at?: string;
+}
+export interface GateResult { gate: string; status: string; detail: string; paths?: string[]; missing?: string[] }
+export interface Violation { rule: string; path?: string; detail: string }
+export interface Candidate {
+  candidate_id: string; change_id: string; work_order_id: string; lineage: Lineage; run: AgentRun; observation: Observation;
+  gates: GateResult[]; violations: Violation[]; verdict: string; status: string; recommended_action: string;
+  human_decision: HumanDecision | null; submitted_by: string; reason: string; created_at: string;
+}
+export interface ReadBackRequest { source: string; repository: string; base: string; head: string }
+export interface SubmitCandidateInput { reason: string; actor?: string; run: AgentRun; observation: Observation; read_back?: ReadBackRequest }
+export interface CandidateDecisionInput { actor: string; role?: string; decision: "ACCEPT" | "REJECT"; rationale: string }
+
 export interface Change {
   change_id: string; project_id: string; title: string; status: string; current_version: number;
-  versions: ChangeVersion[]; decisions: DecisionRecord[]; work_order: AgentWorkOrder | null; created_at: string; updated_at: string;
+  versions: ChangeVersion[]; decisions: DecisionRecord[]; work_order: AgentWorkOrder | null; candidates: Candidate[]; created_at: string; updated_at: string;
 }
 
 export interface ChangeView {
@@ -153,4 +176,12 @@ export async function decideChange(projectID: string, changeID: string, input: D
 
 export async function compileWorkOrder(projectID: string, changeID: string, input: WorkOrderInput, fetcher: typeof fetch = fetch): Promise<ChangeView> {
   return post<ChangeView>(fetcher, `${changesPath(projectID)}/${encodeURIComponent(changeID)}/work-order`, input);
+}
+
+export async function submitCandidate(projectID: string, changeID: string, input: SubmitCandidateInput, fetcher: typeof fetch = fetch): Promise<ChangeView> {
+  return post<ChangeView>(fetcher, `${changesPath(projectID)}/${encodeURIComponent(changeID)}/candidates`, input);
+}
+
+export async function decideCandidate(projectID: string, changeID: string, candidateID: string, input: CandidateDecisionInput, fetcher: typeof fetch = fetch): Promise<ChangeView> {
+  return post<ChangeView>(fetcher, `${changesPath(projectID)}/${encodeURIComponent(changeID)}/candidates/${encodeURIComponent(candidateID)}/decision`, input);
 }

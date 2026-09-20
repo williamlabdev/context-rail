@@ -1,11 +1,13 @@
 package registryhttp
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"context-rail/internal/change"
 )
@@ -18,12 +20,22 @@ import (
 //	POST /v1/projects/{project}/changes/{change}/inputs      supply inputs → new version, re-evaluated
 //	POST /v1/projects/{project}/changes/{change}/decision    human ACCEPT / REJECT
 //	POST /v1/projects/{project}/changes/{change}/work-order  compile hashed Agent Work Order
+//	POST /v1/projects/{project}/changes/{change}/candidates  submit a candidate (run + observation) → gate verdict
+//	POST /v1/projects/{project}/changes/{change}/candidates/{candidate}/decision  human ACCEPT / REJECT of the candidate
 type ChangesHandler struct {
-	service *change.Service
+	service  *change.Service
+	readBack change.ReadBack // optional provider read-back (github)
 }
 
 func NewChangesHandler(service *change.Service) *ChangesHandler {
 	return &ChangesHandler{service: service}
+}
+
+// WithReadBack enables provider observation for candidate submissions that
+// carry a read_back block.
+func (handler *ChangesHandler) WithReadBack(reader change.ReadBack) *ChangesHandler {
+	handler.readBack = reader
+	return handler
 }
 
 func (handler *ChangesHandler) Register(mux *http.ServeMux) {
@@ -33,6 +45,8 @@ func (handler *ChangesHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/projects/{project}/changes/{change}/inputs", handler.inputs)
 	mux.HandleFunc("POST /v1/projects/{project}/changes/{change}/decision", handler.decide)
 	mux.HandleFunc("POST /v1/projects/{project}/changes/{change}/work-order", handler.workOrder)
+	mux.HandleFunc("POST /v1/projects/{project}/changes/{change}/candidates", handler.submitCandidate)
+	mux.HandleFunc("POST /v1/projects/{project}/changes/{change}/candidates/{candidate}/decision", handler.decideCandidate)
 	mux.HandleFunc("/v1/projects/{project}/changes", methodNotAllowed("GET, POST"))
 	mux.HandleFunc("/v1/projects/{project}/changes/{change}", methodNotAllowed("GET"))
 }
@@ -96,6 +110,45 @@ func (handler *ChangesHandler) workOrder(response http.ResponseWriter, request *
 	handler.respond(response, view, err)
 }
 
+// candidateSubmission is the HTTP body: the domain request plus an optional
+// provider read-back block.
+type candidateSubmission struct {
+	change.SubmitCandidateRequest
+	ReadBack *change.ReadBackRequest `json:"read_back"`
+}
+
+func (handler *ChangesHandler) submitCandidate(response http.ResponseWriter, request *http.Request) {
+	var body candidateSubmission
+	if !decodeChangeBody(response, request, &body, &body.Mutation) {
+		return
+	}
+	if body.ReadBack != nil {
+		if handler.readBack == nil || !strings.EqualFold(body.ReadBack.Source, handler.readBack.Name()) {
+			writeError(response, http.StatusUnprocessableEntity, "READ_BACK_UNAVAILABLE", "No read-back adapter is configured for source "+body.ReadBack.Source+"; submit a declared observation instead.")
+			return
+		}
+		ctx, cancel := context.WithTimeout(request.Context(), 45*time.Second)
+		defer cancel()
+		observed, err := handler.readBack.Observe(ctx, *body.ReadBack)
+		if err != nil {
+			writeError(response, http.StatusBadGateway, "READ_BACK_FAILED", "The "+handler.readBack.Name()+" read-back failed: "+err.Error())
+			return
+		}
+		body.Observation = change.MergeObservation(body.Observation, observed)
+	}
+	view, err := handler.service.SubmitCandidate(request.PathValue("project"), request.PathValue("change"), body.SubmitCandidateRequest)
+	handler.respond(response, view, err)
+}
+
+func (handler *ChangesHandler) decideCandidate(response http.ResponseWriter, request *http.Request) {
+	var body change.CandidateDecisionRequest
+	if !decodeChangeBody(response, request, &body, &body.Mutation) {
+		return
+	}
+	view, err := handler.service.DecideCandidate(request.PathValue("project"), request.PathValue("change"), request.PathValue("candidate"), body)
+	handler.respond(response, view, err)
+}
+
 func (handler *ChangesHandler) respond(response http.ResponseWriter, view *change.View, err error) {
 	if err != nil {
 		writeChangeError(response, err)
@@ -131,9 +184,9 @@ func writeChangeError(response http.ResponseWriter, err error) {
 	}
 	status := http.StatusUnprocessableEntity
 	switch typed.Code {
-	case change.CodeProjectNotFound, change.CodeChangeNotFound:
+	case change.CodeProjectNotFound, change.CodeChangeNotFound, change.CodeCandidateNotFound:
 		status = http.StatusNotFound
-	case change.CodeAlreadyDecided, change.CodeChangeClosed, change.CodeDecisionStale, change.CodeAlreadyIssued, change.CodeNotAccepted:
+	case change.CodeAlreadyDecided, change.CodeChangeClosed, change.CodeDecisionStale, change.CodeAlreadyIssued, change.CodeNotAccepted, change.CodeCandidateBlocked:
 		status = http.StatusConflict
 	case change.CodeStateUnavailable:
 		status = http.StatusServiceUnavailable

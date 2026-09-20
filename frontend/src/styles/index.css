@@ -155,3 +155,12 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 @media (max-width: 900px) { .changes-layout, .dual-view { grid-template-columns: 1fr; } .span-2 { grid-column: span 1; } }
 .dual-pane, .dual-pane * { min-width: 0; overflow-wrap: anywhere; }
 .decision-card code, .lineage-strip code { overflow-wrap: anywhere; }
+.checkbox-line { display: flex !important; align-items: center; gap: 8px; }
+.candidate-section { display: grid; gap: 12px; border-top: 1px solid #253143; padding-top: 14px; }
+.candidate-section h3 { font-size: 0.95rem; margin: 0; }
+.candidate-card { gap: 8px; }
+.violation-list li { margin: 4px 0; }
+.gate-table td { font-size: 0.78rem; }
+.status-candidate-acceptable, .status-pass, .status-accepted-for-promotion { border-color: #3f8a5f; color: #9ee0b4; }
+.status-needs-evidence, .status-needs-review, .status-waived { border-color: #b9773c; color: #f0c48a; }
+.status-deferred-to-promotion, .status-evaluated { border-color: #526174; color: #cbd5e1; }

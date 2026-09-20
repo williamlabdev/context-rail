@@ -13,7 +13,8 @@ What the deployed service is:
 - a liveness endpoint at `/healthz` that reports process liveness only;
 - two governed Project fixtures baked into the image: `demo/order-operations-portal` and `examples/support-insights`;
 - the versioned Environment Topology API under `/v1/projects/{id}/environments` (VS-003): add, edit, reorder, retire and restore, each as a new immutable version with audit and STALE invalidation of dependent decisions;
-- the Change Decision Pack API under `/v1/projects/{id}/changes` (VS-004): open a Change, get NEEDS_INPUT or DECISION_READY, record a human decision, read the Brief and Agent Context Pack rendered from it, compile a hashed Work Order.
+- the Change Decision Pack API under `/v1/projects/{id}/changes` (VS-004): open a Change, get NEEDS_INPUT or DECISION_READY, record a human decision, read the Brief and Agent Context Pack rendered from it, compile a hashed Work Order;
+- the candidate gate under `/v1/projects/{id}/changes/{change}/candidates` (VS-005): submit an agent run + observed evidence, get a deterministic verdict (BLOCKED / NEEDS_EVIDENCE / NEEDS_REVIEW / CANDIDATE_ACCEPTABLE) and record the second human decision.
 
 What it is **not**: it has no durable persistence (topology state lives in the instance's `/tmp`), no authentication (the `X-ContextRail-Actor` header is recorded, not verified), no Gemini/Firestore/Storage integration, no production service and no IAM beyond an unauthenticated demo endpoint. Deploying it does not change any Project's readiness or authorization state.
 
@@ -30,6 +31,7 @@ The binary honours the [Cloud Run container contract](https://cloud.google.com/r
 | `CONTEXT_RAIL_STATE_DIR` | Governance state (topology versions, change ledger) as JSON files | `/tmp/context-rail-state` — instance-local, **not durable**; lost on redeploy or scale-to-zero |
 | `GEMINI_API_KEY` | Optional. Enables the Gemini decision advisor (candidates only; falls back to the rule advisor on error). Set it as a Cloud Run secret/env, never in the image | unset → rule advisor |
 | `CONTEXT_RAIL_GEMINI_MODEL` | Gemini model id for the advisor | `gemini-2.0-flash` |
+| `GITHUB_TOKEN` | Optional. Enables GitHub read-back of candidates (compare, PR reviews, check runs) when a submission carries a `read_back` block. Read-only token, set as a secret | unset → declared observations only |
 
 `SIGTERM` triggers a graceful shutdown with a 10 s drain, which is what Cloud Run sends before stopping an instance.
 

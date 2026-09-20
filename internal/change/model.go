@@ -25,12 +25,13 @@ const (
 
 // Change statuses.
 const (
-	StatusDraft         = "DRAFT"
-	StatusNeedsInput    = "NEEDS_INPUT"
-	StatusDecisionReady = "DECISION_READY"
-	StatusAccepted      = "ACCEPTED"
-	StatusRejected      = "REJECTED"
-	StatusStale         = "STALE"
+	StatusDraft             = "DRAFT"
+	StatusNeedsInput        = "NEEDS_INPUT"
+	StatusDecisionReady     = "DECISION_READY"
+	StatusAccepted          = "ACCEPTED"
+	StatusCandidateAccepted = "CANDIDATE_ACCEPTED"
+	StatusRejected          = "REJECTED"
+	StatusStale             = "STALE"
 )
 
 // AcceptanceCriterion is one testable expectation supplied by the requester.
@@ -244,6 +245,7 @@ type Change struct {
 	Versions       []ChangeVersion  `json:"versions"`
 	Decisions      []DecisionRecord `json:"decisions"`
 	WorkOrder      *AgentWorkOrder  `json:"work_order"`
+	Candidates     []Candidate      `json:"candidates"`
 	CreatedAt      string           `json:"created_at"`
 	UpdatedAt      string           `json:"updated_at"`
 }

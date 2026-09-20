@@ -11,19 +11,21 @@ type Error struct {
 func (err *Error) Error() string { return fmt.Sprintf("%s: %s", err.Code, err.Message) }
 
 const (
-	CodeProjectNotFound  = "PROJECT_NOT_FOUND"
-	CodeChangeNotFound   = "CHANGE_NOT_FOUND"
-	CodeInvalidRequest   = "INVALID_CHANGE_REQUEST"
-	CodeReasonRequired   = "REASON_REQUIRED"
-	CodeActorRequired    = "ACTOR_REQUIRED"
-	CodeNotDecisionReady = "NEEDS_INPUT"
-	CodeInvalidOption    = "INVALID_OPTION"
-	CodeAlreadyDecided   = "ALREADY_DECIDED"
-	CodeChangeClosed     = "CHANGE_CLOSED"
-	CodeNotAccepted      = "DECISION_NOT_ACCEPTED"
-	CodeDecisionStale    = "DECISION_STALE"
-	CodeAlreadyIssued    = "WORK_ORDER_ALREADY_ISSUED"
-	CodeStateUnavailable = "CHANGE_STATE_UNAVAILABLE"
+	CodeProjectNotFound   = "PROJECT_NOT_FOUND"
+	CodeChangeNotFound    = "CHANGE_NOT_FOUND"
+	CodeInvalidRequest    = "INVALID_CHANGE_REQUEST"
+	CodeReasonRequired    = "REASON_REQUIRED"
+	CodeActorRequired     = "ACTOR_REQUIRED"
+	CodeNotDecisionReady  = "NEEDS_INPUT"
+	CodeInvalidOption     = "INVALID_OPTION"
+	CodeAlreadyDecided    = "ALREADY_DECIDED"
+	CodeChangeClosed      = "CHANGE_CLOSED"
+	CodeNotAccepted       = "DECISION_NOT_ACCEPTED"
+	CodeDecisionStale     = "DECISION_STALE"
+	CodeAlreadyIssued     = "WORK_ORDER_ALREADY_ISSUED"
+	CodeStateUnavailable  = "CHANGE_STATE_UNAVAILABLE"
+	CodeCandidateNotFound = "CANDIDATE_NOT_FOUND"
+	CodeCandidateBlocked  = "CANDIDATE_NOT_ACCEPTABLE"
 )
 
 func newError(code, format string, args ...any) *Error {

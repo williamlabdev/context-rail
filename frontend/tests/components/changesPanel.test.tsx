@@ -14,7 +14,7 @@ const lineage = { decision_id: "DEC-001", decision_version: 1, change_id: "CHG-0
 
 const needsInput: ChangeView = {
   change: {
-    change_id: "CHG-001", project_id: "p", title: "Attachments", status: "NEEDS_INPUT", current_version: 1, created_at: "t", updated_at: "t", decisions: [], work_order: null,
+    change_id: "CHG-001", project_id: "p", title: "Attachments", status: "NEEDS_INPUT", current_version: 1, created_at: "t", updated_at: "t", decisions: [], work_order: null, candidates: [],
     versions: [{
       version: 1, created_at: "t", actor: "a", reason: "r",
       request: { title: "Attachments", objective: "Upload", scope_included: [], scope_excluded: [], acceptance_criteria: [], allowed_paths: [], forbidden_actions: [], target_environment_id: "staging", business_constraints: {}, requested_by: "a" },
@@ -59,7 +59,8 @@ function controller(overrides: Partial<ChangesController> = {}): ChangesControll
   return {
     status: "READY", changes: [], selectedID: null, selected: null, error: null, busy: false,
     reload: vi.fn(), select: vi.fn(), create: vi.fn().mockResolvedValue(true), inputs: vi.fn().mockResolvedValue(true),
-    decide: vi.fn().mockResolvedValue(true), workOrder: vi.fn().mockResolvedValue(true), ...overrides,
+    decide: vi.fn().mockResolvedValue(true), workOrder: vi.fn().mockResolvedValue(true),
+    submitCandidate: vi.fn().mockResolvedValue(true), decideCandidate: vi.fn().mockResolvedValue(true), ...overrides,
   };
 }
 

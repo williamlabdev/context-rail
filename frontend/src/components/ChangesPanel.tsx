@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { currentVersion, type ChangeView, type MissingInput, type Option } from "../api/changes";
 import type { ChangesController } from "../state/useChanges";
 import type { TopologyEnvironment } from "../api/topology";
+import { CandidateReview } from "./CandidateReview";
 import { StatusBadge } from "./StatusBadge";
 
 interface ChangesPanelProps {
@@ -330,6 +331,8 @@ function ChangeDetail({ view, controller, environments }: { view: ChangeView; co
           <p className="topology-reason"><span className="muted">checks</span> {order.required_checks.join(", ")} · <span className="muted">acceptance</span> {order.acceptance_ids.join(", ")}</p>
         </div>
       )}
+
+      {order && <CandidateReview view={view} controller={controller} />}
 
       {change.versions.length > 1 && (
         <details className="topology-history">

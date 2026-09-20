@@ -3,13 +3,17 @@ import {
   ChangeRequestError,
   compileWorkOrder,
   createChange,
+  decideCandidate,
   decideChange,
   fetchChanges,
+  submitCandidate,
   supplyInputs,
+  type CandidateDecisionInput,
   type ChangeView,
   type CreateChangeInput,
   type DecideInput,
   type InputsPatch,
+  type SubmitCandidateInput,
   type WorkOrderInput,
 } from "../api/changes";
 
@@ -28,6 +32,8 @@ export interface ChangesController {
   inputs: (changeID: string, input: InputsPatch) => Promise<boolean>;
   decide: (changeID: string, input: DecideInput) => Promise<boolean>;
   workOrder: (changeID: string, input: WorkOrderInput) => Promise<boolean>;
+  submitCandidate: (changeID: string, input: SubmitCandidateInput) => Promise<boolean>;
+  decideCandidate: (changeID: string, candidateID: string, input: CandidateDecisionInput) => Promise<boolean>;
 }
 
 function describe(error: unknown): { code: string; message: string } {
@@ -92,5 +98,7 @@ export function useChanges(projectID: string | null, refreshKey: unknown = null)
     inputs: (changeID, input) => apply(() => supplyInputs(projectID ?? "", changeID, input)),
     decide: (changeID, input) => apply(() => decideChange(projectID ?? "", changeID, input)),
     workOrder: (changeID, input) => apply(() => compileWorkOrder(projectID ?? "", changeID, input)),
+    submitCandidate: (changeID, input) => apply(() => submitCandidate(projectID ?? "", changeID, input)),
+    decideCandidate: (changeID, candidateID, input) => apply(() => decideCandidate(projectID ?? "", changeID, candidateID, input)),
   };
 }
