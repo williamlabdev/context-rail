@@ -1,0 +1,13 @@
+consumer fixture trees before: d03e31a8514c661c
+consumer fixture trees after:  d03e31a8514c661c
+RESULT: PASS — no consumer source mutation
+
+governance state written by the journeys:
+/tmp/ctr-state/support-insights/topology.json
+/tmp/ctr-state/order-operations-portal/topology.json
+/tmp/ctr-state/order-operations-portal/changes.json
+
+change: CHG-001 ACCEPTED versions: ['NEEDS_INPUT', 'DECISION_READY']
+decisions: [('DEC-001', 'ACCEPTED_FOR_DEVELOPMENT', 2)]
+work_order: AWO-001 sha256:89ba84001bc8748b
+audit: ['change.create', 'change.inputs', 'decision.accepted', 'work-order.issue']

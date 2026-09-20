@@ -1,0 +1,8 @@
+  ✓  1 ../tests/browser/change-decision-pack.spec.ts:8:7 › Change decision pack (VS-004) › request → NEEDS_INPUT → decision → brief/pack → work order → STALE on topology change (1.7s)
+  ✓  2 ../tests/browser/environment-topology.spec.ts:7:7 › Environment topology (VS-003) › add → edit → reorder → retire → restore, each as a new version (1.4s)
+  ✓  3 ../tests/browser/environment-topology.spec.ts:78:7 › Environment topology (VS-003) › a stale expected_version is refused and the operator is told to reload (452ms)
+  ✓  4 ../tests/browser/project-context.spec.ts:4:7 › Project Registry read-only workspace › browses both Projects and replaces detail state on switching (527ms)
+  ✓  5 ../tests/browser/project-context.spec.ts:25:7 › Project Registry read-only workspace › shows an explicit loading state while the registry response is delayed (433ms)
+  ✓  6 ../tests/browser/project-context.spec.ts:39:7 › Project Registry read-only workspace › shows an explicit empty state without a create action (234ms)
+  ✓  7 ../tests/browser/project-context.spec.ts:54:7 › Project Registry read-only workspace › shows an explicit unavailable state without stale detail or mutation controls (242ms)
+  7 passed (5.9s)

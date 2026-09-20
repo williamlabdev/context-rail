@@ -1,0 +1,100 @@
+{
+  "decision_id": "DR-006",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "single_decision_record_rendered_to_brief_and_pack",
+  "alternatives": [
+    {
+      "id": "separate_brief_and_pack_authoring",
+      "status": "rejected",
+      "reason": "Two independently authored artifacts can drift and re-interpret the requirement; the roadmap requires one decision_id, version and source hash shared by both."
+    },
+    {
+      "id": "gemini_as_decision_maker",
+      "status": "rejected",
+      "reason": "Constitution IV: AI output is candidate evidence; only an identified human accepts a decision."
+    },
+    {
+      "id": "real_embedding_rag_now",
+      "status": "deferred",
+      "reason": "Grounded advisor candidates over the registry facts cover the P0 decision path; embeddings are a later slice."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "cmd/context-rail/",
+      "internal/change/",
+      "internal/http/",
+      "frontend/src/",
+      "frontend/tests/",
+      "tests/change/",
+      "tests/http/",
+      "tests/browser/",
+      "docs/operations/",
+      "evidence/EB-006/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "internal/projectregistry/",
+      "demo/",
+      "examples/",
+      "auth-and-membership",
+      "secrets",
+      "production-targets",
+      "cloud-deployment",
+      "agent-execution"
+    ]
+  },
+  "architecture_impact": [
+    "Adds internal/change: a per-Project change ledger (JSON, atomic writes) with immutable Change versions, DecisionRecords and one Work Order per accepted decision.",
+    "Deterministic readiness evaluation: missing objective, acceptance criteria, allowed paths, target environment, data_classification or expected_monthly_volume → NEEDS_INPUT with field, owner role and reason; a retired, DRAFT or production target is blocking; nothing missing is invented.",
+    "Advisor interface: RuleAdvisor (default, deterministic) and a GeminiAdvisor REST adapter (enabled by GEMINI_API_KEY, falls back to rules on any error); both only produce candidates a human must select.",
+    "Accept creates a DecisionRecord bound to source_snapshot_hash (documents + context + repository + topology version/config hash + policy). Brief and Agent Context Pack are pure renderings of that record and carry the same Lineage block; a Work Order is compiled from it with a sha256 work_order_hash.",
+    "Staleness is computed on read: newer change version, material topology change after the bound version, retired target, or source snapshot drift make the decision, brief, pack and work order STALE and block Work Order issuance.",
+    "HTTP: /v1/projects/{id}/changes (GET/POST), /{change} GET, /{change}/inputs, /{change}/decision, /{change}/work-order. The React workspace adds a Changes panel with the dual view."
+  ],
+  "cost_assumptions": [
+    "No cloud resources; Gemini calls only when GEMINI_API_KEY is set (per-call token cost, not measured yet)."
+  ],
+  "unknowns": [
+    "GeminiAdvisor is UNVERIFIED: no key and no egress to generativelanguage.googleapis.com in the verification workspace.",
+    "Durable persistence: same instance-local /tmp caveat as DR-005.",
+    "Required business constraints are a fixed policy list (data_classification, expected_monthly_volume); per-Project policy is a later decision.",
+    "Cost is reported as UNKNOWN drivers only; the deterministic calculator with versioned prices is not in this slice."
+  ],
+  "acceptance_criteria": [
+    "UI-06: a complete Change reaches DECISION_READY and shows candidates, unknowns and the next transition.",
+    "UI-07: an incomplete Change is NEEDS_INPUT with field, owner and reason; accepting it is refused; no Work Order can be created.",
+    "UI-08: supplying inputs creates a new Change version, re-evaluates, keeps earlier versions readable, and stales any earlier decision.",
+    "UI-09: an accepted decision compiles a Work Order with a hash and the same lineage as the pack.",
+    "Brief and Agent Context Pack share decision_id, version, source_snapshot_hash, topology_version and policy_version.",
+    "Material topology change after acceptance makes decision, pack and work order STALE and blocks issuance.",
+    "Consumer fixture trees byte-identical after the full browser journey."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "8a058e2",
+  "source_refs": [
+    "roadmap.md#p0-c",
+    "roadmap.md#p0-d",
+    "architecture.md#decision-flow",
+    "docs/design/CONTEXT_RAIL_UI_FLOW_STATE_CONTRACT.zh-TW.md#5-ui-驗證案例",
+    "docs/examples/AGENT_CONTEXT_PACK_HERO.example.json",
+    "docs/examples/01_EXECUTIVE_CHANGE_DECISION_BRIEF_HERO.zh-TW.md",
+    "demo/order-operations-portal/work-orders/AWO-001-manual-order-review.json",
+    "decisions/DR-005-environment-topology.json"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-006/README.md"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-20T12:10:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Owner instructed to open VS-004 immediately after VS-003 (\"然後你再開VS-004\"). Accepts local development/testing of the decision pack path; no agent execution, deployment or production authorization."
+  }
+}
