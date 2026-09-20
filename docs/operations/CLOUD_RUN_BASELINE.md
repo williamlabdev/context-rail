@@ -14,7 +14,8 @@ What the deployed service is:
 - two governed Project fixtures baked into the image: `demo/order-operations-portal` and `examples/support-insights`;
 - the versioned Environment Topology API under `/v1/projects/{id}/environments` (VS-003): add, edit, reorder, retire and restore, each as a new immutable version with audit and STALE invalidation of dependent decisions;
 - the Change Decision Pack API under `/v1/projects/{id}/changes` (VS-004): open a Change, get NEEDS_INPUT or DECISION_READY, record a human decision, read the Brief and Agent Context Pack rendered from it, compile a hashed Work Order;
-- the candidate gate under `/v1/projects/{id}/changes/{change}/candidates` (VS-005): submit an agent run + observed evidence, get a deterministic verdict (BLOCKED / NEEDS_EVIDENCE / NEEDS_REVIEW / CANDIDATE_ACCEPTABLE) and record the second human decision.
+- the candidate gate under `/v1/projects/{id}/changes/{change}/candidates` (VS-005): submit an agent run + observed evidence, get a deterministic verdict (BLOCKED / NEEDS_EVIDENCE / NEEDS_REVIEW / CANDIDATE_ACCEPTABLE) and record the second human decision;
+- staging promotion under `/v1/projects/{id}/releases` (VS-006): bundle accepted candidates, record the image build (digest), record the third human approval bound to the manifest hash, record the observed deployment (digest / target / config drift, smoke, idempotency key) and read the Release Receipt.
 
 What it is **not**: it has no durable persistence (topology state lives in the instance's `/tmp`), no authentication (the `X-ContextRail-Actor` header is recorded, not verified), no Gemini/Firestore/Storage integration, no production service and no IAM beyond an unauthenticated demo endpoint. Deploying it does not change any Project's readiness or authorization state.
 
@@ -71,3 +72,13 @@ PORT=8080 CONTEXT_RAIL_FIXTURE_ROOTS=demo/order-operations-portal,examples/suppo
 ```
 
 Without `PORT` the server binds to loopback only; the flags `--fixture-root`, `--static-dir`, `--addr` and `--fixture-scenario` still work and take precedence over the environment.
+
+## Recording a promotion of the demo application
+
+After deploying the governed demo application (not ContextRail itself) to its staging service, record what landed so ContextRail can verify it against the approved release manifest and issue the receipt:
+
+```sh
+scripts/record-promotion.sh <context-rail-url> order-operations-portal REL-001 <gcp-project> asia-east1 order-operations-portal-staging
+```
+
+The script reads the latest ready revision and its image digest with `gcloud run … describe`, refuses images not pinned by digest, runs the `/healthz` smoke check, and POSTs the observation with an idempotency key. Re-running it with the same key replays the recorded result; it never records a second attempt for the same deploy.

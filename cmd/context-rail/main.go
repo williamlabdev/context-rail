@@ -17,6 +17,7 @@ import (
 	"context-rail/internal/change"
 	registryhttp "context-rail/internal/http"
 	"context-rail/internal/projectregistry"
+	"context-rail/internal/release"
 	"context-rail/internal/topology"
 )
 
@@ -130,6 +131,11 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 		fmt.Fprintf(os.Stderr, "CONTEXT RAIL BLOCKED: state directory unusable: %v\n", err)
 		os.Exit(2)
 	}
+	releaseStore, err := release.NewFileStore(stateDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "CONTEXT RAIL BLOCKED: state directory unusable: %v\n", err)
+		os.Exit(2)
+	}
 	topologyService := topology.NewService(topologyStore, topology.NewRegistrySource(roots))
 	var advisor change.Advisor = change.RuleAdvisor{}
 	advisorName := "rule-advisor"
@@ -148,6 +154,7 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 		readBackName = "github"
 	}
 	changesHandler.Register(mux)
+	registryhttp.NewReleasesHandler(release.NewService(releaseStore, changeService, topologyService)).Register(mux)
 	mux.Handle("/v1/", registryhttp.NewServerWithOptions(roots, options))
 	mux.Handle("/healthz", registryhttp.NewHealthHandler(mode))
 	mux.Handle("/", registryhttp.NewStaticHandler(staticDir))

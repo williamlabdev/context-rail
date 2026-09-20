@@ -32,7 +32,7 @@ func NewHealthHandler(mode string) http.Handler {
 		response.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(response).Encode(healthResponse{
 			Kind: "ContextRailHealth", Status: "ok", Mode: mode,
-			Surfaces: map[string]string{"registry": "read-only", "topology": "versioned-writes", "changes": "governed-ledger"},
+			Surfaces: map[string]string{"registry": "read-only", "topology": "versioned-writes", "changes": "governed-ledger", "releases": "promotion-gate"},
 		})
 	})
 }

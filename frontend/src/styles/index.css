@@ -164,3 +164,8 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .status-candidate-acceptable, .status-pass, .status-accepted-for-promotion { border-color: #3f8a5f; color: #9ee0b4; }
 .status-needs-evidence, .status-needs-review, .status-waived { border-color: #b9773c; color: #f0c48a; }
 .status-deferred-to-promotion, .status-evaluated { border-color: #526174; color: #cbd5e1; }
+.chip-release { border-color: #b9773c; color: #f0c48a; }
+.receipt-card { border-color: #3f8a5f; }
+.status-awaiting-build, .status-ready-for-approval { border-color: #4b6a8c; color: #9cc8f5; }
+.status-approved, .status-promoted { border-color: #3f8a5f; color: #9ee0b4; }
+.status-gate-blocked, .status-promotion-failed { border-color: #9b4a4a; color: #f0a3a3; }

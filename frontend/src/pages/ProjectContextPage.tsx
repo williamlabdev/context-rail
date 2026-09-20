@@ -1,12 +1,14 @@
 import type { ProjectEntry } from "../api/projectRegistry";
 import { currentVersion as currentTopologyVersion, staleDecisions } from "../api/topology";
 import { ChangesPanel } from "../components/ChangesPanel";
+import { ReleasesPanel } from "../components/ReleasesPanel";
 import { DocumentStatusList } from "../components/DocumentStatusList";
 import { EnvironmentTopology } from "../components/EnvironmentTopology";
 import { ReadinessSummary } from "../components/ReadinessSummary";
 import { StatusBadge } from "../components/StatusBadge";
 import type { TopologyController } from "../state/useTopology";
 import type { ChangesController } from "../state/useChanges";
+import type { ReleasesController } from "../state/useReleases";
 
 interface ProjectContextPageProps {
   entry: ProjectEntry;
@@ -14,6 +16,8 @@ interface ProjectContextPageProps {
   topology?: TopologyController;
   /** Change ledger controller; omitted in read-only/test renders. */
   changes?: ChangesController;
+  /** Release ledger controller; omitted in read-only/test renders. */
+  releases?: ReleasesController;
 }
 
 function RelationshipList({ title, values, empty }: { title: string; values: string[]; empty: string }) {
@@ -25,7 +29,7 @@ function RelationshipList({ title, values, empty }: { title: string; values: str
   );
 }
 
-export function ProjectContextPage({ entry, topology, changes }: ProjectContextPageProps) {
+export function ProjectContextPage({ entry, topology, changes, releases }: ProjectContextPageProps) {
   const { project } = entry;
   const topologyEnvironments = topology?.state ? currentTopologyVersion(topology.state)?.environments ?? [] : [];
   const stale = staleDecisions(topology?.state ?? null);
@@ -68,6 +72,7 @@ export function ProjectContextPage({ entry, topology, changes }: ProjectContextP
       </section>
 
       {changes && <ChangesPanel controller={changes} environments={topologyEnvironments} />}
+      {releases && changes && <ReleasesPanel controller={releases} changes={changes.changes} environments={topologyEnvironments} />}
       {topology && <EnvironmentTopology controller={topology} />}
       <DocumentStatusList documents={entry.documents ?? []} />
       <ReadinessSummary readiness={entry.readiness} />

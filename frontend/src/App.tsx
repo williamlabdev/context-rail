@@ -6,6 +6,7 @@ import { WorkspaceState } from "./components/WorkspaceState";
 import { errorWorkspaceState, loadingWorkspaceState, projectsWorkspaceState, type WorkspaceState as WorkspaceStateValue } from "./state/workspaceState";
 import { useTopology } from "./state/useTopology";
 import { useChanges } from "./state/useChanges";
+import { useReleases } from "./state/useReleases";
 
 export function App() {
   const [registryState, setRegistryState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
@@ -14,6 +15,8 @@ export function App() {
   const topology = useTopology(selectedProjectID);
   // Reload the ledger whenever the topology version moves so STALE verdicts appear.
   const changes = useChanges(selectedProjectID, topology.state?.current_version ?? null);
+  // Releases depend on both the topology (drift) and the change ledger (accepted candidates).
+  const releases = useReleases(selectedProjectID, `${topology.state?.current_version ?? ""}:${changes.changes.map((view) => `${view.change.change_id}@${view.change.updated_at}`).join(",")}`);
 
   useEffect(() => {
     let active = true;
@@ -56,6 +59,7 @@ export function App() {
           <span className="read-only-chip">REGISTRY READ-ONLY</span>
           <span className="read-only-chip chip-versioned">TOPOLOGY VERSIONED</span>
           <span className="read-only-chip chip-ledger">CHANGES GOVERNED</span>
+          <span className="read-only-chip chip-release">PROMOTION GATED</span>
         </div>
       </header>
       <div className="workspace-layout">
@@ -64,7 +68,7 @@ export function App() {
         ) : (
           <WorkspaceState state={registryState} title="Project Registry" />
         )}
-        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} changes={changes} /> : <WorkspaceState state={detailState} title="Project context" />}
+        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} changes={changes} releases={releases} /> : <WorkspaceState state={detailState} title="Project context" />}
       </div>
     </div>
   );
