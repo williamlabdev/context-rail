@@ -16,7 +16,8 @@ What the deployed service is:
 - the Change Decision Pack API under `/v1/projects/{id}/changes` (VS-004): open a Change, get NEEDS_INPUT or DECISION_READY, record a human decision, read the Brief and Agent Context Pack rendered from it, compile a hashed Work Order;
 - the candidate gate under `/v1/projects/{id}/changes/{change}/candidates` (VS-005): submit an agent run + observed evidence, get a deterministic verdict (BLOCKED / NEEDS_EVIDENCE / NEEDS_REVIEW / CANDIDATE_ACCEPTABLE) and record the second human decision;
 - staging promotion under `/v1/projects/{id}/releases` (VS-006): bundle accepted candidates, record the image build (digest), record the third human approval bound to the manifest hash, record the observed deployment (digest / target / config drift, smoke, idempotency key) and read the Release Receipt;
-- prod-demo promotion (VS-007): `POST /v1/projects/{id}/releases` with `source_release_id` opens a promotion of a PROMOTED release — same digest inherited from the source receipt, lineage frozen by that receipt, the environment delta (target, type, required evidence, approver policy) listed and bound by a new approval, a new revision required on the prod-demo service, and a receipt that chains to the previous one (`previous_receipt_id`). Releases execute only for `staging` and `prod-demo` standard types; every other node is evidence-only and `production` stays blocked.
+- prod-demo promotion (VS-007): `POST /v1/projects/{id}/releases` with `source_release_id` opens a promotion of a PROMOTED release — same digest inherited from the source receipt, lineage frozen by that receipt, the environment delta (target, type, required evidence, approver policy) listed and bound by a new approval, a new revision required on the prod-demo service, and a receipt that chains to the previous one (`previous_receipt_id`). Releases execute only for `staging` and `prod-demo` standard types; every other node is evidence-only and `production` stays blocked;
+- the document baseline and Context Pack rebuild under `/v1/projects/{id}/documents` and `/v1/projects/{id}/context-pack/rebuild` (UI-20): the manifest's document declarations are imported as baseline v1; an operator can declare a required document (new version, `expected_version` guarded) and withdraw it again; every declared document is verified against the repository (stat + sha256, read-only) and a missing one makes its readiness stages `NEEDS_INPUT`; a rebuilt Context Pack (`CP-nnn`) lists every source with path / version / content hash, lists missing sources with the stages they block, is `PARTIAL` while anything is missing, records a `source_snapshot_hash` and `pack_hash`, and is reported `STALE` when the sources change after generation. New Changes see the gap as a `decision_documents` missing input; nothing is synthesized in place of a missing file.
 
 What it is **not**: it has no durable persistence (topology state lives in the instance's `/tmp`), no authentication (the `X-ContextRail-Actor` header is recorded, not verified), no Gemini/Firestore/Storage integration, no production service and no IAM beyond an unauthenticated demo endpoint. Deploying it does not change any Project's readiness or authorization state.
 
@@ -30,7 +31,7 @@ The binary honours the [Cloud Run container contract](https://cloud.google.com/r
 | `CONTEXT_RAIL_FIXTURE_ROOTS` | Comma-separated explicit Project roots (no filesystem scan) | both fixtures under `/app/fixtures` |
 | `CONTEXT_RAIL_STATIC_DIR` | Built workspace directory | `/app/static` |
 | `CONTEXT_RAIL_FIXTURE_SCENARIO` | `normal`, `empty`, `invalid`, `unavailable` — verification scenarios only | `normal` |
-| `CONTEXT_RAIL_STATE_DIR` | Governance state (topology versions, change ledger) as JSON files | `/tmp/context-rail-state` — instance-local, **not durable**; lost on redeploy or scale-to-zero |
+| `CONTEXT_RAIL_STATE_DIR` | Governance state (topology versions, document baseline + Context Packs, change ledger, releases) as JSON files | `/tmp/context-rail-state` — instance-local, **not durable**; lost on redeploy or scale-to-zero |
 | `GEMINI_API_KEY` | Optional. Enables the Gemini decision advisor (candidates only; falls back to the rule advisor on error). Set it as a Cloud Run secret/env, never in the image | unset → rule advisor |
 | `CONTEXT_RAIL_GEMINI_MODEL` | Gemini model id for the advisor | `gemini-2.0-flash` |
 | `GITHUB_TOKEN` | Optional. Enables GitHub read-back of candidates (compare, PR reviews, check runs) when a submission carries a `read_back` block. Read-only token, set as a secret | unset → declared observations only |
@@ -55,7 +56,7 @@ scripts/deploy-cloud-run.sh --smoke https://context-rail-staging-<hash>-<region>
 
 ## Smoke check (what counts as PASS)
 
-1. `GET /healthz` returns `{"status":"ok","mode":"container","surfaces":{"registry":"read-only","topology":"versioned-writes","changes":"governed-ledger"}}`.
+1. `GET /healthz` returns `{"status":"ok","mode":"container","surfaces":{"registry":"read-only","topology":"versioned-writes","changes":"governed-ledger","releases":"promotion-gate","documents":"baseline-versioned"}}`.
 2. `GET /v1/projects` lists both fixture Projects (`order-operations-portal`, `support-insights`).
 3. `GET /` returns the workspace HTML (HTTP 200).
 4. `POST /v1/projects` returns HTTP 405 — the read-only boundary holds in the cloud exactly as it does locally.

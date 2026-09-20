@@ -1,0 +1,17 @@
+# go vet ./... && go test ./... (GOFLAGS=-mod=vendor, Go go1.24.7)
+vet: ok
+--- PASS: TestBaselineBootstrapsFromManifestAndReportsLiveStatus (0.00s)
+--- PASS: TestMissingDeclaredDocumentMapsToReadinessAndPartialPack (0.00s)
+--- PASS: TestBaselineGuards (0.00s)
+PASS
+ok  	context-rail/tests/document	0.013s
+--- PASS: TestDocumentBaselineAndContextPackOverHTTP (0.08s)
+--- PASS: TestHealthReportsLivenessOnly (0.00s)
+--- PASS: TestHealthRejectsNonGET (0.00s)
+ok  	context-rail/tests/http	0.088s
+ok  	context-rail/tests/change	0.020s
+ok  	context-rail/tests/document	0.014s
+ok  	context-rail/tests/http	0.483s
+ok  	context-rail/tests/registry	0.019s
+ok  	context-rail/tests/release	0.127s
+ok  	context-rail/tests/topology	0.028s

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"context-rail/internal/change"
+	"context-rail/internal/document"
 	registryhttp "context-rail/internal/http"
 	"context-rail/internal/projectregistry"
 	"context-rail/internal/release"
@@ -136,7 +137,13 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 		fmt.Fprintf(os.Stderr, "CONTEXT RAIL BLOCKED: state directory unusable: %v\n", err)
 		os.Exit(2)
 	}
+	documentStore, err := document.NewFileStore(stateDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "CONTEXT RAIL BLOCKED: state directory unusable: %v\n", err)
+		os.Exit(2)
+	}
 	topologyService := topology.NewService(topologyStore, topology.NewRegistrySource(roots))
+	documentService := document.NewService(documentStore, document.NewRegistrySource(roots)).WithTopology(topologyService)
 	var advisor change.Advisor = change.RuleAdvisor{}
 	advisorName := "rule-advisor"
 	if key := os.Getenv(envGeminiKey); key != "" {
@@ -144,9 +151,11 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 		advisor = gemini
 		advisorName = gemini.Name() + " (falls back to rule-advisor on error)"
 	}
-	changeService := change.NewService(changeStore, change.NewRegistrySource(roots, topologyService), advisor)
+	changeService := change.NewService(changeStore, change.NewRegistrySource(roots, topologyService).WithDocuments(documentService), advisor)
+	documentService.WithDecisions(changeService)
 	mux := http.NewServeMux()
 	registryhttp.NewTopologyHandler(topologyService).Register(mux)
+	registryhttp.NewDocumentsHandler(documentService).Register(mux)
 	changesHandler := registryhttp.NewChangesHandler(changeService)
 	readBackName := "none"
 	if token := os.Getenv(envGitHubToken); token != "" {

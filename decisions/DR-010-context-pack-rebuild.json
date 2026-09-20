@@ -1,0 +1,95 @@
+{
+  "decision_id": "DR-010",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "versioned_document_baseline_with_partial_context_pack",
+  "alternatives": [
+    {
+      "id": "rewrite_docs_ai_context_pack_in_the_consumer_repo",
+      "status": "rejected",
+      "reason": "Constitution: consumer fixtures are never mutated. The consumer's docs/ai/context-pack.json stays a read-only observation (declared context); the rebuilt pack lives in governance state and is the live context."
+    },
+    {
+      "id": "let_the_advisor_fill_missing_documents",
+      "status": "rejected",
+      "reason": "UI-20 acceptance: the AI must not turn a gap into a fact. A missing source is listed with the stages it blocks, carries no content hash, and the pack is PARTIAL until the file exists."
+    },
+    {
+      "id": "delete_a_fixture_file_to_demonstrate_a_gap",
+      "status": "rejected",
+      "reason": "Would mutate the fixture. Instead the operator declares an additional required document in a new baseline version; the declaration is verified against the repository, never created."
+    },
+    {
+      "id": "topology_changes_stale_the_pack",
+      "status": "deferred",
+      "reason": "The pack records the topology version and config hash for lineage, but drift is measured on document sources and the baseline version only; topology drift already invalidates decisions through VS-003."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "internal/document/",
+      "internal/projectregistry/manifest.go",
+      "internal/change/registrysource.go",
+      "internal/change/service.go",
+      "internal/http/",
+      "cmd/context-rail/",
+      "frontend/src/",
+      "tests/document/",
+      "tests/http/",
+      "tests/browser/",
+      "docs/operations/",
+      "evidence/EB-010/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "demo/",
+      "examples/",
+      "cloud-deployment-execution",
+      "production-targets",
+      "auth-and-membership",
+      "secrets"
+    ]
+  },
+  "architecture_impact": [
+    "Adds internal/document: a versioned document baseline per Project (v1 bootstrapped from project.yaml document declarations with their requiredFor stages; DECLARE / WITHDRAW create new versions guarded by expected_version, audited). Manifest declarations cannot be withdrawn here.",
+    "Every declared document is observed read-only under the consumer root (stat + sha256); derived documents keep the registry verdict (DERIVED / STALE with stale sources). Document readiness per stage (decision, development, work-order, staging) is NEEDS_INPUT when a required document is MISSING.",
+    "Context Pack rebuild (CP-nnn, context-pack/v1 shape extended): sources with path / version / content hash / status, missing list with readiness impact, readiness by stage, decision refs (repository DRs + ledger DECs), limitations, baseline and topology lineage, source_snapshot_hash and pack_hash. PARTIAL while any declared source is missing; nothing is synthesized. Live context = latest pack status, STALE when sources or the baseline moved after generation.",
+    "Change ledger integration: change.RegistrySource overlays the baseline (live document set, live context status, document readiness for decisions). A missing decision document makes a new Change NEEDS_INPUT with owner project_owner; the decision snapshot hash binds the declared set, so declaring a new required document after a decision marks it STALE by design.",
+    "HTTP: GET/POST /documents, POST /documents/withdraw, POST /context-pack/rebuild, GET /context-pack/{pack}; /healthz reports documents: baseline-versioned.",
+    "Frontend: Documents / AI Context panel replaces the read-only list — readiness per stage, declared documents with version / hash / status, declare form, withdraw with reason, rebuild form, pack card with missing list, sources, readiness, decision refs, limitations, audit."
+  ],
+  "cost_assumptions": [
+    "No cloud resources; JSON state only."
+  ],
+  "unknowns": [
+    "Declaring a required document is the only way to demonstrate a gap without mutating fixtures; a real consumer repository would show gaps by simply lacking files the manifest declares.",
+    "Firestore persistence and actor verification remain the caveats of DR-005…DR-009."
+  ],
+  "acceptance_criteria": [
+    "UI-20: declaring a missing document marks decision and staging NEEDS_INPUT naming the file, development stays READY; the rebuilt pack is PARTIAL, lists the missing source with the stages it blocks, shows path / version / content hash for present sources and the audit trail; a new Change reports decision_documents as a missing input naming the file; withdrawing restores READY and a rebuild is DERIVED; the consumer tree is byte-identical.",
+    "The consumer's own docs/ai/context-pack.json status (e.g. STALE with stale sources) stays visible as declared context."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "297a641",
+  "source_refs": [
+    "docs/design/CONTEXT_RAIL_UI_FLOW_STATE_CONTRACT.zh-TW.md#5-ui-驗證案例",
+    "roadmap.md#7-definition-of-done-for-the-prototype",
+    "vision.md",
+    "demo/order-operations-portal/docs/ai/context-pack.json",
+    "decisions/DR-009-prod-demo-promotion.json"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-010/README.md"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T00:00:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Owner chose to build every non-GCP slice now (\"都做\"). Accepts local development/testing of the document baseline and Context Pack rebuild; no consumer mutation."
+  }
+}

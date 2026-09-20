@@ -1,0 +1,28 @@
+# consumer fixture trees before/after two full browser runs (declaring docs/operations/runbook.md never created it)
+demo/order-operations-portal before=ab1315e34f003107ca9ed69af86a8a6936654aff05319692771c1c222b1ab116 after=ab1315e34f003107ca9ed69af86a8a6936654aff05319692771c1c222b1ab116 IDENTICAL
+examples/support-insights   before=4a150f3aaebf78ef9cdad567590c524c56c914e8d48a2295f132e5082a1933e8 after=4a150f3aaebf78ef9cdad567590c524c56c914e8d48a2295f132e5082a1933e8 IDENTICAL
+
+# document baseline after the runs
+baseline v5 live=DERIVED declared=DERIVED packs=CP-001,CP-002,CP-003,CP-004
+  v1 BOOTSTRAP  - baseline imported from project.yaml
+  v2 DECLARE docs/operations/runbook.md - staging needs an operations runbook
+  v3 WITHDRAW docs/operations/runbook.md - runbook deferred to P1
+  v4 DECLARE docs/operations/runbook.md - staging needs an operations runbook
+  v5 WITHDRAW docs/operations/runbook.md - runbook deferred to P1
+ readiness: {'decision': 'READY', 'development': 'READY', 'staging': 'READY', 'work-order': 'READY'}
+ latest pack: CP-004 DERIVED missing=0 drift=False
+
+# state dir (only governance state is written)
+state-ui20d:
+order-operations-portal
+support-insights
+
+state-ui20d/order-operations-portal:
+changes.json
+documents.json
+releases.json
+topology.json
+
+state-ui20d/support-insights:
+documents.json
+topology.json

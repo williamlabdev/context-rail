@@ -7,14 +7,17 @@ import { errorWorkspaceState, loadingWorkspaceState, projectsWorkspaceState, typ
 import { useTopology } from "./state/useTopology";
 import { useChanges } from "./state/useChanges";
 import { useReleases } from "./state/useReleases";
+import { useDocuments } from "./state/useDocuments";
 
 export function App() {
   const [registryState, setRegistryState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
   const [selectedProjectID, setSelectedProjectID] = useState<string | null>(null);
   const [detailState, setDetailState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
   const topology = useTopology(selectedProjectID);
-  // Reload the ledger whenever the topology version moves so STALE verdicts appear.
-  const changes = useChanges(selectedProjectID, topology.state?.current_version ?? null);
+  const documents = useDocuments(selectedProjectID);
+  // Reload the ledger whenever the topology version or the document baseline
+  // moves so STALE verdicts and NEEDS_INPUT document gaps appear.
+  const changes = useChanges(selectedProjectID, `${topology.state?.current_version ?? ""}:${documents.view?.current_version ?? ""}:${documents.view?.latest_pack?.pack_id ?? ""}:${documents.view?.live_context_status ?? ""}`);
   // Releases depend on both the topology (drift) and the change ledger (accepted candidates).
   const releases = useReleases(selectedProjectID, `${topology.state?.current_version ?? ""}:${changes.changes.map((view) => `${view.change.change_id}@${view.change.updated_at}`).join(",")}`);
 
@@ -60,6 +63,7 @@ export function App() {
           <span className="read-only-chip chip-versioned">TOPOLOGY VERSIONED</span>
           <span className="read-only-chip chip-ledger">CHANGES GOVERNED</span>
           <span className="read-only-chip chip-release">PROMOTION GATED</span>
+          <span className="read-only-chip chip-versioned">DOCUMENTS BASELINED</span>
         </div>
       </header>
       <div className="workspace-layout">
@@ -68,7 +72,7 @@ export function App() {
         ) : (
           <WorkspaceState state={registryState} title="Project Registry" />
         )}
-        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} changes={changes} releases={releases} /> : <WorkspaceState state={detailState} title="Project context" />}
+        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} changes={changes} releases={releases} documents={documents} /> : <WorkspaceState state={detailState} title="Project context" />}
       </div>
     </div>
   );

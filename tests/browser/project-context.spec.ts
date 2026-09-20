@@ -14,7 +14,8 @@ test.describe("Project Registry read-only workspace", () => {
     await expect(page.getByTestId("project-context-page")).toContainText("Support Insights");
     await expect(page.getByTestId("project-context-page")).toContainText("Context STALE");
     await expect(page.getByTestId("project-context-page")).toContainText("UNDECLARED");
-    await expect(page.getByTestId("document-docs/ai/context-pack.json")).toContainText("STALE");
+    await expect(page.getByTestId("documents-docs/ai/context-pack.json")).toContainText("STALE");
+    await expect(page.getByTestId("documents-docs/ai/context-pack.json")).toContainText("stale: README.md");
 
     // Browsing never mutates: only GET requests until an operator acts on the
     // versioned topology panel (covered by environment-topology.spec.ts).

@@ -10,12 +10,27 @@ import (
 // version 1 from the manifest; that is the only side effect, and it never
 // touches the consumer Project.
 type RegistrySource struct {
-	roots    []string
-	topology *topology.Service
+	roots     []string
+	topology  *topology.Service
+	documents DocumentOverlay
+}
+
+// DocumentOverlay is the governed document baseline (UI-20): the live
+// declared document set, the live context status (rebuilt Context Pack) and
+// the document readiness for decisions. found=false leaves the registry
+// facts untouched.
+type DocumentOverlay interface {
+	DocumentFacts(projectID string) (documents []DocumentFact, contextStatus string, decision ReadinessFact, found bool, err error)
 }
 
 func NewRegistrySource(roots []string, topologyService *topology.Service) *RegistrySource {
 	return &RegistrySource{roots: append([]string(nil), roots...), topology: topologyService}
+}
+
+// WithDocuments overlays the governed document baseline on the registry facts.
+func (source *RegistrySource) WithDocuments(overlay DocumentOverlay) *RegistrySource {
+	source.documents = overlay
+	return source
 }
 
 func (source *RegistrySource) Facts(projectID string) (*ProjectFacts, error) {
@@ -44,6 +59,23 @@ func (source *RegistrySource) Facts(projectID string) (*ProjectFacts, error) {
 				return nil, err
 			}
 			facts.Topology = state
+		}
+		if source.documents != nil {
+			documents, contextStatus, decision, found, err := source.documents.DocumentFacts(projectID)
+			if err != nil {
+				return nil, newError(CodeStateUnavailable, "document baseline unavailable: %v", err)
+			}
+			if found {
+				facts.Documents = documents
+				if contextStatus != "" {
+					facts.ContextStatus = contextStatus
+				}
+				if decision.Status != "" && decision.Status != "READY" {
+					reasons := append([]string{}, facts.DecisionInputs.Reasons...)
+					reasons = append(reasons, decision.Reasons...)
+					facts.DecisionInputs = ReadinessFact{Status: decision.Status, Reasons: reasons}
+				}
+			}
 		}
 		return facts, nil
 	}

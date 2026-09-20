@@ -144,6 +144,24 @@ func (service *Service) List(projectID string) ([]View, error) {
 	return views, nil
 }
 
+// AcceptedDecisionIDs lists the decision ids of every Change whose latest
+// decision is accepted, for Context Pack lineage (document.DecisionLister).
+func (service *Service) AcceptedDecisionIDs(projectID string) ([]string, error) {
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	state, _, err := service.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+	ids := []string{}
+	for index := range state.Changes {
+		if decision := latestDecision(&state.Changes[index]); decision != nil && decision.Status == "ACCEPTED_FOR_DEVELOPMENT" {
+			ids = append(ids, decision.DecisionID)
+		}
+	}
+	return ids, nil
+}
+
 // Get returns one Change with its rendered artifacts.
 func (service *Service) Get(projectID, changeID string) (*View, error) {
 	service.mu.Lock()

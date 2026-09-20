@@ -243,3 +243,30 @@ func fileHash(path string) (string, error) {
 	}
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
+
+// DeclaredDocument is one document as the Project manifest declares it,
+// including the readiness stages it is required for. It is read-only input
+// for the governed document baseline (UI-20); the registry never edits it.
+type DeclaredDocument struct {
+	Path          string   `json:"path"`
+	Kind          string   `json:"kind"`
+	SourceOfTruth bool     `json:"source_of_truth"`
+	RequiredFor   []string `json:"required_for"`
+	DeclaredState string   `json:"declared_state,omitempty"`
+}
+
+// DeclaredDocuments reads the document declarations of the manifest at root.
+func DeclaredDocuments(root string) ([]DeclaredDocument, error) {
+	value, err := readManifest(root)
+	if err != nil {
+		return nil, err
+	}
+	documents := make([]DeclaredDocument, 0, len(value.Spec.Documents))
+	for _, document := range value.Spec.Documents {
+		documents = append(documents, DeclaredDocument{
+			Path: document.Path, Kind: document.Kind, SourceOfTruth: sourceOfTruth(document),
+			RequiredFor: append([]string{}, document.RequiredFor...), DeclaredState: document.Status,
+		})
+	}
+	return documents, nil
+}
