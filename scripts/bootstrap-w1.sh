@@ -13,7 +13,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BRANCH="${BRANCH:-feat/vs-007-prod-demo}"
+BRANCH="${BRANCH:-docs/w4-submission-prep}"
 REPO_NAME="${REPO_NAME:-context-rail}"
 PROJECT_ID="${1:-}"
 REGION="${REGION:-asia-east1}"
@@ -55,7 +55,7 @@ else
     echo "created private repo ${OWNER}/${REPO_NAME}"
   fi
 fi
-git push -u origin develop feat/cloud-run-baseline feat/vs-003-topology feat/vs-004-decision-pack feat/vs-005-candidate-gate feat/vs-006-promotion feat/vs-007-prod-demo 2>&1 | tail -6
+git push -u origin develop feat/cloud-run-baseline feat/vs-003-topology feat/vs-004-decision-pack feat/vs-005-candidate-gate feat/vs-006-promotion feat/vs-007-prod-demo feat/ui-20-context-pack feat/ui-15-19-locale docs/w4-submission-prep 2>&1 | tail -6
 git push origin codex/001-manual-order-review 2>/dev/null || true
 echo "remote: $(git remote get-url origin)  (private — switch to public only at submission time)"
 
