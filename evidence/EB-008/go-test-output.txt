@@ -1,0 +1,34 @@
+$ go vet ./...
+$ go test ./... -count=1
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/change	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+?   	context-rail/internal/release	[no test files]
+?   	context-rail/internal/topology	[no test files]
+ok  	context-rail/tests/change	0.016s
+ok  	context-rail/tests/http	0.314s
+ok  	context-rail/tests/registry	0.014s
+ok  	context-rail/tests/release	0.042s
+ok  	context-rail/tests/topology	0.023s
+$ go test ./tests/release ./tests/http -run 'Promotion|Bundle|Drift|Digest|Approver|ReleaseValidation|Deployment' -v -count=1
+=== RUN   TestNormalPromotionProducesReceiptWithFullLineage
+--- PASS: TestNormalPromotionProducesReceiptWithFullLineage (0.01s)
+=== RUN   TestBundleWithOneFailingChangeIsBlockedAsAWhole
+--- PASS: TestBundleWithOneFailingChangeIsBlockedAsAWhole (0.02s)
+=== RUN   TestTargetConfigDriftAfterApprovalMakesApprovalStaleAndBlocksPromotion
+--- PASS: TestTargetConfigDriftAfterApprovalMakesApprovalStaleAndBlocksPromotion (0.01s)
+=== RUN   TestDigestDriftAndFailedSmokeBlockPromotion
+--- PASS: TestDigestDriftAndFailedSmokeBlockPromotion (0.01s)
+=== RUN   TestApproverSeparation
+--- PASS: TestApproverSeparation (0.01s)
+=== RUN   TestReleaseValidation
+--- PASS: TestReleaseValidation (0.00s)
+=== RUN   TestDeploymentWithoutObservedDigestDoesNotPromote
+--- PASS: TestDeploymentWithoutObservedDigestDoesNotPromote (0.00s)
+PASS
+ok  	context-rail/tests/release	0.053s
+=== RUN   TestPromotionJourneyOverHTTP
+--- PASS: TestPromotionJourneyOverHTTP (0.08s)
+PASS
+ok  	context-rail/tests/http	0.089s

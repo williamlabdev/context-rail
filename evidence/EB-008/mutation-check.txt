@@ -1,0 +1,8 @@
+consumer fixture trees before: d03e31a8514c661c
+consumer fixture trees after:  d03e31a8514c661c
+RESULT: PASS — no consumer source mutation
+
+release: REL-001 GATE_BLOCKED changes: ['CHG-003', 'CHG-004'] approval: None attempts: [] receipt: None
+release: REL-002 PROMOTED changes: ['CHG-003'] approval: APPROVED attempts: [('REL-002-D01', 'PROMOTED')] receipt: RR-001
+release: REL-003 APPROVED changes: ['CHG-003'] approval: APPROVED attempts: [] receipt: None
+audit: ['release.create', 'release.create', 'release.build', 'release.approved', 'release.deployment', 'release.create', 'release.build', 'release.approved']

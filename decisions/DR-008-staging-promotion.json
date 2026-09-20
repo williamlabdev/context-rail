@@ -1,0 +1,97 @@
+{
+  "decision_id": "DR-008",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "manifest_bound_approval_with_observed_deployment_verification",
+  "alternatives": [
+    {
+      "id": "context_rail_runs_the_deploy_itself",
+      "status": "deferred",
+      "reason": "P0 verifies what was deployed rather than owning the deploy; the operator (or a later Cloud Run adapter) deploys and records the observation with an idempotency key. This keeps the control plane out of the cloud credential path for the prototype."
+    },
+    {
+      "id": "same_digest_is_sufficient",
+      "status": "rejected",
+      "reason": "Architecture §Release: digest equality is necessary, not sufficient — target, configuration, approval binding, revision and smoke are verified separately."
+    },
+    {
+      "id": "per_change_promotion_only",
+      "status": "rejected",
+      "reason": "Roadmap DoD 8 requires a Release Bundle; the bundle gate evaluates every Change and blocks the whole release with per-Change reasons (UI-13)."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "cmd/context-rail/",
+      "internal/release/",
+      "internal/http/",
+      "frontend/src/",
+      "tests/release/",
+      "tests/http/",
+      "tests/browser/",
+      "scripts/record-promotion.sh",
+      "docs/operations/",
+      "evidence/EB-008/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "internal/projectregistry/",
+      "demo/",
+      "examples/",
+      "cloud-deployment-execution",
+      "production-targets",
+      "auth-and-membership",
+      "secrets"
+    ]
+  },
+  "architecture_impact": [
+    "Adds internal/release: a Release bundles one or more Changes; the manifest carries per-Change lineage (decision, work order + hash, accepted candidate, run starter, head commit, review gate), the bound EnvironmentConfig (target_ref, required evidence, approver policy, topology version, config hash), the build evidence (image digest, source commit, included commits) and a manifest hash.",
+    "Bundle gate: every Change needs an accepted decision that is not stale, an issued Work Order, an ACCEPTED_FOR_PROMOTION candidate and the same target; the environment must be ACTIVE and not production. One failing Change blocks the whole release (no partial promotion).",
+    "Build evidence must be a sha256 digest built from a commit set covering every accepted candidate head commit; a new build after approval drops the approval.",
+    "Third human approval binds the manifest hash with a 72h expiry; approver separation refuses the run starter unless the target policy lists single-operator-controls (waiver recorded). Candidate lineage changes after approval mark it STALE.",
+    "Deployment record: every gate must PASS — approval valid and bound, digest equal, target equal, config hash equal when supplied, revision observed, smoke PASS; environment config drift after approval marks the approval STALE (UI-14). Missing evidence never promotes.",
+    "Idempotency: the same idempotency_key replays the existing result without a new attempt or receipt; a second promotion of a PROMOTED release is refused.",
+    "Release Receipt (release-receipt/v1) links transition, environment config, per-Change lineage, build, approval, deployment, smoke and evidence refs with a receipt hash. scripts/record-promotion.sh reads the live Cloud Run revision with gcloud and posts the record."
+  ],
+  "cost_assumptions": [
+    "No cloud resources in this slice; the record script uses the operator's gcloud."
+  ],
+  "unknowns": [
+    "No real Cloud Run deployment has been recorded yet; every deployment in evidence is a declared fixture. scripts/record-promotion.sh is UNVERIFIED against gcloud output.",
+    "An isolated prod-demo promotion (same digest, second service) is not modelled separately; it would be a second release targeting a prod-demo environment once such an environment exists in the topology.",
+    "Cloud Run revision read-back inside the service (REST) is not implemented; the operator script is the read-back path in P0.",
+    "Same persistence and actor caveats as DR-005/006/007."
+  ],
+  "acceptance_criteria": [
+    "UI-12: a normal candidate is promoted with commit, digest, target, config hash, smoke and revision re-readable in the receipt.",
+    "UI-13: a bundle of two Changes with one lacking an accepted candidate is GATE_BLOCKED as a whole with per-Change reasons; approval is unavailable.",
+    "UI-14: a target configuration change after approval marks the release and approval STALE and blocks deployment recording.",
+    "Digest drift, failed smoke, missing digest, wrong build commit, expired or unbound approval each fail promotion; the same idempotency key replays; double promotion is refused.",
+    "Consumer fixtures byte-identical after the browser journey."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "02e695d",
+  "source_refs": [
+    "roadmap.md#week-4",
+    "roadmap.md#7-definition-of-done-for-the-prototype",
+    "architecture.md",
+    "docs/design/CONTEXT_RAIL_UI_FLOW_STATE_CONTRACT.zh-TW.md#5-ui-驗證案例",
+    "docs/examples/RELEASE_RECEIPT_HERO.example.json",
+    "demo/order-operations-portal/evidence/EB-001/README.md",
+    "decisions/DR-007-candidate-gate.json"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-008/README.md"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-20T13:00:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Owner instructed to build VS-006 next (\"你先做vs6好了\"). Accepts local development/testing of the promotion gate and receipt; no deployment execution or production authorization."
+  }
+}
