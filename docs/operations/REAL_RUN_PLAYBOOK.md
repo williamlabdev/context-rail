@@ -15,7 +15,7 @@ Go 1.22+, Node 22, `gh` logged in as `williamlabdev`, Claude Code. The fixture c
 git clone https://github.com/williamlabdev/order-operations-portal.git ~/dev/source/projects/order-operations-portal
 ```
 
-Check once that GitHub Actions is enabled for the repository (Actions tab of `order-operations-portal`). If the tab shows a verification or billing notice, resolve it first; without check runs the gate still works with a declared `test`/`build` result, but the evidence is then declared, not observed.
+**CI status (2026-09-21):** GitHub Actions is enabled on the repository, but jobs on a private repository do not start until the account's billing / spending limit is settled (the first run failed with *"recent account payments have failed or your spending limit needs to be increased"*). Decision: run without CI for now — the `ci` workflow is **disabled** (`gh workflow disable ci`) so that no failed check runs are attached to the PR, and `test` / `build` are **declared** in the candidate form with a local evidence ref. The read-back still observes the diff, the head commit, the PR and its reviews. To turn CI back on later (billing fixed, or the repository made public — public repositories do not need billing): `gh workflow enable ci --repo williamlabdev/order-operations-portal`, then re-run the read-back; observed check runs replace the declared ones.
 
 ## 1. Run ContextRail against the real Project
 
@@ -74,10 +74,11 @@ In ContextRail → the Change → **Submit candidate**:
 
 - Run id `ARR-002`, started by `<your GitHub login>`, agent `claude-code`, model as reported by Claude Code.
 - Branch = the PR branch, base `main`, repository `github.com/williamlabdev/order-operations-portal`.
-- Tick **Read back branch, diff, checks and reviews from GitHub**. Leave changed paths / head commit / checks as declared placeholders — the read-back replaces them with what GitHub returns (compare diff, PR reviews, check runs).
+- Tick **Read back branch, diff, checks and reviews from GitHub**. Leave changed paths / head commit as declared placeholders — the read-back replaces them with what GitHub returns (compare diff, PR reviews, check runs when CI is on).
+- Checks: while CI is off, declare them from the local run, one per line, with an evidence ref: `test=PASS=runs/ARR-002-order-exception-evidence-links.json` and `build=PASS=runs/ARR-002-order-exception-evidence-links.json` (the run record holds the exact command output). Declared checks the provider did not see are kept and marked `declared` in the gate table.
 - If there is no independent reviewer: tick **Single-operator controls documented** with an evidence ref (e.g. the PR URL plus `docs/governance/policies.md#single-operator`).
 
-Expected: `commit_observed`, `branch_matches`, `allowed_paths` (all changed paths within the four allowed entries), `required_checks` PASS from the GitHub check runs, `independent_review` PASS or WAIVED → verdict **CANDIDATE_ACCEPTABLE**. Then **Accept candidate for promotion** as `founder-001`.
+Expected: `commit_observed`, `branch_matches`, `allowed_paths` (all changed paths within the four allowed entries), `required_checks` PASS (declared while CI is off; observed once it is on), `independent_review` PASS or WAIVED → verdict **CANDIDATE_ACCEPTABLE**. Then **Accept candidate for promotion** as `founder-001`.
 
 If the diff touched a file outside `allowed_paths`, the verdict is **BLOCKED** with the path named — that is the real UI-10 evidence; fix the branch and resubmit (`Submit another candidate`).
 
