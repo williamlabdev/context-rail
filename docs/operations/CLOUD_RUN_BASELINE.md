@@ -12,7 +12,8 @@ What the deployed service is:
 - the built React workspace served from `/` (single-page fallback for client routes);
 - a liveness endpoint at `/healthz` that reports process liveness only;
 - two governed Project fixtures baked into the image: `demo/order-operations-portal` and `examples/support-insights`;
-- the versioned Environment Topology API under `/v1/projects/{id}/environments` (VS-003): add, edit, reorder, retire and restore, each as a new immutable version with audit and STALE invalidation of dependent decisions.
+- the versioned Environment Topology API under `/v1/projects/{id}/environments` (VS-003): add, edit, reorder, retire and restore, each as a new immutable version with audit and STALE invalidation of dependent decisions;
+- the Change Decision Pack API under `/v1/projects/{id}/changes` (VS-004): open a Change, get NEEDS_INPUT or DECISION_READY, record a human decision, read the Brief and Agent Context Pack rendered from it, compile a hashed Work Order.
 
 What it is **not**: it has no durable persistence (topology state lives in the instance's `/tmp`), no authentication (the `X-ContextRail-Actor` header is recorded, not verified), no Gemini/Firestore/Storage integration, no production service and no IAM beyond an unauthenticated demo endpoint. Deploying it does not change any Project's readiness or authorization state.
 
@@ -26,7 +27,9 @@ The binary honours the [Cloud Run container contract](https://cloud.google.com/r
 | `CONTEXT_RAIL_FIXTURE_ROOTS` | Comma-separated explicit Project roots (no filesystem scan) | both fixtures under `/app/fixtures` |
 | `CONTEXT_RAIL_STATIC_DIR` | Built workspace directory | `/app/static` |
 | `CONTEXT_RAIL_FIXTURE_SCENARIO` | `normal`, `empty`, `invalid`, `unavailable` — verification scenarios only | `normal` |
-| `CONTEXT_RAIL_STATE_DIR` | Governance state (versioned environment topology) as JSON files | `/tmp/context-rail-state` — instance-local, **not durable**; lost on redeploy or scale-to-zero |
+| `CONTEXT_RAIL_STATE_DIR` | Governance state (topology versions, change ledger) as JSON files | `/tmp/context-rail-state` — instance-local, **not durable**; lost on redeploy or scale-to-zero |
+| `GEMINI_API_KEY` | Optional. Enables the Gemini decision advisor (candidates only; falls back to the rule advisor on error). Set it as a Cloud Run secret/env, never in the image | unset → rule advisor |
+| `CONTEXT_RAIL_GEMINI_MODEL` | Gemini model id for the advisor | `gemini-2.0-flash` |
 
 `SIGTERM` triggers a graceful shutdown with a 10 s drain, which is what Cloud Run sends before stopping an instance.
 
@@ -48,7 +51,7 @@ scripts/deploy-cloud-run.sh --smoke https://context-rail-staging-<hash>-<region>
 
 ## Smoke check (what counts as PASS)
 
-1. `GET /healthz` returns `{"status":"ok","mode":"container","surfaces":{"registry":"read-only","topology":"versioned-writes"}}`.
+1. `GET /healthz` returns `{"status":"ok","mode":"container","surfaces":{"registry":"read-only","topology":"versioned-writes","changes":"governed-ledger"}}`.
 2. `GET /v1/projects` lists both fixture Projects (`order-operations-portal`, `support-insights`).
 3. `GET /` returns the workspace HTML (HTTP 200).
 4. `POST /v1/projects` returns HTTP 405 — the read-only boundary holds in the cloud exactly as it does locally.

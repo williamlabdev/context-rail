@@ -119,3 +119,39 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .status-active { border-color: #3f8a5f; color: #9ee0b4; }
 .status-blocked { border-color: #9b4a4a; color: #f0a3a3; }
 .status-versioned { border-color: #6b5b95; color: #c9b8f0; }
+
+/* --- Change decision pack (VS-004) --- */
+.chip-ledger { border-color: #3f8a5f; color: #9ee0b4; }
+.changes-layout { display: grid; gap: 18px; grid-template-columns: minmax(200px, 0.6fr) minmax(0, 2fr); }
+.changes-list { display: grid; gap: 9px; align-content: start; }
+.changes-detail { min-width: 0; }
+.project-card-selected { border-color: #4a7fb3; background: #1c2a3c; }
+.change-detail { display: grid; gap: 14px; }
+.change-evaluation { font-size: 0.82rem; }
+.change-missing { padding: 14px; }
+.change-missing table { margin-top: 10px; }
+.span-2 { grid-column: span 2; }
+.topology-form textarea { background: #0f1621; border: 1px solid #33465d; border-radius: 6px; color: #e8edf5; font: inherit; font-size: 0.85rem; padding: 7px 9px; resize: vertical; }
+.option-list { border: 1px solid #2c3a4e; border-radius: 10px; display: grid; gap: 8px; padding: 12px; }
+.option-list legend { color: #7f9fc9; font-size: 0.68rem; font-weight: 750; letter-spacing: 0.1em; padding: 0 6px; }
+.option-card { border: 1px solid #2c3a4e; border-radius: 8px; cursor: pointer; display: grid; gap: 4px; grid-template-columns: auto 1fr; padding: 10px; font-size: 0.8rem; }
+.option-card > input { grid-row: span 3; margin-top: 3px; }
+.option-selected { border-color: #4a7fb3; background: #1c2a3c; }
+.option-title { font-weight: 650; }
+.option-summary { color: #b6c1cf; }
+.decision-card { background: #182230; border: 1px solid #2c3a4e; border-radius: 10px; display: grid; gap: 6px; padding: 14px; }
+.lineage-strip { color: #9caabd; font-size: 0.74rem; margin: 0; }
+.dual-view { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dual-pane { background: #121a26; border: 1px solid #2c3a4e; border-radius: 10px; display: grid; gap: 8px; padding: 14px; align-content: start; }
+.dual-pane h3 { font-size: 0.95rem; margin: 4px 0; }
+.brief-section h4 { color: #8ba9cd; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; margin: 8px 0 4px; }
+.brief-section ul { color: #cbd5e1; font-size: 0.8rem; margin: 0 0 0 18px; }
+.json-view { background: #0f1621; border: 1px solid #33465d; border-radius: 6px; color: #cbd5e1; font-size: 0.7rem; max-height: 360px; overflow: auto; padding: 10px; }
+.status-needs-input { border-color: #b9773c; color: #f0c48a; }
+.status-decision-ready { border-color: #4b6a8c; color: #9cc8f5; }
+.status-accepted, .status-accepted-for-development, .status-issued { border-color: #3f8a5f; color: #9ee0b4; }
+.status-rejected { border-color: #9b4a4a; color: #f0a3a3; }
+.status-recommended { border-color: #6b5b95; color: #c9b8f0; margin-left: 6px; }
+@media (max-width: 900px) { .changes-layout, .dual-view { grid-template-columns: 1fr; } .span-2 { grid-column: span 1; } }
+.dual-pane, .dual-pane * { min-width: 0; overflow-wrap: anywhere; }
+.decision-card code, .lineage-strip code { overflow-wrap: anywhere; }

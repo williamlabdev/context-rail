@@ -5,12 +5,15 @@ import { ProjectRegistry } from "./components/ProjectRegistry";
 import { WorkspaceState } from "./components/WorkspaceState";
 import { errorWorkspaceState, loadingWorkspaceState, projectsWorkspaceState, type WorkspaceState as WorkspaceStateValue } from "./state/workspaceState";
 import { useTopology } from "./state/useTopology";
+import { useChanges } from "./state/useChanges";
 
 export function App() {
   const [registryState, setRegistryState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
   const [selectedProjectID, setSelectedProjectID] = useState<string | null>(null);
   const [detailState, setDetailState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
   const topology = useTopology(selectedProjectID);
+  // Reload the ledger whenever the topology version moves so STALE verdicts appear.
+  const changes = useChanges(selectedProjectID, topology.state?.current_version ?? null);
 
   useEffect(() => {
     let active = true;
@@ -52,6 +55,7 @@ export function App() {
         <div className="header-chips">
           <span className="read-only-chip">REGISTRY READ-ONLY</span>
           <span className="read-only-chip chip-versioned">TOPOLOGY VERSIONED</span>
+          <span className="read-only-chip chip-ledger">CHANGES GOVERNED</span>
         </div>
       </header>
       <div className="workspace-layout">
@@ -60,7 +64,7 @@ export function App() {
         ) : (
           <WorkspaceState state={registryState} title="Project Registry" />
         )}
-        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} /> : <WorkspaceState state={detailState} title="Project context" />}
+        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} changes={changes} /> : <WorkspaceState state={detailState} title="Project context" />}
       </div>
     </div>
   );

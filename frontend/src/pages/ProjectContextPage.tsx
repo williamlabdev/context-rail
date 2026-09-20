@@ -1,15 +1,19 @@
 import type { ProjectEntry } from "../api/projectRegistry";
-import { staleDecisions } from "../api/topology";
+import { currentVersion as currentTopologyVersion, staleDecisions } from "../api/topology";
+import { ChangesPanel } from "../components/ChangesPanel";
 import { DocumentStatusList } from "../components/DocumentStatusList";
 import { EnvironmentTopology } from "../components/EnvironmentTopology";
 import { ReadinessSummary } from "../components/ReadinessSummary";
 import { StatusBadge } from "../components/StatusBadge";
 import type { TopologyController } from "../state/useTopology";
+import type { ChangesController } from "../state/useChanges";
 
 interface ProjectContextPageProps {
   entry: ProjectEntry;
   /** Versioned topology controller; omitted in read-only/test renders. */
   topology?: TopologyController;
+  /** Change ledger controller; omitted in read-only/test renders. */
+  changes?: ChangesController;
 }
 
 function RelationshipList({ title, values, empty }: { title: string; values: string[]; empty: string }) {
@@ -21,8 +25,9 @@ function RelationshipList({ title, values, empty }: { title: string; values: str
   );
 }
 
-export function ProjectContextPage({ entry, topology }: ProjectContextPageProps) {
+export function ProjectContextPage({ entry, topology, changes }: ProjectContextPageProps) {
   const { project } = entry;
+  const topologyEnvironments = topology?.state ? currentTopologyVersion(topology.state)?.environments ?? [] : [];
   const stale = staleDecisions(topology?.state ?? null);
   const decisionLabels = (entry.decisions ?? []).map((value) => {
     const id = value.decision_id ?? "UNDECLARED";
@@ -62,6 +67,7 @@ export function ProjectContextPage({ entry, topology }: ProjectContextPageProps)
         </div>
       </section>
 
+      {changes && <ChangesPanel controller={changes} environments={topologyEnvironments} />}
       {topology && <EnvironmentTopology controller={topology} />}
       <DocumentStatusList documents={entry.documents ?? []} />
       <ReadinessSummary readiness={entry.readiness} />

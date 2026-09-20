@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"context-rail/internal/change"
 	registryhttp "context-rail/internal/http"
 	"context-rail/internal/projectregistry"
 	"context-rail/internal/topology"
@@ -27,7 +28,9 @@ const (
 	envFixtureRoots = "CONTEXT_RAIL_FIXTURE_ROOTS" // comma-separated Project roots
 	envStaticDir    = "CONTEXT_RAIL_STATIC_DIR"    // built workspace directory
 	envScenario     = "CONTEXT_RAIL_FIXTURE_SCENARIO"
-	envStateDir     = "CONTEXT_RAIL_STATE_DIR" // governance state (topology versions); JSON files in P0
+	envStateDir     = "CONTEXT_RAIL_STATE_DIR" // governance state (topology versions, change ledger); JSON files in P0
+	envGeminiKey    = "GEMINI_API_KEY"         // optional: enables the Gemini decision advisor (candidates only)
+	envGeminiModel  = "CONTEXT_RAIL_GEMINI_MODEL"
 )
 
 const shutdownGrace = 10 * time.Second
@@ -116,13 +119,28 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 	if os.Getenv(envPort) != "" {
 		mode = "container"
 	}
-	store, err := topology.NewFileStore(stateDir)
+	topologyStore, err := topology.NewFileStore(stateDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "CONTEXT RAIL BLOCKED: state directory unusable: %v\n", err)
 		os.Exit(2)
 	}
+	changeStore, err := change.NewFileStore(stateDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "CONTEXT RAIL BLOCKED: state directory unusable: %v\n", err)
+		os.Exit(2)
+	}
+	topologyService := topology.NewService(topologyStore, topology.NewRegistrySource(roots))
+	var advisor change.Advisor = change.RuleAdvisor{}
+	advisorName := "rule-advisor"
+	if key := os.Getenv(envGeminiKey); key != "" {
+		gemini := change.NewGeminiAdvisor(key, os.Getenv(envGeminiModel))
+		advisor = gemini
+		advisorName = gemini.Name() + " (falls back to rule-advisor on error)"
+	}
+	changeService := change.NewService(changeStore, change.NewRegistrySource(roots, topologyService), advisor)
 	mux := http.NewServeMux()
-	registryhttp.NewTopologyHandler(topology.NewService(store, topology.NewRegistrySource(roots))).Register(mux)
+	registryhttp.NewTopologyHandler(topologyService).Register(mux)
+	registryhttp.NewChangesHandler(changeService).Register(mux)
 	mux.Handle("/v1/", registryhttp.NewServerWithOptions(roots, options))
 	mux.Handle("/healthz", registryhttp.NewHealthHandler(mode))
 	mux.Handle("/", registryhttp.NewStaticHandler(staticDir))
@@ -141,8 +159,8 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 
 	errs := make(chan error, 1)
 	go func() {
-		fmt.Fprintf(os.Stderr, "ContextRail workspace listening on http://%s (mode=%s fixtures=%v static=%s state=%s scenario=%s delay_ms=%d)\n",
-			addr, mode, []string(roots), staticDir, stateDir, options.Scenario, options.Delay/time.Millisecond)
+		fmt.Fprintf(os.Stderr, "ContextRail workspace listening on http://%s (mode=%s fixtures=%v static=%s state=%s advisor=%s scenario=%s delay_ms=%d)\n",
+			addr, mode, []string(roots), staticDir, stateDir, advisorName, options.Scenario, options.Delay/time.Millisecond)
 		errs <- server.ListenAndServe()
 	}()
 
