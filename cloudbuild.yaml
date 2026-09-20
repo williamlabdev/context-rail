@@ -1,0 +1,65 @@
+# ContextRail — Cloud Build pipeline for the Cloud Run staging baseline.
+#
+# Builds the image from ./Dockerfile, pushes it to Artifact Registry and deploys
+# the digest (not a mutable tag) to the staging Cloud Run service. The deployed
+# digest is printed so it can be recorded as deployment evidence.
+#
+# Run manually:
+#   gcloud builds submit --config cloudbuild.yaml \
+#     --substitutions=_REGION=asia-east1,_SERVICE=context-rail-staging
+#
+substitutions:
+  _REGION: asia-east1
+  _AR_REPO: context-rail
+  _SERVICE: context-rail-staging
+  _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/context-rail
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag=${_IMAGE}:${SHORT_SHA}
+      - --tag=${_IMAGE}:latest
+      - --file=Dockerfile
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, --all-tags, "${_IMAGE}"]
+
+  - id: resolve-digest
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        DIGEST=$(gcloud artifacts docker images describe "${_IMAGE}:${SHORT_SHA}" --format='value(image_summary.digest)')
+        echo "${_IMAGE}@$${DIGEST}" > /workspace/image_ref.txt
+        echo "Resolved image digest: $$(cat /workspace/image_ref.txt)"
+
+  - id: deploy-staging
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        gcloud run deploy "${_SERVICE}" \
+          --image="$$(cat /workspace/image_ref.txt)" \
+          --region="${_REGION}" \
+          --platform=managed \
+          --port=8080 \
+          --allow-unauthenticated \
+          --min-instances=0 --max-instances=2 \
+          --memory=256Mi --cpu=1 \
+          --labels=context-rail-environment=staging,context-rail-commit=${SHORT_SHA}
+        gcloud run services describe "${_SERVICE}" --region="${_REGION}" \
+          --format='value(status.url,status.latestReadyRevisionName)'
+
+images:
+  - ${_IMAGE}:${SHORT_SHA}
+  - ${_IMAGE}:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1200s

@@ -1,0 +1,29 @@
+# Build context for Dockerfile. Patterns without "**" match at the context root
+# only, so the governed fixtures under demo/ and examples/ (which contain their
+# own docs/, tests/, scripts/ and *.md sources) are kept intact.
+.git
+.gitignore
+.agents
+.specify
+.stage
+**/.venv
+**/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+output
+tmp
+vendor
+docs
+evidence
+requests
+decisions
+work-orders
+runs
+specs
+scripts
+template
+tests
+*.md
+*.docx
+*.pdf
