@@ -14,9 +14,16 @@ export interface EnvironmentConfig {
 
 export interface BuildEvidence { image_digest: string; image_ref: string; build_id: string; source_commit: string; includes_commits: string[]; evidence_ref: string; observed_at: string }
 
+export interface PromotionSource {
+  source_release_id: string; source_receipt_id: string; source_receipt_hash: string; source_revision: string; source_service_url?: string;
+  source_environment: EnvironmentConfig;
+}
+export interface EnvironmentDeltaField { field: string; from: unknown; to: unknown }
+
 export interface Manifest {
   release_id: string; project_id: string; changes: ReleaseChange[]; transition: string; source_environment_id: string;
-  environment: EnvironmentConfig; build: BuildEvidence | null; policy_version: string; manifest_hash: string;
+  environment: EnvironmentConfig; build: BuildEvidence | null; promotion?: PromotionSource | null; environment_delta?: EnvironmentDeltaField[];
+  environment_delta_hash?: string; policy_version: string; manifest_hash: string;
 }
 
 export interface Approval { actor: string; role: string; at: string; decision: string; reason: string; manifest_hash: string; expires_at: string; waiver?: string }
@@ -29,7 +36,8 @@ export interface DeploymentRecord {
 export interface Receipt {
   kind: string; schema_version: string; receipt_id: string; release_id: string; project_id: string; status: string; transition: string;
   environment: EnvironmentConfig; changes: ReleaseChange[]; build: BuildEvidence; approval: Approval; deployment: DeploymentRecord;
-  manifest_hash: string; evidence_refs: string[]; issued_at: string; receipt_hash: string;
+  manifest_hash: string; evidence_refs: string[]; issued_at: string; promotion?: PromotionSource | null; environment_delta?: EnvironmentDeltaField[];
+  previous_receipt_id?: string; receipt_hash: string;
 }
 export interface Release {
   release_id: string; project_id: string; status: string; manifest: Manifest; gates: GateResult[]; verdict: string;
@@ -45,7 +53,7 @@ export class ReleaseRequestError extends Error {
   }
 }
 
-export interface CreateReleaseInput { reason: string; actor?: string; change_ids: string[]; target_environment_id: string }
+export interface CreateReleaseInput { reason: string; actor?: string; change_ids: string[]; target_environment_id: string; source_release_id?: string }
 export interface BuildInput { reason: string; actor?: string; image_digest: string; image_ref?: string; build_id?: string; source_commit: string; includes_commits?: string[]; evidence_ref?: string }
 export interface ApprovalInput { actor: string; role?: string; decision: "APPROVE" | "REJECT"; rationale: string }
 export interface DeploymentInput {

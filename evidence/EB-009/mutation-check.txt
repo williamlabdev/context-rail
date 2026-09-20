@@ -1,0 +1,27 @@
+# consumer fixture trees before/after two full browser runs
+demo/order-operations-portal before=ab1315e34f003107ca9ed69af86a8a6936654aff05319692771c1c222b1ab116 after=ab1315e34f003107ca9ed69af86a8a6936654aff05319692771c1c222b1ab116 IDENTICAL
+examples/support-insights   before=4a150f3aaebf78ef9cdad567590c524c56c914e8d48a2295f132e5082a1933e8 after=4a150f3aaebf78ef9cdad567590c524c56c914e8d48a2295f132e5082a1933e8 IDENTICAL
+
+# release ledger after the runs (CONTEXT_RAIL_STATE_DIR is the only thing written)
+REL-001 PROMOTED testing-to-staging - RR-001 prev=-
+REL-002 PROMOTED staging-to-prod-demo promotion of REL-001 / RR-001 RR-003 prev=RR-001
+REL-003 STALE staging-to-prod-demo promotion of REL-001 / RR-001 -
+REL-004 STALE testing-to-staging - -
+REL-005 PROMOTED testing-to-staging - RR-004 prev=-
+REL-006 STALE testing-to-staging - -
+REL-007 PROMOTED testing-to-staging - RR-005 prev=-
+REL-008 PROMOTED staging-to-prod-demo promotion of REL-007 / RR-005 RR-007 prev=RR-005
+REL-009 STALE staging-to-prod-demo promotion of REL-007 / RR-005 -
+REL-010 STALE testing-to-staging - -
+REL-011 PROMOTED testing-to-staging - RR-008 prev=-
+REL-012 STALE testing-to-staging - -
+
+# topology
+topology v16
+  1 development development ACTIVE local
+  2 testing testing ACTIVE ci
+  3 staging staging ACTIVE cloud-run/oop-staging-zfh0
+  4 uat-0z7um uat ACTIVE cloud-run/oop-uat-0z7um
+  5 prod-demo prod-demo ACTIVE cloud-run/order-operations-portal-prod-demo
+  6 uat-0yv7u uat ACTIVE cloud-run/oop-uat-0yv7u
+  7 production production ACTIVE protected/read-only

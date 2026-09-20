@@ -1,0 +1,8 @@
+# npm run typecheck && npm run build && npm test
+
+dist/index.html                   0.41 kB │ gzip:  0.28 kB
+dist/assets/index-DTIwmxuO.css   11.06 kB │ gzip:  3.01 kB
+dist/assets/index-vyfaG7iL.js   302.91 kB │ gzip: 86.12 kB
+✓ built in 167ms
+ Test Files  7 passed (7)
+      Tests  22 passed (22)

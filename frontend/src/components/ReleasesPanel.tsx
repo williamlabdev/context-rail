@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import type { ChangeView } from "../api/changes";
-import { newIdempotencyKey, type GateResult, type ReleaseView } from "../api/releases";
+import { newIdempotencyKey, type EnvironmentDeltaField, type GateResult, type ReleaseView } from "../api/releases";
 import type { TopologyEnvironment } from "../api/topology";
 import type { ReleasesController } from "../state/useReleases";
 import { StatusBadge } from "./StatusBadge";
@@ -81,17 +81,73 @@ function CreateReleaseForm({ changes, environments, busy, onCancel, onSubmit }: 
   );
 }
 
+// ---------------------------------------------------------------- promotion (VS-007)
+
+const show = (value: unknown): string => (Array.isArray(value) ? value.join(", ") : value === undefined || value === null || value === "" ? "∅" : String(value));
+
+function DeltaTable({ delta, from, to, testid }: { delta: EnvironmentDeltaField[]; from: string; to: string; testid: string }) {
+  if (delta.length === 0) return <p className="muted" data-testid={testid}>No configuration difference between {from} and {to}; only the target changes.</p>;
+  return (
+    <table className="topology-table" data-testid={testid}>
+      <thead><tr><th>Field</th><th>{from}</th><th>{to}</th></tr></thead>
+      <tbody>
+        {delta.map((field) => (
+          <tr key={field.field} data-testid={`${testid}-${field.field}`}>
+            <td><code>{field.field}</code></td>
+            <td>{show(field.from)}</td>
+            <td>{show(field.to)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** Environment types P0 executes releases against; every other node is verified by evidence gates only. */
+const executableTypes = new Set(["staging", "prod-demo"]);
+
+/** Next environments a PROMOTED release may be promoted to: after its target, active, executable (never production). */
+function promotionTargets(environments: TopologyEnvironment[], currentID: string): TopologyEnvironment[] {
+  const ordered = environments.slice().sort((a, b) => a.sequence - b.sequence);
+  const index = ordered.findIndex((environment) => environment.id === currentID);
+  if (index < 0) return [];
+  return ordered.slice(index + 1).filter((environment) => environment.status === "ACTIVE" && executableTypes.has(environment.type));
+}
+
+function PromoteForm({ view, environments, busy, onSubmit }: { view: ReleaseView; environments: TopologyEnvironment[]; busy: boolean; onSubmit: ReleasesController["create"] }) {
+  const { release } = view;
+  const targets = promotionTargets(environments, release.manifest.environment.environment_id);
+  const [target, setTarget] = useState(targets[0]?.id ?? "");
+  const [reason, setReason] = useState("");
+  if (targets.length === 0 || !release.receipt) return null;
+  return (
+    <form className="topology-form" data-testid="release-promote-form" onSubmit={(event) => { event.preventDefault(); void onSubmit({ reason: reason.trim(), change_ids: [], target_environment_id: target, source_release_id: release.release_id }); }}>
+      <p className="eyebrow">PROMOTE · same digest {release.manifest.build?.image_digest.slice(0, 19)} from {release.manifest.environment.environment_id} ({release.receipt.receipt_id}) to the next environment; the configuration delta is bound by a new approval</p>
+      <div className="topology-form-grid">
+        <label>Promotion target
+          <select name="promotion_target" value={target} onChange={(event) => setTarget(event.target.value)}>
+            {targets.map((environment) => <option key={environment.id} value={environment.id}>{environment.display_name} ({environment.type}) → {environment.target_ref}</option>)}
+          </select>
+        </label>
+        <label>Reason<input name="promotion_reason" value={reason} onChange={(event) => setReason(event.target.value)} required /></label>
+      </div>
+      <div className="topology-form-actions"><button type="submit" className="button-primary" disabled={busy}>Open promotion release</button></div>
+    </form>
+  );
+}
+
 // ---------------------------------------------------------------- detail
 
-function ReleaseDetail({ view, controller }: { view: ReleaseView; controller: ReleasesController }) {
+function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; controller: ReleasesController; environments: TopologyEnvironment[] }) {
   const { release, live_gates: liveGates, staleness } = view;
   const manifest = release.manifest;
+  const promotion = manifest.promotion ?? null;
   const [build, setBuild] = useState({ image_digest: "", image_ref: "", build_id: "", source_commit: manifest.changes[0]?.head_commit ?? "", includes_commits: manifest.changes.map((entry) => entry.head_commit).join("\n"), evidence_ref: "", reason: "" });
   const [approval, setApproval] = useState({ actor: "", role: "release_manager", rationale: "" });
   const [deploy, setDeploy] = useState({ idempotency_key: newIdempotencyKey(), operation_id: "", revision: "", service_url: "", deployed_digest: manifest.build?.image_digest ?? "", deployed_target_ref: manifest.environment.target_ref, smoke_status: "PASS", smoke_ref: "", reason: "" });
   const closed = release.status === "PROMOTED" || release.status === "REJECTED";
   const blocked = liveGates.some((gate) => gate.status === "BLOCKED" || gate.status === "STALE");
-  const canBuild = !closed;
+  const canBuild = !closed && promotion === null;
   const canApprove = !closed && !blocked && manifest.build !== null && !(release.approval?.decision === "APPROVED");
   const canDeploy = !closed && release.approval?.decision === "APPROVED" && !staleness.stale;
 
@@ -103,6 +159,17 @@ function ReleaseDetail({ view, controller }: { view: ReleaseView; controller: Re
         <span className="muted">{manifest.transition} · target <code>{manifest.environment.target_ref}</code> · topology v{manifest.environment.topology_version} · config <code title={manifest.environment.config_hash}>{manifest.environment.config_hash.slice(7, 19)}</code> · manifest <code title={manifest.manifest_hash}>{manifest.manifest_hash.slice(7, 19)}</code></span>
       </div>
       {staleness.stale && <div className="topology-inline-error" data-testid="release-stale" role="alert"><strong>STALE</strong> — {staleness.reason}</div>}
+
+      {promotion && (
+        <div className="decision-card" data-testid="release-promotion">
+          <p className="eyebrow">PROMOTION · same digest, new environment — digest equality is necessary, not sufficient</p>
+          <p className="topology-reason">
+            From <code>{promotion.source_release_id}</code> receipt <code>{promotion.source_receipt_id}</code> <span className="muted">({promotion.source_receipt_hash.slice(0, 19)})</span> · {promotion.source_environment.environment_id} revision <code>{promotion.source_revision || "∅"}</code> at <code>{promotion.source_environment.target_ref}</code> → {manifest.environment.environment_id} at <code>{manifest.environment.target_ref}</code>
+          </p>
+          <DeltaTable delta={manifest.environment_delta ?? []} from={promotion.source_environment.environment_id} to={manifest.environment.environment_id} testid="release-delta" />
+          {manifest.environment_delta_hash && <p className="muted">delta hash <code>{manifest.environment_delta_hash.slice(0, 26)}</code> is part of the manifest the approval binds.</p>}
+        </div>
+      )}
 
       <div className="decision-card">
         <p className="eyebrow">MANIFEST · changes in this release</p>
@@ -121,7 +188,7 @@ function ReleaseDetail({ view, controller }: { view: ReleaseView; controller: Re
             ))}
           </tbody>
         </table>
-        <p className="topology-reason"><span className="muted">build:</span> {manifest.build ? <>{manifest.build.image_digest} <span className="muted">from {manifest.build.source_commit} · {manifest.build.build_id || "no build id"} · {manifest.build.evidence_ref || "no evidence ref"}</span></> : <span className="reason">no image digest yet</span>}</p>
+        <p className="topology-reason"><span className="muted">build:</span> {manifest.build ? <>{manifest.build.image_digest} <span className="muted">from {manifest.build.source_commit} · {manifest.build.build_id || "no build id"} · {manifest.build.evidence_ref || "no evidence ref"}{promotion ? ` · inherited from ${promotion.source_release_id}, a promotion never rebuilds` : ""}</span></> : <span className="reason">no image digest yet</span>}</p>
       </div>
 
       <div>
@@ -219,9 +286,12 @@ function ReleaseDetail({ view, controller }: { view: ReleaseView; controller: Re
             <li>Image <code>{release.receipt.build.image_digest}</code> built from <code>{release.receipt.build.source_commit}</code></li>
             <li>Approved by {release.receipt.approval.actor} ({release.receipt.approval.role}) at {release.receipt.approval.at}</li>
             <li>Revision <code>{release.receipt.deployment.revision}</code> · {release.receipt.deployment.service_url || "no url"} · smoke {release.receipt.deployment.smoke?.status ?? "∅"} · operation {release.receipt.deployment.operation_id || "∅"}</li>
+            {release.receipt.previous_receipt_id && <li data-testid="receipt-chain">Promoted from receipt <code>{release.receipt.previous_receipt_id}</code> ({release.receipt.promotion?.source_environment.environment_id} revision <code>{release.receipt.promotion?.source_revision || "∅"}</code>) · {(release.receipt.environment_delta ?? []).length} configuration field(s) differed and were bound by the approval</li>}
           </ul>
         </div>
       )}
+
+      {release.status === "PROMOTED" && <PromoteForm view={view} environments={environments} busy={controller.busy} onSubmit={controller.create} />}
     </div>
   );
 }
@@ -235,10 +305,10 @@ export function ReleasesPanel({ controller, changes, environments }: ReleasesPan
     <section className="panel topology-panel" aria-labelledby="releases-heading" data-testid="releases-panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">STAGING PROMOTION</p>
+          <p className="eyebrow">PROMOTION · staging → prod-demo</p>
           <h2 id="releases-heading">Releases</h2>
         </div>
-        <span className="muted">Bundle → gate → build digest → third human approval → deployment record → receipt. Same digest is necessary, not sufficient.</span>
+        <span className="muted">Bundle → gate → build digest → third human approval → deployment record → receipt; then the same digest to prod-demo with the environment delta bound by a new approval. Same digest is necessary, not sufficient.</span>
       </div>
       {status === "LOADING" && <p className="muted" data-testid="releases-loading"><span className="spinner" aria-hidden="true" />Loading releases…</p>}
       {error && (
@@ -254,7 +324,7 @@ export function ReleasesPanel({ controller, changes, environments }: ReleasesPan
             {releases.map((view) => (
               <button type="button" key={view.release.release_id} className={`project-card${controller.selectedID === view.release.release_id ? " project-card-selected" : ""}`} data-testid={`release-card-${view.release.release_id}`} onClick={() => { setCreating(false); controller.select(view.release.release_id); }}>
                 <span className="project-card-title">{view.release.release_id}</span>
-                <span className="project-card-id">{view.release.manifest.changes.map((entry) => entry.change_id).join(" + ")} → {view.release.manifest.environment.environment_id}</span>
+                <span className="project-card-id">{view.release.manifest.changes.map((entry) => entry.change_id).join(" + ")} → {view.release.manifest.environment.environment_id}{view.release.manifest.promotion ? ` (from ${view.release.manifest.promotion.source_release_id})` : ""}</span>
                 <span className="project-card-meta"><StatusBadge status={view.release.status} />{view.release.receipt && <StatusBadge status={view.release.receipt.receipt_id} />}</span>
               </button>
             ))}
@@ -262,7 +332,7 @@ export function ReleasesPanel({ controller, changes, environments }: ReleasesPan
           </div>
           <div className="changes-detail">
             {creating && <CreateReleaseForm changes={changes} environments={environments} busy={busy} onCancel={() => setCreating(false)} onSubmit={controller.create} />}
-            {!creating && selected && <ReleaseDetail key={`${selected.release.release_id}-${selected.release.manifest.manifest_hash}-${selected.release.approval?.decision ?? ""}-${selected.release.deployments.length}`} view={selected} controller={controller} />}
+            {!creating && selected && <ReleaseDetail key={`${selected.release.release_id}-${selected.release.manifest.manifest_hash}-${selected.release.approval?.decision ?? ""}-${selected.release.deployments.length}`} view={selected} controller={controller} environments={environments} />}
             {!creating && !selected && releases.length > 0 && <p className="muted">Select a release.</p>}
           </div>
         </div>

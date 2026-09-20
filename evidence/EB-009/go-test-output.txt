@@ -1,0 +1,20 @@
+# go vet ./... && go test ./... (GOFLAGS=-mod=vendor, Go go1.24.7)
+vet: ok
+--- PASS: TestNormalPromotionProducesReceiptWithFullLineage (0.01s)
+--- PASS: TestBundleWithOneFailingChangeIsBlockedAsAWhole (0.01s)
+--- PASS: TestTargetConfigDriftAfterApprovalMakesApprovalStaleAndBlocksPromotion (0.01s)
+--- PASS: TestDigestDriftAndFailedSmokeBlockPromotion (0.00s)
+--- PASS: TestApproverSeparation (0.01s)
+--- PASS: TestReleaseValidation (0.00s)
+--- PASS: TestDeploymentWithoutObservedDigestDoesNotPromote (0.00s)
+--- PASS: TestPromotionToProdDemoChainsReceiptsAndBindsTheEnvironmentDelta (0.01s)
+--- PASS: TestPromotionGoesStaleWhenTheLedgerMovesAfterTheSourceReceipt (0.01s)
+--- PASS: TestReleasesExecuteOnlyForStagingAndProdDemo (0.00s)
+--- PASS: TestPromotionOrderSkipsEvidenceOnlyEnvironments (0.01s)
+PASS
+ok  	context-rail/tests/release	0.075s
+ok  	context-rail/tests/change	0.017s
+ok  	context-rail/tests/http	0.428s
+ok  	context-rail/tests/registry	0.019s
+ok  	context-rail/tests/release	0.082s
+ok  	context-rail/tests/topology	0.035s

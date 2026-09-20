@@ -95,18 +95,47 @@ type BuildEvidence struct {
 	ObservedAt      string   `json:"observed_at"`
 }
 
+// PromotionSource is set when a release promotes an already-promoted
+// release's image to the next environment (staging → prod-demo, VS-007).
+// The digest is inherited from the source receipt and cannot be rebuilt;
+// what the approver signs off is the environment delta.
+type PromotionSource struct {
+	SourceReleaseID   string            `json:"source_release_id"`
+	SourceReceiptID   string            `json:"source_receipt_id"`
+	SourceReceiptHash string            `json:"source_receipt_hash"`
+	SourceRevision    string            `json:"source_revision"`
+	SourceServiceURL  string            `json:"source_service_url,omitempty"`
+	SourceEnvironment EnvironmentConfig `json:"source_environment"`
+}
+
+// EnvironmentDeltaField is one configuration difference between the source
+// environment a receipt was issued for and the promotion target. Same digest
+// is not the same environment: the delta is listed and bound by the approval.
+type EnvironmentDeltaField struct {
+	Field string `json:"field"`
+	From  any    `json:"from"`
+	To    any    `json:"to"`
+}
+
 // Manifest is the release identity. Its hash is what the approval binds.
 type Manifest struct {
-	ReleaseID         string            `json:"release_id"`
-	ProjectID         string            `json:"project_id"`
-	Changes           []ReleaseChange   `json:"changes"`
-	Transition        string            `json:"transition"`
-	SourceEnvironment string            `json:"source_environment_id"`
-	Environment       EnvironmentConfig `json:"environment"`
-	Build             *BuildEvidence    `json:"build"`
-	PolicyVersion     string            `json:"policy_version"`
-	ManifestHash      string            `json:"manifest_hash"`
+	ReleaseID            string                  `json:"release_id"`
+	ProjectID            string                  `json:"project_id"`
+	Changes              []ReleaseChange         `json:"changes"`
+	Transition           string                  `json:"transition"`
+	SourceEnvironment    string                  `json:"source_environment_id"`
+	Environment          EnvironmentConfig       `json:"environment"`
+	Build                *BuildEvidence          `json:"build"`
+	Promotion            *PromotionSource        `json:"promotion,omitempty"`
+	EnvironmentDelta     []EnvironmentDeltaField `json:"environment_delta,omitempty"`
+	EnvironmentDeltaHash string                  `json:"environment_delta_hash,omitempty"`
+	PolicyVersion        string                  `json:"policy_version"`
+	ManifestHash         string                  `json:"manifest_hash"`
 }
+
+// IsPromotion reports whether the manifest inherits its digest from an
+// earlier receipt instead of a build of its own.
+func (manifest Manifest) IsPromotion() bool { return manifest.Promotion != nil }
 
 // Approval is the third human decision: approve this exact manifest for
 // this exact environment, for a bounded time.
@@ -164,7 +193,12 @@ type Receipt struct {
 	ManifestHash  string            `json:"manifest_hash"`
 	EvidenceRefs  []string          `json:"evidence_refs"`
 	IssuedAt      string            `json:"issued_at"`
-	ReceiptHash   string            `json:"receipt_hash"`
+	// Promotion chain (VS-007): the receipt this one was promoted from, the
+	// source environment and the configuration delta the approval bound.
+	Promotion         *PromotionSource        `json:"promotion,omitempty"`
+	EnvironmentDelta  []EnvironmentDeltaField `json:"environment_delta,omitempty"`
+	PreviousReceiptID string                  `json:"previous_receipt_id,omitempty"`
+	ReceiptHash       string                  `json:"receipt_hash"`
 }
 
 // Release is the ledger entry.

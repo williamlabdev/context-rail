@@ -1,0 +1,98 @@
+{
+  "decision_id": "DR-009",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "promotion_release_inherits_digest_and_binds_environment_delta",
+  "alternatives": [
+    {
+      "id": "reuse_staging_release_with_second_deployment",
+      "status": "rejected",
+      "reason": "A PROMOTED release is closed (ALREADY_PROMOTED). Re-opening it for a second target would let one approval cover two environments; the architecture requires a separate approval and separate config verification per environment."
+    },
+    {
+      "id": "digest_equality_is_the_promotion_proof",
+      "status": "rejected",
+      "reason": "Architecture §Release and plan v4.2 §Release: same digest is necessary, not sufficient — target, configuration hash, allowed environment delta, new revision and smoke are verified separately."
+    },
+    {
+      "id": "context_rail_deploys_prod_demo_itself",
+      "status": "deferred",
+      "reason": "Same boundary as DR-008: P0 verifies what the operator deployed (scripts/record-promotion.sh) and keeps the control plane out of the cloud credential path."
+    },
+    {
+      "id": "allow_promotion_to_any_environment",
+      "status": "rejected",
+      "reason": "P0 executes releases only for staging and an isolated prod-demo; development, testing, uat and other nodes are verified by evidence gates, production stays READ_ONLY/BLOCKED. Promotion must follow the topology order past evidence-only nodes."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "internal/release/",
+      "internal/topology/model.go",
+      "frontend/src/api/",
+      "frontend/src/components/ReleasesPanel.tsx",
+      "tests/release/",
+      "tests/browser/",
+      "scripts/record-promotion.sh",
+      "docs/operations/",
+      "evidence/EB-009/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "internal/projectregistry/",
+      "demo/",
+      "examples/",
+      "cloud-deployment-execution",
+      "production-targets",
+      "auth-and-membership",
+      "secrets"
+    ]
+  },
+  "architecture_impact": [
+    "Adds the standard environment type prod-demo (topology). Releases execute only for staging and prod-demo; a release targeting any other type is GATE_BLOCKED by the environment gate with the P0 boundary spelled out.",
+    "POST /releases with source_release_id opens a promotion release: change lineage is copied from the source manifest (frozen by its receipt), the build (digest) is inherited and cannot be re-recorded (BUILD_INHERITED_FROM_SOURCE), the manifest carries a promotion block (source release, receipt id + hash, source revision, source environment config) and the environment delta between source and target config with its own hash.",
+    "Pre-deploy gates for a promotion: source_release (PROMOTED, receipt hash intact, same digest, not already promoted to this target), promotion_order (target is the next executable node after the source; evidence-only nodes in between are skipped and named), environment_delta (PASS, lists the fields the approval binds), change (live ledger must equal the frozen lineage, otherwise STALE naming the receipt), build (inherited), target_config_drift.",
+    "Deployment gates add new_revision: the observed revision must not be the source revision nor land on the source target — Cloud Run revisions belong to one service, a promotion creates a new revision on the target.",
+    "The Release Receipt of a promotion carries promotion, environment_delta and previous_receipt_id (staging receipt → prod-demo receipt chain) and adds receipt:<previous> to evidence_refs; release-receipt/v1 stays additive.",
+    "Frontend: a PROMOTED release with an executable next environment offers 'Promote'; the promotion detail shows source receipt, revision and the delta table, hides the build form, and the receipt shows the chain. Topology forms offer the prod-demo type."
+  ],
+  "cost_assumptions": [
+    "No cloud resources in this slice. A real prod-demo promotion needs a second Cloud Run service (plan v4.2 budgets product + staging + prod-demo)."
+  ],
+  "unknowns": [
+    "No real prod-demo deployment has been recorded; every deployment in evidence is a declared fixture and scripts/record-promotion.sh remains UNVERIFIED against gcloud output.",
+    "Adding prod-demo to a topology after decisions were made is a material change and marks those decisions STALE by design; the demo script must add prod-demo before opening the change.",
+    "Cloud Run revision read-back inside the service is still not implemented; the operator script is the read-back path.",
+    "Same persistence and actor caveats as DR-005…DR-008."
+  ],
+  "acceptance_criteria": [
+    "A PROMOTED staging release can be promoted to prod-demo with the same digest; the promotion is READY_FOR_APPROVAL without a build step and lists the environment delta.",
+    "Approval of the promotion binds a manifest that includes the delta hash; the staging revision name on prod-demo fails with new_revision; a new revision with the same digest and a passing smoke yields PROMOTED and a receipt whose previous_receipt_id is the staging receipt.",
+    "The same staging receipt cannot be promoted to prod-demo twice; promotion to production or to an evidence-only node is blocked; a non-PROMOTED source is refused.",
+    "A newer accepted candidate after the staging receipt makes the promotion STALE and blocks its deployment.",
+    "Consumer fixtures byte-identical after two consecutive browser runs."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "a2cf649",
+  "source_refs": [
+    "architecture.md#release",
+    "docs/planning/CONTEXT_RAIL_PROJECT_PLAN_V4.2.zh-TW.md#release",
+    "roadmap.md#7-definition-of-done-for-the-prototype",
+    "vision.md",
+    "decisions/DR-008-staging-promotion.json"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-009/README.md"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T00:00:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Owner chose to build every non-GCP slice now (\"都做\") with GCP deferred to 10/8. Accepts local development/testing of the prod-demo promotion; no deployment execution or production authorization."
+  }
+}

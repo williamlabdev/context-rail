@@ -9,9 +9,12 @@
 # Usage:
 #   scripts/record-promotion.sh <context-rail-url> <project-id> <release-id> <gcp-project> <region> <service> [idempotency-key]
 #
-# Example:
+# Example (staging receipt, then the same digest promoted to prod-demo — the
+# prod-demo service yields its own revision; the digest must match):
 #   scripts/record-promotion.sh https://context-rail-staging-xxxx.a.run.app order-operations-portal REL-001 \
 #       my-gcp-project asia-east1 order-operations-portal-staging
+#   scripts/record-promotion.sh https://context-rail-staging-xxxx.a.run.app order-operations-portal REL-002 \
+#       my-gcp-project asia-east1 order-operations-portal-prod-demo
 set -euo pipefail
 
 CTR_URL="${1:?context-rail url}"; PROJECT_ID="${2:?context-rail project id}"; RELEASE_ID="${3:?release id}"

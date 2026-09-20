@@ -32,7 +32,7 @@ const (
 
 // Standard environment types. Display names are free; the standard type is
 // what promotion policy and protection rules reason about.
-var StandardTypes = []string{"development", "testing", "staging", "production", "uat", "other"}
+var StandardTypes = []string{"development", "testing", "staging", "prod-demo", "production", "uat", "other"}
 
 // ProtectionBlockedInP0 marks a production environment: it may exist in the
 // topology, be renamed for display, but cannot be retired, re-typed or

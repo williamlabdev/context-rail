@@ -5,7 +5,7 @@
 
 export type EnvironmentStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "RETIRED" | string;
 
-export const standardTypes = ["development", "testing", "staging", "production", "uat", "other"] as const;
+export const standardTypes = ["development", "testing", "staging", "prod-demo", "production", "uat", "other"] as const;
 
 export interface TopologyEnvironment {
   id: string;

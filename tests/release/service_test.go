@@ -420,3 +420,210 @@ func TestDeploymentWithoutObservedDigestDoesNotPromote(t *testing.T) {
 		t.Fatalf("missing digest must not promote: %s %+v", view.Release.Status, lastAttempt(view).Gates)
 	}
 }
+
+// --- VS-007: prod-demo promotion ---------------------------------------------------
+
+// addProdDemo inserts an isolated prod-demo environment between staging and
+// production BEFORE any decision is made, so decisions bind a topology that
+// already contains the promotion target.
+func (h *harness) addProdDemo(t *testing.T) {
+	t.Helper()
+	if _, err := h.topology.Add("demo", topology.AddRequest{
+		Mutation: topology.Mutation{ExpectedVersion: 1, Actor: "ops", Reason: "isolated prod-demo for synthetic data"},
+		ID:       "prod-demo", DisplayName: "Prod demo", Type: "prod-demo", Sequence: 4, TargetRef: "cloud-run/demo-prod-demo",
+		RequiredEvidence: []string{"release-approval", "staging-receipt", "smoke"}, ApproverPolicy: "distinct human approver",
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// promotedToStaging drives one change to a PROMOTED staging release and returns the receipt.
+func (h *harness) promotedToStaging(t *testing.T, changeID, revision string) *release.Receipt {
+	t.Helper()
+	if _, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("staging release"), ChangeIDs: []string{changeID}, TargetEnvironmentID: "staging"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.releases.RecordBuild("demo", "REL-001", release.BuildRequest{Mutation: mutation("built"), ImageDigest: digest, SourceCommit: "abc123", BuildID: "b-1", EvidenceRef: "cloudbuild/b-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.releases.Approve("demo", "REL-001", release.ApprovalRequest{Mutation: release.Mutation{Actor: "approver-1"}, Decision: "APPROVE", Rationale: "staging ok"}); err != nil {
+		t.Fatal(err)
+	}
+	view, err := h.releases.RecordDeployment("demo", "REL-001", release.DeploymentRequest{Mutation: mutation("deployed staging"), IdempotencyKey: "k-staging", Revision: revision, ServiceURL: "https://demo-staging.a.run.app", DeployedDigest: digest, DeployedTargetRef: "cloud-run/demo-staging", Smoke: &release.SmokeResult{Status: "PASS", EvidenceRef: "smoke-staging"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Release.Status != release.StatusPromoted {
+		t.Fatalf("staging release must be PROMOTED first: %s %+v", view.Release.Status, lastAttempt(view).Gates)
+	}
+	return view.Release.Receipt
+}
+
+func TestPromotionToProdDemoChainsReceiptsAndBindsTheEnvironmentDelta(t *testing.T) {
+	h := newHarness(t, false)
+	h.addProdDemo(t)
+	changeID := h.acceptedChange(t, "promote me", "abc123", "reviewer-2")
+	stagingReceipt := h.promotedToStaging(t, changeID, "demo-staging-00002-abc")
+
+	// A promotion inherits the digest and lineage of the staging receipt.
+	view, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("promote same digest to prod-demo"), SourceReleaseID: "REL-001", TargetEnvironmentID: "prod-demo"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := view.Release.Manifest
+	if view.Release.ReleaseID != "REL-002" || view.Release.Status != release.StatusReadyForApproval {
+		t.Fatalf("promotion with inherited build must be READY_FOR_APPROVAL, got %s %+v", view.Release.Status, view.LiveGates)
+	}
+	if manifest.Promotion == nil || manifest.Promotion.SourceReleaseID != "REL-001" || manifest.Promotion.SourceReceiptID != stagingReceipt.ReceiptID || manifest.Promotion.SourceReceiptHash != stagingReceipt.ReceiptHash || manifest.Promotion.SourceRevision != "demo-staging-00002-abc" {
+		t.Fatalf("promotion must reference the source receipt: %+v", manifest.Promotion)
+	}
+	if manifest.Build == nil || manifest.Build.ImageDigest != digest || manifest.Transition != "staging-to-prod-demo" || manifest.Environment.TargetRef != "cloud-run/demo-prod-demo" || manifest.Changes[0].CandidateID != "CAND-001" {
+		t.Fatalf("promotion manifest must carry the same digest, the frozen lineage and the new target: %+v", manifest)
+	}
+	fields := map[string]bool{}
+	for _, field := range manifest.EnvironmentDelta {
+		fields[field.Field] = true
+	}
+	if !fields["target_ref"] || !fields["type"] || !fields["required_evidence"] || !fields["approver_policy"] || manifest.EnvironmentDeltaHash == "" {
+		t.Fatalf("environment delta must list what differs from staging: %+v", manifest.EnvironmentDelta)
+	}
+	for _, name := range []string{"source_release", "promotion_order", "environment_delta", "build", "change", "environment"} {
+		if gate(view, name).Status != release.GatePass {
+			t.Fatalf("gate %s should PASS: %+v", name, view.LiveGates)
+		}
+	}
+	// A promotion never rebuilds.
+	if _, err := h.releases.RecordBuild("demo", "REL-002", release.BuildRequest{Mutation: mutation("rebuild"), ImageDigest: digest, SourceCommit: "abc123"}); codeOf(t, err) != release.CodeBuildInherited {
+		t.Fatalf("build on a promotion must be refused: %v", err)
+	}
+	// Third human decision again, now bound to the delta-carrying manifest.
+	view, err = h.releases.Approve("demo", "REL-002", release.ApprovalRequest{Mutation: release.Mutation{Actor: "approver-1"}, Decision: "APPROVE", Role: "release_manager", Rationale: "delta reviewed"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Release.Status != release.StatusApproved || view.Release.Approval.ManifestHash != manifest.ManifestHash {
+		t.Fatalf("approval must bind the promotion manifest: %+v", view.Release.Approval)
+	}
+	// Re-using the staging revision is not a promotion: revisions do not move between services.
+	view, err = h.releases.RecordDeployment("demo", "REL-002", release.DeploymentRequest{Mutation: mutation("copied revision"), IdempotencyKey: "k-same-rev", Revision: "demo-staging-00002-abc", DeployedDigest: digest, DeployedTargetRef: "cloud-run/demo-prod-demo", Smoke: &release.SmokeResult{Status: "PASS"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Release.Status != release.StatusPromotionFailed || attemptGate(lastAttempt(view), "new_revision") != release.GateBlocked {
+		t.Fatalf("staging revision on prod-demo must fail the new_revision gate: %s %+v", view.Release.Status, lastAttempt(view).Gates)
+	}
+	if view.Release.Approval.Decision != "APPROVED" {
+		t.Fatalf("a wrong revision does not invalidate the approval: %s", view.Release.Approval.Decision)
+	}
+	// Same digest, new revision on the prod-demo service, smoke PASS → PROMOTED with a chained receipt.
+	view, err = h.releases.RecordDeployment("demo", "REL-002", release.DeploymentRequest{Mutation: mutation("promoted via record-promotion.sh"), IdempotencyKey: "k-prod-demo", OperationID: "op-9", Revision: "demo-prod-demo-00001-xyz", ServiceURL: "https://demo-prod-demo.a.run.app", DeployedDigest: digest, DeployedTargetRef: "cloud-run/demo-prod-demo", Smoke: &release.SmokeResult{Status: "PASS", EvidenceRef: "smoke-prod-demo"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Release.Status != release.StatusPromoted || view.Release.Receipt == nil {
+		t.Fatalf("expected PROMOTED, got %s %+v", view.Release.Status, lastAttempt(view).Gates)
+	}
+	receipt := view.Release.Receipt
+	if receipt.PreviousReceiptID != stagingReceipt.ReceiptID || receipt.Promotion == nil || receipt.Promotion.SourceReceiptHash != stagingReceipt.ReceiptHash || receipt.Transition != "staging-to-prod-demo" || receipt.Build.ImageDigest != stagingReceipt.Build.ImageDigest || receipt.Deployment.Revision != "demo-prod-demo-00001-xyz" || len(receipt.EnvironmentDelta) == 0 || receipt.Environment.ConfigHash == stagingReceipt.Environment.ConfigHash {
+		t.Fatalf("prod-demo receipt must chain to the staging receipt with the same digest, a new revision, its own config hash and the bound delta: %+v", receipt)
+	}
+	if attemptGate(lastAttempt(view), "new_revision") != release.GatePass || attemptGate(lastAttempt(view), "digest_drift") != release.GatePass {
+		t.Fatalf("promotion gates must PASS: %+v", lastAttempt(view).Gates)
+	}
+	// The same source receipt is promoted to a target once.
+	again, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("again"), SourceReleaseID: "REL-001", TargetEnvironmentID: "prod-demo"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Release.Status != release.StatusGateBlocked || gate(again, "source_release").Status != release.GateBlocked || !strings.Contains(gate(again, "source_release").Detail, "already promoted") {
+		t.Fatalf("second promotion of the same receipt must be blocked: %s %+v", again.Release.Status, again.LiveGates)
+	}
+	// Promotion must follow the topology order and never reach production.
+	skip, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("skip"), SourceReleaseID: "REL-001", TargetEnvironmentID: "production"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if skip.Release.Status != release.StatusGateBlocked || gate(skip, "environment").Status != release.GateBlocked || gate(skip, "promotion_order").Status != release.GateBlocked {
+		t.Fatalf("promotion to production must be blocked twice over: %+v", skip.LiveGates)
+	}
+	// Only a PROMOTED release can be a source.
+	if _, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("from blocked"), SourceReleaseID: "REL-003", TargetEnvironmentID: "prod-demo"}); codeOf(t, err) != release.CodeSourceRelease {
+		t.Fatalf("a non-promoted source must be refused: %v", err)
+	}
+	if _, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("missing"), SourceReleaseID: "REL-999", TargetEnvironmentID: "prod-demo"}); codeOf(t, err) != release.CodeSourceRelease {
+		t.Fatalf("an unknown source must be refused: %v", err)
+	}
+}
+
+func TestPromotionGoesStaleWhenTheLedgerMovesAfterTheSourceReceipt(t *testing.T) {
+	h := newHarness(t, false)
+	h.addProdDemo(t)
+	changeID := h.acceptedChange(t, "moving target", "abc123", "reviewer-2")
+	h.promotedToStaging(t, changeID, "demo-staging-00002-abc")
+	if _, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("promote"), SourceReleaseID: "REL-001", TargetEnvironmentID: "prod-demo"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.releases.Approve("demo", "REL-002", release.ApprovalRequest{Mutation: release.Mutation{Actor: "approver-1"}, Decision: "APPROVE", Rationale: "ok"}); err != nil {
+		t.Fatal(err)
+	}
+	// A newer candidate is accepted for the same change after the staging receipt.
+	order, _ := h.changes.Get("demo", changeID)
+	if _, err := h.changes.SubmitCandidate("demo", changeID, change.SubmitCandidateRequest{Mutation: change.Mutation{Actor: "dev-1", Reason: "rerun"}, Run: change.AgentRun{RunID: "ARR-2", WorkOrderID: order.WorkOrder.WorkOrderID, WorkOrderHash: order.WorkOrder.WorkOrderHash, StartedBy: "dev-1", StartedAt: "2026-09-21T09:00:00Z"}, Observation: change.Observation{Branch: order.WorkOrder.TargetBranch, HeadCommit: "def456", ChangedPaths: []string{"main.go"}, Checks: []change.CheckResult{{Name: "test", Status: "PASS"}, {Name: "build", Status: "PASS"}}, Reviews: []change.ReviewEvidence{{Reviewer: "reviewer-2", Kind: "human", Verdict: "APPROVED"}}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.changes.DecideCandidate("demo", changeID, "CAND-002", change.CandidateDecisionRequest{Mutation: change.Mutation{Actor: "founder-001"}, Decision: "ACCEPT", Rationale: "newer"}); err != nil {
+		t.Fatal(err)
+	}
+	view, _ := h.releases.Get("demo", "REL-002")
+	if !view.Staleness.Stale || view.Release.Status != release.StatusStale || gate(view, "change").Status != release.GateStale || !strings.Contains(gate(view, "change").Detail, "RR-001") || view.Release.Approval.Decision != "STALE" {
+		t.Fatalf("promotion must go STALE when the ledger no longer matches the source receipt: stale=%v status=%s gates=%+v", view.Staleness.Stale, view.Release.Status, view.LiveGates)
+	}
+	if view.Release.Manifest.Changes[0].CandidateID != "CAND-001" {
+		t.Fatalf("the promotion manifest keeps the lineage frozen by the receipt: %+v", view.Release.Manifest.Changes[0])
+	}
+	view, err := h.releases.RecordDeployment("demo", "REL-002", release.DeploymentRequest{Mutation: mutation("deploy anyway"), IdempotencyKey: "k-1", Revision: "demo-prod-demo-00001", DeployedDigest: digest, DeployedTargetRef: "cloud-run/demo-prod-demo", Smoke: &release.SmokeResult{Status: "PASS"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Release.Status != release.StatusPromotionFailed {
+		t.Fatalf("a stale promotion must not promote: %s", view.Release.Status)
+	}
+}
+
+func TestReleasesExecuteOnlyForStagingAndProdDemo(t *testing.T) {
+	h := newHarness(t, false)
+	changeID := h.acceptedChange(t, "to testing", "abc123", "reviewer-2")
+	view, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("release to testing"), ChangeIDs: []string{changeID}, TargetEnvironmentID: "testing"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Release.Status != release.StatusGateBlocked || gate(view, "environment").Status != release.GateBlocked || !strings.Contains(gate(view, "environment").Detail, "evidence gates") {
+		t.Fatalf("a release to a non-executable environment must be blocked with the P0 boundary: %+v", view.LiveGates)
+	}
+}
+
+func TestPromotionOrderSkipsEvidenceOnlyEnvironments(t *testing.T) {
+	h := newHarness(t, false)
+	h.addProdDemo(t)
+	// A UAT node between staging and prod-demo is verified by evidence, never deployed by a release.
+	if _, err := h.topology.Add("demo", topology.AddRequest{Mutation: topology.Mutation{ExpectedVersion: 2, Actor: "ops", Reason: "uat sign-off"}, ID: "uat", Type: "uat", Sequence: 4, TargetRef: "manual/uat", RequiredEvidence: []string{"uat-signoff"}}); err != nil {
+		t.Fatal(err)
+	}
+	changeID := h.acceptedChange(t, "via uat", "abc123", "reviewer-2")
+	h.promotedToStaging(t, changeID, "demo-staging-00002-abc")
+	view, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("promote"), SourceReleaseID: "REL-001", TargetEnvironmentID: "prod-demo"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Release.Status != release.StatusReadyForApproval || gate(view, "promotion_order").Status != release.GatePass || !strings.Contains(gate(view, "promotion_order").Detail, "via evidence-only uat (uat)") {
+		t.Fatalf("prod-demo must be the next executable node after staging even with uat in between: %s %+v", view.Release.Status, view.LiveGates)
+	}
+	// uat itself is never a release target.
+	uat, err := h.releases.Create("demo", release.CreateRequest{Mutation: mutation("to uat"), SourceReleaseID: "REL-001", TargetEnvironmentID: "uat"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if uat.Release.Status != release.StatusGateBlocked || gate(uat, "environment").Status != release.GateBlocked || gate(uat, "promotion_order").Status != release.GateBlocked {
+		t.Fatalf("a promotion to an evidence-only node must be blocked: %+v", uat.LiveGates)
+	}
+}

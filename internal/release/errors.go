@@ -26,6 +26,8 @@ const (
 	CodeReleaseClosed    = "RELEASE_CLOSED"
 	CodeStale            = "RELEASE_STALE"
 	CodeStateUnavailable = "RELEASE_STATE_UNAVAILABLE"
+	CodeSourceRelease    = "SOURCE_RELEASE_INVALID"
+	CodeBuildInherited   = "BUILD_INHERITED_FROM_SOURCE"
 )
 
 func newError(code, format string, args ...any) *Error {

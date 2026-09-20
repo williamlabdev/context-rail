@@ -16,6 +16,9 @@ test.describe("Environment topology (VS-003)", () => {
       const text = await panel.locator(".topology-heading-meta").innerText();
       return Number(/Topology v(\d+)/.exec(text)?.[1]);
     };
+    // Retrying assertion: the row status and the heading version render from
+    // the same state, but a snapshot read can race the re-render.
+    const expectVersion = (version: number) => expect(panel.locator(".topology-heading-meta")).toContainText(`Topology v${version}`);
     const start = await versionOf();
 
     // add
@@ -31,7 +34,7 @@ test.describe("Environment topology (VS-003)", () => {
     await add.locator("input[name=reason]").fill("UAT gate before staging");
     await add.getByRole("button", { name: "Create version with new environment" }).click();
     await expect(page.getByTestId(`environment-row-${id}`)).toContainText("ACTIVE");
-    expect(await versionOf()).toBe(start + 1);
+    await expectVersion(start + 1);
     await expect(page.getByTestId("topology-last-change")).toContainText(`ADD · ${id}`);
     await expect(page.getByTestId("topology-invalidations")).toContainText("DR-001");
     await expect(page.getByTestId("project-context-page")).toContainText("→ STALE");
@@ -44,7 +47,7 @@ test.describe("Environment topology (VS-003)", () => {
     await edit.locator("input[name=reason]").fill("clearer label");
     await edit.getByRole("button", { name: "Save as new version" }).click();
     await expect(row).toContainText("User Acceptance");
-    expect(await versionOf()).toBe(start + 2);
+    await expectVersion(start + 2);
     await expect(page.getByTestId("topology-last-change")).toContainText("INFORMATIONAL");
 
     // reorder requires a reason
@@ -52,18 +55,18 @@ test.describe("Environment topology (VS-003)", () => {
     await expect(page.getByTestId("topology-reason-missing")).toBeVisible();
     await page.getByTestId("topology-quick-reason").fill("UAT after staging");
     await row.getByRole("button", { name: `Move ${id} down` }).click();
-    expect(await versionOf()).toBe(start + 3);
+    await expectVersion(start + 3);
     await expect(page.getByTestId("topology-last-change")).toContainText("REORDER");
 
     // retire, then restore
     await page.getByTestId("topology-quick-reason").fill("UAT merged into staging");
     await row.getByRole("button", { name: "Retire" }).click();
     await expect(row).toContainText("RETIRED");
-    expect(await versionOf()).toBe(start + 4);
+    await expectVersion(start + 4);
     await page.getByTestId("topology-quick-reason").fill("UAT needed again");
     await row.getByRole("button", { name: "Restore" }).click();
     await expect(row).toContainText("ACTIVE");
-    expect(await versionOf()).toBe(start + 5);
+    await expectVersion(start + 5);
 
     // production stays protected
     const production = page.getByTestId("environment-row-production");
