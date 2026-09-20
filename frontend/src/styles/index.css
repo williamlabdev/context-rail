@@ -169,3 +169,9 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .status-awaiting-build, .status-ready-for-approval { border-color: #4b6a8c; color: #9cc8f5; }
 .status-approved, .status-promoted { border-color: #3f8a5f; color: #9ee0b4; }
 .status-gate-blocked, .status-promotion-failed { border-color: #9b4a4a; color: #f0a3a3; }
+
+/* UI-18: human label + machine code inside one badge */
+.status-badge .status-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.58rem; font-weight: 600; letter-spacing: 0.02em; margin-left: 6px; opacity: 0.72; }
+.locale-switch { display: inline-flex; gap: 4px; margin-left: 8px; }
+.locale-switch button { background: transparent; border: 1px solid #3a4a60; border-radius: 999px; color: #a9b8cc; cursor: pointer; font-size: 0.68rem; font-weight: 700; padding: 3px 9px; }
+.locale-switch button[aria-pressed="true"] { background: #1f2d40; border-color: #6b8fb8; color: #e5eefc; }

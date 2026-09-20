@@ -1,5 +1,6 @@
 import type { ReadinessSet } from "../api/projectRegistry";
 import { StatusBadge } from "./StatusBadge";
+import { useLocale } from "../i18n";
 
 const readinessLabels: Array<[keyof ReadinessSet, string]> = [
   ["ready_for_decision", "Decision inputs"],
@@ -15,14 +16,15 @@ interface ReadinessSummaryProps {
 }
 
 export function ReadinessSummary({ readiness }: ReadinessSummaryProps) {
+  const { t } = useLocale();
   return (
     <section className="panel" aria-labelledby="readiness-heading">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">GOVERNANCE SIGNALS</p>
-          <h2 id="readiness-heading">Readiness</h2>
+          <p className="eyebrow">{t("GOVERNANCE SIGNALS")}</p>
+          <h2 id="readiness-heading">{t("Readiness")}</h2>
         </div>
-        <span className="muted">Informational; not authorization</span>
+        <span className="muted">{t("Informational; not authorization")}</span>
       </div>
       <div className="readiness-grid">
         {readinessLabels.map(([key, label]) => {
@@ -31,7 +33,7 @@ export function ReadinessSummary({ readiness }: ReadinessSummaryProps) {
           return (
             <article className="readiness-card" data-testid={`readiness-${key}`} key={key}>
               <div className="readiness-card-heading">
-                <span>{label}</span>
+                <span>{t(label)}</span>
                 <StatusBadge status={value.status} />
               </div>
               {value.reasons.length > 0 ? (
@@ -39,7 +41,7 @@ export function ReadinessSummary({ readiness }: ReadinessSummaryProps) {
                   {value.reasons.map((reason) => <li key={reason}>{reason}</li>)}
                 </ul>
               ) : (
-                <p className="muted">No blocking reason observed.</p>
+                <p className="muted">{t("No blocking reason observed.")}</p>
               )}
             </article>
           );

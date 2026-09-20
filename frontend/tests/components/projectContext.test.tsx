@@ -39,7 +39,9 @@ describe("Project context journey", () => {
     render(<ProjectContextPage entry={support} />);
 
     expect(screen.getByTestId("project-context-page")).toHaveTextContent("Support Insights");
-    expect(screen.getByText("Context STALE")).toBeInTheDocument();
+    // UI-18: human label on screen, machine code still readable next to it.
+    expect(screen.getByText("Context Stale")).toBeInTheDocument();
+    expect(screen.getAllByText("STALE").length).toBeGreaterThan(0);
     expect(screen.getByText("support-insights-pipeline · UNDECLARED")).toBeInTheDocument();
     expect(screen.getByText("Stale source: README.md")).toBeInTheDocument();
     expect(screen.getByText("Informational; not authorization")).toBeInTheDocument();

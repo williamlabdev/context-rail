@@ -8,8 +8,25 @@ import { useTopology } from "./state/useTopology";
 import { useChanges } from "./state/useChanges";
 import { useReleases } from "./state/useReleases";
 import { useDocuments } from "./state/useDocuments";
+import { locales, useLocale } from "./i18n";
+
+/** UI-15: the selected Project lives in the URL (/projects/{id}) so refresh, back and deep links restore it. */
+function projectFromLocation(): string | null {
+  if (typeof window === "undefined") return null;
+  const match = /^\/projects\/([a-z0-9][a-z0-9._-]*)\/?$/.exec(window.location.pathname);
+  return match ? match[1] : null;
+}
+
+function pushProjectLocation(projectID: string, replace = false) {
+  if (typeof window === "undefined") return;
+  const path = `/projects/${encodeURIComponent(projectID)}`;
+  if (window.location.pathname === path) return;
+  if (replace) window.history.replaceState({ projectID }, "", path);
+  else window.history.pushState({ projectID }, "", path);
+}
 
 export function App() {
+  const { t, locale, setLocale } = useLocale();
   const [registryState, setRegistryState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
   const [selectedProjectID, setSelectedProjectID] = useState<string | null>(null);
   const [detailState, setDetailState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
@@ -28,9 +45,13 @@ export function App() {
         if (!active) return;
         const nextState = projectsWorkspaceState(snapshot.projects);
         setRegistryState(nextState);
-        const firstProject = snapshot.projects[0]?.project.id;
+        // Deep link wins when it names a configured Project; otherwise the first Project.
+        const requested = projectFromLocation();
+        const known = snapshot.projects.some((entry) => entry.project.id === requested);
+        const firstProject = (known && requested) || snapshot.projects[0]?.project.id;
         if (firstProject) {
           setSelectedProjectID(firstProject);
+          pushProjectLocation(firstProject, true);
           void loadProject(firstProject, active, setDetailState);
         } else {
           setDetailState({ status: "EMPTY", projects: [] });
@@ -44,11 +65,23 @@ export function App() {
     return () => { active = false; };
   }, []);
 
-  const selectProject = (projectID: string) => {
+  const selectProject = (projectID: string, fromHistory = false) => {
     setSelectedProjectID(projectID);
+    if (!fromHistory) pushProjectLocation(projectID);
     setDetailState(loadingWorkspaceState());
     void loadProject(projectID, true, setDetailState);
   };
+
+  // Back / forward restore the Project the URL names (UI-15).
+  useEffect(() => {
+    const onPopState = () => {
+      const projectID = projectFromLocation();
+      if (projectID) selectProject(projectID, true);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedEntry = detailState.status === "READY" ? detailState.projects[0] : undefined;
   return (
@@ -56,23 +89,28 @@ export function App() {
       <header className="app-header">
         <div>
           <p className="eyebrow">CONTEXT RAIL</p>
-          <p className="app-title">Project Workspace</p>
+          <p className="app-title">{t("Project Workspace")}</p>
         </div>
         <div className="header-chips">
-          <span className="read-only-chip">REGISTRY READ-ONLY</span>
-          <span className="read-only-chip chip-versioned">TOPOLOGY VERSIONED</span>
-          <span className="read-only-chip chip-ledger">CHANGES GOVERNED</span>
-          <span className="read-only-chip chip-release">PROMOTION GATED</span>
-          <span className="read-only-chip chip-versioned">DOCUMENTS BASELINED</span>
+          <span className="read-only-chip">{t("REGISTRY READ-ONLY")}</span>
+          <span className="read-only-chip chip-versioned">{t("TOPOLOGY VERSIONED")}</span>
+          <span className="read-only-chip chip-ledger">{t("CHANGES GOVERNED")}</span>
+          <span className="read-only-chip chip-release">{t("PROMOTION GATED")}</span>
+          <span className="read-only-chip chip-versioned">{t("DOCUMENTS BASELINED")}</span>
+          <span className="locale-switch" role="group" aria-label={t("Language")} data-testid="locale-switch">
+            {locales.map((candidate) => (
+              <button type="button" key={candidate} data-testid={`locale-${candidate}`} aria-pressed={locale === candidate} onClick={() => setLocale(candidate)}>{candidate === "en" ? "EN" : "繁中"}</button>
+            ))}
+          </span>
         </div>
       </header>
       <div className="workspace-layout">
         {registryState.status === "READY" ? (
           <ProjectRegistry projects={registryState.projects} selectedProjectID={selectedProjectID} onSelect={selectProject} />
         ) : (
-          <WorkspaceState state={registryState} title="Project Registry" />
+          <WorkspaceState state={registryState} title={t("Project Registry")} />
         )}
-        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} changes={changes} releases={releases} documents={documents} /> : <WorkspaceState state={detailState} title="Project context" />}
+        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} changes={changes} releases={releases} documents={documents} /> : <WorkspaceState state={detailState} title={t("Project context")} />}
       </div>
     </div>
   );

@@ -1,0 +1,8 @@
+# npm run typecheck && npm run build && npm test
+tests/i18n/locale.test.tsx(22,41): error TS2304: Cannot find name '__dirname'.
+dist/index.html                   0.41 kB │ gzip:  0.28 kB
+dist/assets/index-CW84rDE_.css   11.53 kB │ gzip:  3.14 kB
+dist/assets/index-Bq_QSp3G.js   339.51 kB │ gzip: 98.05 kB
+✓ built in 189ms
+ Test Files  8 passed (8)
+      Tests  25 passed (25)

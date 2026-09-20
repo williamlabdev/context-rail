@@ -1,0 +1,8 @@
+# consumer fixture trees before/after two full browser runs
+demo/order-operations-portal before=ab1315e34f003107ca9ed69af86a8a6936654aff05319692771c1c222b1ab116 after=ab1315e34f003107ca9ed69af86a8a6936654aff05319692771c1c222b1ab116 IDENTICAL
+examples/support-insights   before=4a150f3aaebf78ef9cdad567590c524c56c914e8d48a2295f132e5082a1933e8 after=4a150f3aaebf78ef9cdad567590c524c56c914e8d48a2295f132e5082a1933e8 IDENTICAL
+
+# SPA deep links are served by the static handler (UI-15)
+/projects/order-operations-portal -> 200
+/projects/support-insights -> 200
+/projects/unknown-project -> 200

@@ -1,0 +1,8 @@
+# go vet ./... && go test ./... (GOFLAGS=-mod=vendor, Go go1.24.7) — no Go change in this slice; suites re-run for the record
+vet: ok
+ok  	context-rail/tests/change	0.021s
+ok  	context-rail/tests/document	0.012s
+ok  	context-rail/tests/http	0.477s
+ok  	context-rail/tests/registry	0.019s
+ok  	context-rail/tests/release	0.114s
+ok  	context-rail/tests/topology	0.025s

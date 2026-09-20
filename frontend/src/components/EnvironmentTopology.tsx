@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { currentVersion, standardTypes, type FieldChange, type TopologyEnvironment, type TopologyVersion } from "../api/topology";
 import type { TopologyController } from "../state/useTopology";
 import { StatusBadge } from "./StatusBadge";
+import { useLocale } from "../i18n";
 
 interface EnvironmentTopologyProps {
   controller: TopologyController;
@@ -14,6 +15,7 @@ function formatValue(value: unknown): string {
 }
 
 function ChangeSummary({ version }: { version: TopologyVersion }) {
+  const { t } = useLocale();
   const { change } = version;
   const fields = change.fields_changed ?? [];
   return (
@@ -29,13 +31,13 @@ function ChangeSummary({ version }: { version: TopologyVersion }) {
           {fields.map((field: FieldChange, index) => (
             <li key={`${field.field}-${index}`}>
               <code>{field.field}</code>: {formatValue(field.from)} → {formatValue(field.to)}
-              {field.material ? <span className="reason"> material</span> : <span className="muted"> display-only</span>}
+              {field.material ? <span className="reason"> {t("material")}</span> : <span className="muted"> {t("display-only")}</span>}
             </li>
           ))}
         </ul>
       )}
-      <p className="topology-reason"><span className="muted">Reason:</span> {change.reason}</p>
-      <p className="topology-impact"><span className="muted">Impact:</span> {change.impact}</p>
+      <p className="topology-reason"><span className="muted">{t("Reason:")}</span> {change.reason}</p>
+      <p className="topology-impact"><span className="muted">{t("Impact:")}</span> {change.impact}</p>
     </div>
   );
 }
@@ -83,6 +85,7 @@ interface EnvironmentFormProps {
 }
 
 function EnvironmentForm({ mode, initial, busy, onCancel, onSubmit }: EnvironmentFormProps) {
+  const { t } = useLocale();
   const [values, setValues] = useState<EnvironmentFormValues>(initial);
   const update = (field: keyof EnvironmentFormValues) => (event: { target: { value: string } }) =>
     setValues((previous) => ({ ...previous, [field]: event.target.value }));
@@ -94,46 +97,47 @@ function EnvironmentForm({ mode, initial, busy, onCancel, onSubmit }: Environmen
   return (
     <form className="topology-form" data-testid={`environment-form-${mode}`} onSubmit={submit}>
       <div className="topology-form-grid">
-        <label>Environment id
+        <label>{t("Environment id")}
           <input name="id" value={values.id} onChange={update("id")} disabled={mode === "edit"} placeholder="uat" required={mode === "add"} />
         </label>
-        <label>Display name
+        <label>{t("Display name")}
           <input name="display_name" value={values.display_name} onChange={update("display_name")} placeholder="UAT" />
         </label>
-        <label>Standard type
+        <label>{t("Standard type")}
           <select name="type" value={values.type} onChange={update("type")} disabled={isProduction}>
             {standardTypes.map((type) => <option key={type} value={type}>{type}</option>)}
           </select>
         </label>
-        <label>Sequence
-          <input name="sequence" type="number" min={1} value={values.sequence} onChange={update("sequence")} placeholder="append" />
+        <label>{t("Sequence")}
+          <input name="sequence" type="number" min={1} value={values.sequence} onChange={update("sequence")} placeholder={t("append")} />
         </label>
-        <label>Target ref
+        <label>{t("Target ref")}
           <input name="target_ref" value={values.target_ref} onChange={update("target_ref")} placeholder="cloud-run/service-uat" />
         </label>
-        <label>Owner
+        <label>{t("Owner")}
           <input name="owner" value={values.owner} onChange={update("owner")} placeholder="qa-lead" />
         </label>
-        <label>Required evidence (comma separated)
+        <label>{t("Required evidence (comma separated)")}
           <input name="required_evidence" value={values.required_evidence} onChange={update("required_evidence")} placeholder="test, build, smoke" />
         </label>
-        <label>Approver policy
-          <input name="approver_policy" value={values.approver_policy} onChange={update("approver_policy")} placeholder="distinct human approver" />
+        <label>{t("Approver policy")}
+          <input name="approver_policy" value={values.approver_policy} onChange={update("approver_policy")} placeholder={t("distinct human approver")} />
         </label>
       </div>
-      <label className="topology-reason-field">Reason for this version
-        <input name="reason" value={values.reason} onChange={update("reason")} placeholder="why the topology changes" required />
+      <label className="topology-reason-field">{t("Reason for this version")}
+        <input name="reason" value={values.reason} onChange={update("reason")} placeholder={t("why the topology changes")} required />
       </label>
-      {isProduction && <p className="muted">Production: display name and owner may change; standard type is protected in P0.</p>}
+      {isProduction && <p className="muted">{t("Production: display name and owner may change; standard type is protected in P0.")}</p>}
       <div className="topology-form-actions">
-        <button type="submit" className="button-primary" disabled={busy}>{mode === "add" ? "Create version with new environment" : "Save as new version"}</button>
-        <button type="button" className="button-secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+        <button type="submit" className="button-primary" disabled={busy}>{mode === "add" ? t("Create version with new environment") : t("Save as new version")}</button>
+        <button type="button" className="button-secondary" onClick={onCancel} disabled={busy}>{t("Cancel")}</button>
       </div>
     </form>
   );
 }
 
 export function EnvironmentTopology({ controller }: EnvironmentTopologyProps) {
+  const { t } = useLocale();
   const { status, state, error, busy } = controller;
   const [adding, setAdding] = useState(false);
   const [editingID, setEditingID] = useState<string | null>(null);
@@ -209,25 +213,25 @@ export function EnvironmentTopology({ controller }: EnvironmentTopologyProps) {
     <section className="panel topology-panel" aria-labelledby="topology-heading" data-testid="environment-topology">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">ENVIRONMENT TOPOLOGY</p>
-          <h2 id="topology-heading">Promotion path</h2>
+          <p className="eyebrow">{t("ENVIRONMENT TOPOLOGY")}</p>
+          <h2 id="topology-heading">{t("Promotion path")}</h2>
         </div>
         <div className="topology-heading-meta">
           {current && (
             <>
-              <StatusBadge status="VERSIONED" label={`Topology v${current.version}`} />
-              <span className="muted" title={current.config_hash}>config {current.config_hash.slice(7, 19)}</span>
+              <StatusBadge status="VERSIONED" label={t("Topology v{version}", { version: current.version })} />
+              <span className="muted" title={current.config_hash}>{t("config")} {current.config_hash.slice(7, 19)}</span>
             </>
           )}
-          <span className="muted">Every change creates an immutable version; nothing is hard-deleted</span>
+          <span className="muted">{t("Every change creates an immutable version; nothing is hard-deleted")}</span>
         </div>
       </div>
 
-      {status === "LOADING" && <p className="muted" data-testid="topology-loading"><span className="spinner" aria-hidden="true" />Loading topology…</p>}
+      {status === "LOADING" && <p className="muted" data-testid="topology-loading"><span className="spinner" aria-hidden="true" />{t("Loading topology…")}</p>}
       {status === "ERROR" && error && (
         <div className="workspace-state error-state" data-testid="topology-error">
           <strong>{error.code}</strong> — {error.message}
-          <div><button type="button" className="button-secondary" onClick={controller.reload}>Reload topology</button></div>
+          <div><button type="button" className="button-secondary" onClick={controller.reload}>{t("Reload topology")}</button></div>
         </div>
       )}
 
@@ -237,7 +241,7 @@ export function EnvironmentTopology({ controller }: EnvironmentTopologyProps) {
             <div className="topology-inline-error" data-testid="topology-error" role="alert">
               <strong>{error.code}</strong> — {error.message}
               {error.code === "TOPOLOGY_VERSION_CONFLICT" && (
-                <button type="button" className="button-secondary" onClick={controller.reload}>Reload topology</button>
+                <button type="button" className="button-secondary" onClick={controller.reload}>{t("Reload topology")}</button>
               )}
             </div>
           )}
@@ -245,21 +249,21 @@ export function EnvironmentTopology({ controller }: EnvironmentTopologyProps) {
           <ChangeSummary version={current} />
 
           <div className="topology-quick-reason">
-            <label>Reason for move / retire / restore
+            <label>{t("Reason for move / retire / restore")}
               <input
                 data-testid="topology-quick-reason"
                 value={quickReason}
                 onChange={(event) => { setQuickReason(event.target.value); if (event.target.value.trim()) setQuickReasonMissing(false); }}
-                placeholder="required before a quick action"
+                placeholder={t("required before a quick action")}
               />
             </label>
-            {quickReasonMissing && <span className="reason" data-testid="topology-reason-missing">A reason is required for every topology change.</span>}
+            {quickReasonMissing && <span className="reason" data-testid="topology-reason-missing">{t("A reason is required for every topology change.")}</span>}
           </div>
 
           <table className="topology-table">
             <thead>
               <tr>
-                <th>#</th><th>Environment</th><th>Type</th><th>Target</th><th>Owner</th><th>Required evidence</th><th>Status</th><th>Actions</th>
+                <th>#</th><th>{t("Environment")}</th><th>{t("Type")}</th><th>{t("Target")}</th><th>{t("Owner")}</th><th>{t("Required evidence")}</th><th>{t("Status")}</th><th>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -275,30 +279,30 @@ export function EnvironmentTopology({ controller }: EnvironmentTopologyProps) {
                     </td>
                     <td>{environment.type}</td>
                     <td><code>{environment.target_ref || "∅"}</code></td>
-                    <td>{environment.owner || <span className="muted">UNDECLARED</span>}</td>
-                    <td>{environment.required_evidence.length === 0 ? <span className="muted">none</span> : environment.required_evidence.join(", ")}</td>
+                    <td>{environment.owner || <span className="muted">{t("UNDECLARED")}</span>}</td>
+                    <td>{environment.required_evidence.length === 0 ? <span className="muted">{t("none")}</span> : environment.required_evidence.join(", ")}</td>
                     <td>
                       <div className="topology-status">
                         <StatusBadge status={environment.status} />
-                        {environment.protection && <StatusBadge status="BLOCKED" label="READ_ONLY · BLOCKED IN P0" />}
+                        {environment.protection && <StatusBadge status="BLOCKED" label={t("READ_ONLY · BLOCKED IN P0")} />}
                         {environment.action && <span className="muted">{environment.action}</span>}
                       </div>
                     </td>
                     <td>
                       <div className="topology-actions">
-                        <button type="button" className="button-icon" aria-label={`Move ${environment.id} up`} disabled={busy || index === 0} onClick={() => void move(environment.id, -1)}>↑</button>
-                        <button type="button" className="button-icon" aria-label={`Move ${environment.id} down`} disabled={busy || index === environments.length - 1} onClick={() => void move(environment.id, 1)}>↓</button>
-                        <button type="button" className="button-secondary" disabled={busy || retired} onClick={() => { setAdding(false); setEditingID(environment.id); }}>Edit</button>
+                        <button type="button" className="button-icon" aria-label={t("Move {id} up", { id: environment.id })} disabled={busy || index === 0} onClick={() => void move(environment.id, -1)}>↑</button>
+                        <button type="button" className="button-icon" aria-label={t("Move {id} down", { id: environment.id })} disabled={busy || index === environments.length - 1} onClick={() => void move(environment.id, 1)}>↓</button>
+                        <button type="button" className="button-secondary" disabled={busy || retired} onClick={() => { setAdding(false); setEditingID(environment.id); }}>{t("Edit")}</button>
                         {retired ? (
-                          <button type="button" className="button-secondary" disabled={busy} onClick={() => void restore(environment.id)}>Restore</button>
+                          <button type="button" className="button-secondary" disabled={busy} onClick={() => void restore(environment.id)}>{t("Restore")}</button>
                         ) : (
                           <button
                             type="button"
                             className="button-secondary"
                             disabled={busy || production}
-                            title={production ? "Production cannot be retired in P0" : undefined}
+                            title={production ? t("Production cannot be retired in P0") : undefined}
                             onClick={() => void retire(environment.id)}
-                          >Retire</button>
+                          >{t("Retire")}</button>
                         )}
                       </div>
                     </td>
@@ -323,14 +327,14 @@ export function EnvironmentTopology({ controller }: EnvironmentTopologyProps) {
             <EnvironmentForm mode="add" initial={emptyForm} busy={busy} onCancel={() => setAdding(false)} onSubmit={(values) => void submitAdd(values)} />
           ) : (
             <div className="topology-form-actions">
-              <button type="button" className="button-primary" disabled={busy} onClick={() => { setEditingID(null); setAdding(true); }}>Add environment</button>
+              <button type="button" className="button-primary" disabled={busy} onClick={() => { setEditingID(null); setAdding(true); }}>{t("Add environment")}</button>
             </div>
           )}
 
           <div className="topology-invalidations" data-testid="topology-invalidations">
-            <h3>Decisions marked STALE by topology changes</h3>
+            <h3>{t("Decisions marked STALE by topology changes")}</h3>
             {state.invalidations.length === 0 ? (
-              <p className="muted">No decision has been invalidated by a topology change.</p>
+              <p className="muted">{t("No decision has been invalidated by a topology change.")}</p>
             ) : (
               <ul>
                 {state.invalidations.slice().reverse().slice(0, 8).map((invalidation, index) => (
@@ -344,14 +348,14 @@ export function EnvironmentTopology({ controller }: EnvironmentTopologyProps) {
 
           <div className="topology-history">
             <button type="button" className="button-link" onClick={() => setShowHistory((value) => !value)}>
-              {showHistory ? "Hide" : "Show"} version history ({state.versions.length})
+              {showHistory ? t("Hide version history ({count})", { count: state.versions.length }) : t("Show version history ({count})", { count: state.versions.length })}
             </button>
             {showHistory && (
               <ol className="topology-history-list" data-testid="topology-history">
                 {state.versions.slice().reverse().map((version) => (
                   <li key={version.version}>
                     <span className="topology-version">v{version.version}</span> {version.change.operation}
-                    {version.change.environment_id ? ` ${version.change.environment_id}` : ""} · {version.change.material ? "material" : "informational"} · {version.actor} · <span className="muted">{version.change.reason}</span>
+                    {version.change.environment_id ? ` ${version.change.environment_id}` : ""} · {version.change.material ? t("material") : t("informational")} · {version.actor} · <span className="muted">{version.change.reason}</span>
                   </li>
                 ))}
               </ol>

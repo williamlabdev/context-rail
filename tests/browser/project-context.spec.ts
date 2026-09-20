@@ -12,7 +12,9 @@ test.describe("Project Registry read-only workspace", () => {
 
     await page.getByTestId("project-card-support-insights").click();
     await expect(page.getByTestId("project-context-page")).toContainText("Support Insights");
-    await expect(page.getByTestId("project-context-page")).toContainText("Context STALE");
+    // UI-18: the hero badge shows a human label and keeps the machine code readable.
+    await expect(page.locator(".hero-status .status-badge").first()).toContainText("Context Stale");
+    await expect(page.locator(".hero-status .status-badge .status-code").first()).toHaveText("STALE");
     await expect(page.getByTestId("project-context-page")).toContainText("UNDECLARED");
     await expect(page.getByTestId("documents-docs/ai/context-pack.json")).toContainText("STALE");
     await expect(page.getByTestId("documents-docs/ai/context-pack.json")).toContainText("stale: README.md");

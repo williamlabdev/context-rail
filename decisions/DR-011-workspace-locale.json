@@ -1,0 +1,79 @@
+{
+  "decision_id": "DR-011",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "english_keys_dictionary_with_human_status_labels_and_url_bound_project",
+  "alternatives": [
+    {
+      "id": "translate_server_generated_details",
+      "status": "deferred",
+      "reason": "Gate details, reasons, impacts and evidence text are produced by the Go services as technical detail and stay English in both locales; only static workspace copy is localised. A message catalogue on the server side would be a separate slice."
+    },
+    {
+      "id": "replace_machine_codes_with_labels",
+      "status": "rejected",
+      "reason": "UI-18 requires the raw code to stay retrievable; the badge shows the human label and the code side by side, and every existing browser assertion on codes keeps holding."
+    },
+    {
+      "id": "keep_selected_project_in_memory_only",
+      "status": "rejected",
+      "reason": "UI-15 requires refresh, back and reopen to restore the same Project without mixing state; the Project id now lives in the URL (/projects/{id}) and the SPA fallback serves it."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "frontend/src/i18n/",
+      "frontend/src/",
+      "frontend/tests/",
+      "tests/browser/",
+      "evidence/EB-011/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "demo/",
+      "examples/",
+      "internal/",
+      "cloud-deployment-execution",
+      "production-targets",
+      "secrets"
+    ]
+  },
+  "architecture_impact": [
+    "frontend/src/i18n: LocaleProvider + useLocale with t(message, values) — the English string is the key, zh-TW is looked up in a dictionary, missing entries fall back to English; the locale persists in localStorage (context-rail.locale) and sets <html lang>. Data values (Project names, paths, ids, commits, digests, refs, user input) never pass through t().",
+    "StatusBadge renders a human label per locale for known machine status codes and keeps the code visible as <code class=status-code> with title/data-code; identifiers (RR-001, DEC-001) and unknown codes render verbatim.",
+    "App binds the selected Project to /projects/{id} (replaceState on first load, pushState on selection, popstate restores); a deep link to a configured Project wins over the first Project; unknown ids fall back to the first Project.",
+    "Every static copy in App, ProjectRegistry, WorkspaceState, ProjectContextPage, ReadinessSummary, DocumentStatusList, EnvironmentTopology, ChangesPanel, CandidateReview, ReleasesPanel and DocumentsPanel goes through t(); a unit test scans the sources and fails when a t() key lacks a zh-TW entry.",
+    "Server-generated text (gate details, reasons, impacts, advisor unknowns) stays English as technical detail in both locales."
+  ],
+  "cost_assumptions": ["No cloud resources; frontend only."],
+  "unknowns": [
+    "Server-generated details are not localised; the UI-16 wording about mixed copy is met for static copy and deferred for machine details.",
+    "Only zh-TW and en exist; adding a locale means adding a dictionary and a status label map."
+  ],
+  "acceptance_criteria": [
+    "UI-15: refresh keeps the Project and its topology version; switching Projects changes the URL and shows only that Project's ledger; back restores the previous Project; a deep link opens the named Project.",
+    "UI-16: switching to zh-TW changes headings, buttons, labels and notes; no English static copy remains (unit test over every t() key).",
+    "UI-17: after refresh the locale and the Project context are unchanged; switching Projects keeps the locale.",
+    "UI-18: badges show the human label and the machine code together in both locales.",
+    "UI-19: Project name, source root, repo paths, ids, target refs and user-entered titles read back unchanged in zh-TW and after switching back to en."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "00cf52a",
+  "source_refs": [
+    "docs/design/CONTEXT_RAIL_UI_FLOW_STATE_CONTRACT.zh-TW.md#5-ui-驗證案例",
+    "roadmap.md#7-definition-of-done-for-the-prototype",
+    "decisions/DR-010-context-pack-rebuild.json"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": ["evidence/EB-011/README.md"],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T00:00:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Owner chose to build every non-GCP slice now (\"都做\"). Accepts the workspace locale and persistence slice as local development/testing."
+  }
+}

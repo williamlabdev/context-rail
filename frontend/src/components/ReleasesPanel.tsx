@@ -4,6 +4,7 @@ import { newIdempotencyKey, type EnvironmentDeltaField, type GateResult, type Re
 import type { TopologyEnvironment } from "../api/topology";
 import type { ReleasesController } from "../state/useReleases";
 import { StatusBadge } from "./StatusBadge";
+import { useLocale } from "../i18n";
 
 interface ReleasesPanelProps {
   controller: ReleasesController;
@@ -14,9 +15,10 @@ interface ReleasesPanelProps {
 const lines = (value: string): string[] => value.split("\n").map((line) => line.trim()).filter(Boolean);
 
 function GateTable({ gates, testid }: { gates: GateResult[]; testid: string }) {
+  const { t } = useLocale();
   return (
     <table className="topology-table gate-table" data-testid={testid}>
-      <thead><tr><th>Gate</th><th>Change</th><th>Result</th><th>Detail</th></tr></thead>
+      <thead><tr><th>{t("Gate")}</th><th>{t("Change")}</th><th>{t("Result")}</th><th>{t("Detail")}</th></tr></thead>
       <tbody>
         {gates.map((gate, index) => (
           <tr key={`${gate.gate}-${gate.change_id ?? ""}-${index}`} data-testid={`${testid}-${gate.gate}${gate.change_id ? `-${gate.change_id}` : ""}`}>
@@ -34,6 +36,7 @@ function GateTable({ gates, testid }: { gates: GateResult[]; testid: string }) {
 // ---------------------------------------------------------------- create
 
 function CreateReleaseForm({ changes, environments, busy, onCancel, onSubmit }: { changes: ChangeView[]; environments: TopologyEnvironment[]; busy: boolean; onCancel: () => void; onSubmit: ReleasesController["create"] }) {
+  const { t } = useLocale();
   const promotable = changes.filter((view) => view.change.status === "CANDIDATE_ACCEPTED" || (view.change.candidates ?? []).some((candidate) => candidate.status === "ACCEPTED_FOR_PROMOTION"));
   const others = changes.filter((view) => !promotable.includes(view));
   const [selected, setSelected] = useState<string[]>([]);
@@ -48,10 +51,10 @@ function CreateReleaseForm({ changes, environments, busy, onCancel, onSubmit }: 
   const selectable = environments.filter((environment) => environment.status === "ACTIVE");
   return (
     <form className="topology-form" data-testid="release-form-create" onSubmit={(event) => void submit(event)}>
-      <p className="eyebrow">NEW RELEASE · bundle one or more Changes; one blocked Change blocks the whole bundle</p>
+      <p className="eyebrow">{t("NEW RELEASE · bundle one or more Changes; one blocked Change blocks the whole bundle")}</p>
       <fieldset className="option-list">
-        <legend>Changes to promote</legend>
-        {promotable.length === 0 && <p className="muted">No Change has an accepted candidate yet.</p>}
+        <legend>{t("Changes to promote")}</legend>
+        {promotable.length === 0 && <p className="muted">{t("No Change has an accepted candidate yet.")}</p>}
         {promotable.map((view) => (
           <label key={view.change.change_id} className="checkbox-line">
             <input type="checkbox" name={`change-${view.change.change_id}`} checked={selected.includes(view.change.change_id)} onChange={() => toggle(view.change.change_id)} />
@@ -59,23 +62,23 @@ function CreateReleaseForm({ changes, environments, busy, onCancel, onSubmit }: 
           </label>
         ))}
         {others.map((view) => (
-          <label key={view.change.change_id} className="checkbox-line muted" title="No accepted candidate; including it will block the bundle (UI-13)">
+          <label key={view.change.change_id} className="checkbox-line muted" title={t("No accepted candidate; including it will block the bundle (UI-13)")}>
             <input type="checkbox" name={`change-${view.change.change_id}`} checked={selected.includes(view.change.change_id)} onChange={() => toggle(view.change.change_id)} />
-            <code>{view.change.change_id}</code> {view.change.title} <StatusBadge status={view.change.status} /> <span className="muted">no accepted candidate</span>
+            <code>{view.change.change_id}</code> {view.change.title} <StatusBadge status={view.change.status} /> <span className="muted">{t("no accepted candidate")}</span>
           </label>
         ))}
       </fieldset>
       <div className="topology-form-grid">
-        <label>Target environment
+        <label>{t("Target environment")}
           <select name="target_environment_id" value={target} onChange={(event) => setTarget(event.target.value)}>
-            {selectable.map((environment) => <option key={environment.id} value={environment.id}>{environment.display_name} ({environment.type}{environment.protection ? ", blocked in P0" : ""})</option>)}
+            {selectable.map((environment) => <option key={environment.id} value={environment.id}>{environment.display_name} ({environment.type}{environment.protection ? `, ${t("blocked in P0")}` : ""})</option>)}
           </select>
         </label>
-        <label>Reason<input name="reason" value={reason} onChange={(event) => setReason(event.target.value)} required /></label>
+        <label>{t("Reason")}<input name="reason" value={reason} onChange={(event) => setReason(event.target.value)} required /></label>
       </div>
       <div className="topology-form-actions">
-        <button type="submit" className="button-primary" disabled={busy || selected.length === 0}>Open release and run promotion gate</button>
-        <button type="button" className="button-secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+        <button type="submit" className="button-primary" disabled={busy || selected.length === 0}>{t("Open release and run promotion gate")}</button>
+        <button type="button" className="button-secondary" onClick={onCancel} disabled={busy}>{t("Cancel")}</button>
       </div>
     </form>
   );
@@ -86,10 +89,11 @@ function CreateReleaseForm({ changes, environments, busy, onCancel, onSubmit }: 
 const show = (value: unknown): string => (Array.isArray(value) ? value.join(", ") : value === undefined || value === null || value === "" ? "∅" : String(value));
 
 function DeltaTable({ delta, from, to, testid }: { delta: EnvironmentDeltaField[]; from: string; to: string; testid: string }) {
-  if (delta.length === 0) return <p className="muted" data-testid={testid}>No configuration difference between {from} and {to}; only the target changes.</p>;
+  const { t } = useLocale();
+  if (delta.length === 0) return <p className="muted" data-testid={testid}>{t("No configuration difference between {from} and {to}; only the target changes.", { from, to })}</p>;
   return (
     <table className="topology-table" data-testid={testid}>
-      <thead><tr><th>Field</th><th>{from}</th><th>{to}</th></tr></thead>
+      <thead><tr><th>{t("Field")}</th><th>{from}</th><th>{to}</th></tr></thead>
       <tbody>
         {delta.map((field) => (
           <tr key={field.field} data-testid={`${testid}-${field.field}`}>
@@ -115,6 +119,7 @@ function promotionTargets(environments: TopologyEnvironment[], currentID: string
 }
 
 function PromoteForm({ view, environments, busy, onSubmit }: { view: ReleaseView; environments: TopologyEnvironment[]; busy: boolean; onSubmit: ReleasesController["create"] }) {
+  const { t } = useLocale();
   const { release } = view;
   const targets = promotionTargets(environments, release.manifest.environment.environment_id);
   const [target, setTarget] = useState(targets[0]?.id ?? "");
@@ -122,16 +127,16 @@ function PromoteForm({ view, environments, busy, onSubmit }: { view: ReleaseView
   if (targets.length === 0 || !release.receipt) return null;
   return (
     <form className="topology-form" data-testid="release-promote-form" onSubmit={(event) => { event.preventDefault(); void onSubmit({ reason: reason.trim(), change_ids: [], target_environment_id: target, source_release_id: release.release_id }); }}>
-      <p className="eyebrow">PROMOTE · same digest {release.manifest.build?.image_digest.slice(0, 19)} from {release.manifest.environment.environment_id} ({release.receipt.receipt_id}) to the next environment; the configuration delta is bound by a new approval</p>
+      <p className="eyebrow">{t("PROMOTE · same digest {digest} from {source} ({receipt}) to the next environment; the configuration delta is bound by a new approval", { digest: release.manifest.build?.image_digest.slice(0, 19) ?? "∅", source: release.manifest.environment.environment_id, receipt: release.receipt.receipt_id })}</p>
       <div className="topology-form-grid">
-        <label>Promotion target
+        <label>{t("Promotion target")}
           <select name="promotion_target" value={target} onChange={(event) => setTarget(event.target.value)}>
             {targets.map((environment) => <option key={environment.id} value={environment.id}>{environment.display_name} ({environment.type}) → {environment.target_ref}</option>)}
           </select>
         </label>
-        <label>Reason<input name="promotion_reason" value={reason} onChange={(event) => setReason(event.target.value)} required /></label>
+        <label>{t("Reason")}<input name="promotion_reason" value={reason} onChange={(event) => setReason(event.target.value)} required /></label>
       </div>
-      <div className="topology-form-actions"><button type="submit" className="button-primary" disabled={busy}>Open promotion release</button></div>
+      <div className="topology-form-actions"><button type="submit" className="button-primary" disabled={busy}>{t("Open promotion release")}</button></div>
     </form>
   );
 }
@@ -139,6 +144,7 @@ function PromoteForm({ view, environments, busy, onSubmit }: { view: ReleaseView
 // ---------------------------------------------------------------- detail
 
 function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; controller: ReleasesController; environments: TopologyEnvironment[] }) {
+  const { t } = useLocale();
   const { release, live_gates: liveGates, staleness } = view;
   const manifest = release.manifest;
   const promotion = manifest.promotion ?? null;
@@ -156,67 +162,67 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
       <div className="topology-change-heading">
         <code>{release.release_id}</code>
         <StatusBadge status={release.status} />
-        <span className="muted">{manifest.transition} · target <code>{manifest.environment.target_ref}</code> · topology v{manifest.environment.topology_version} · config <code title={manifest.environment.config_hash}>{manifest.environment.config_hash.slice(7, 19)}</code> · manifest <code title={manifest.manifest_hash}>{manifest.manifest_hash.slice(7, 19)}</code></span>
+        <span className="muted">{manifest.transition} · {t("target")} <code>{manifest.environment.target_ref}</code> · {t("topology v{version}", { version: manifest.environment.topology_version })} · {t("config")} <code title={manifest.environment.config_hash}>{manifest.environment.config_hash.slice(7, 19)}</code> · {t("manifest")} <code title={manifest.manifest_hash}>{manifest.manifest_hash.slice(7, 19)}</code></span>
       </div>
       {staleness.stale && <div className="topology-inline-error" data-testid="release-stale" role="alert"><strong>STALE</strong> — {staleness.reason}</div>}
 
       {promotion && (
         <div className="decision-card" data-testid="release-promotion">
-          <p className="eyebrow">PROMOTION · same digest, new environment — digest equality is necessary, not sufficient</p>
+          <p className="eyebrow">{t("PROMOTION · same digest, new environment — digest equality is necessary, not sufficient")}</p>
           <p className="topology-reason">
-            From <code>{promotion.source_release_id}</code> receipt <code>{promotion.source_receipt_id}</code> <span className="muted">({promotion.source_receipt_hash.slice(0, 19)})</span> · {promotion.source_environment.environment_id} revision <code>{promotion.source_revision || "∅"}</code> at <code>{promotion.source_environment.target_ref}</code> → {manifest.environment.environment_id} at <code>{manifest.environment.target_ref}</code>
+            {t("From")} <code>{promotion.source_release_id}</code> {t("receipt")} <code>{promotion.source_receipt_id}</code> <span className="muted">({promotion.source_receipt_hash.slice(0, 19)})</span> · {promotion.source_environment.environment_id} {t("revision")} <code>{promotion.source_revision || "∅"}</code> {t("at")} <code>{promotion.source_environment.target_ref}</code> → {manifest.environment.environment_id} {t("at")} <code>{manifest.environment.target_ref}</code>
           </p>
           <DeltaTable delta={manifest.environment_delta ?? []} from={promotion.source_environment.environment_id} to={manifest.environment.environment_id} testid="release-delta" />
-          {manifest.environment_delta_hash && <p className="muted">delta hash <code>{manifest.environment_delta_hash.slice(0, 26)}</code> is part of the manifest the approval binds.</p>}
+          {manifest.environment_delta_hash && <p className="muted">{t("delta hash")} <code>{manifest.environment_delta_hash.slice(0, 26)}</code> {t("is part of the manifest the approval binds.")}</p>}
         </div>
       )}
 
       <div className="decision-card">
-        <p className="eyebrow">MANIFEST · changes in this release</p>
+        <p className="eyebrow">{t("MANIFEST · changes in this release")}</p>
         <table className="topology-table">
-          <thead><tr><th>Change</th><th>Decision</th><th>Work order</th><th>Candidate</th><th>Commit</th><th>Review</th></tr></thead>
+          <thead><tr><th>{t("Change")}</th><th>{t("Decision")}</th><th>{t("Work order")}</th><th>{t("Candidate")}</th><th>{t("Commit")}</th><th>{t("Review")}</th></tr></thead>
           <tbody>
             {manifest.changes.map((entry) => (
               <tr key={entry.change_id} data-testid={`release-change-${entry.change_id}`}>
                 <td><code>{entry.change_id}</code> {entry.title}</td>
                 <td>{entry.decision_id ? `${entry.decision_id} v${entry.decision_version}` : <span className="muted">∅</span>}</td>
                 <td>{entry.work_order_id || <span className="muted">∅</span>}</td>
-                <td>{entry.candidate_id ? `${entry.candidate_id} by ${entry.candidate_accepted_by}` : <span className="reason">none accepted</span>}</td>
+                <td>{entry.candidate_id ? `${entry.candidate_id} ${t("by")} ${entry.candidate_accepted_by}` : <span className="reason">{t("none accepted")}</span>}</td>
                 <td><code>{entry.head_commit || "∅"}</code></td>
                 <td>{entry.review_gate || <span className="muted">∅</span>}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="topology-reason"><span className="muted">build:</span> {manifest.build ? <>{manifest.build.image_digest} <span className="muted">from {manifest.build.source_commit} · {manifest.build.build_id || "no build id"} · {manifest.build.evidence_ref || "no evidence ref"}{promotion ? ` · inherited from ${promotion.source_release_id}, a promotion never rebuilds` : ""}</span></> : <span className="reason">no image digest yet</span>}</p>
+        <p className="topology-reason"><span className="muted">{t("build:")}</span> {manifest.build ? <>{manifest.build.image_digest} <span className="muted">{t("from")} {manifest.build.source_commit} · {manifest.build.build_id || t("no build id")} · {manifest.build.evidence_ref || t("no evidence ref")}{promotion ? ` · ${t("inherited from {release}, a promotion never rebuilds", { release: promotion.source_release_id })}` : ""}</span></> : <span className="reason">{t("no image digest yet")}</span>}</p>
       </div>
 
       <div>
-        <p className="eyebrow">PROMOTION GATE · live</p>
+        <p className="eyebrow">{t("PROMOTION GATE · live")}</p>
         <GateTable gates={liveGates} testid="release-gates" />
       </div>
 
       {canBuild && (
         <form className="topology-form" data-testid="release-build-form" onSubmit={(event) => { event.preventDefault(); void controller.build(release.release_id, { reason: build.reason.trim(), image_digest: build.image_digest.trim(), image_ref: build.image_ref.trim() || undefined, build_id: build.build_id.trim() || undefined, source_commit: build.source_commit.trim(), includes_commits: lines(build.includes_commits), evidence_ref: build.evidence_ref.trim() || undefined }); }}>
-          <p className="eyebrow">BUILD EVIDENCE · the digest becomes the release identity; it must be built from the accepted commits</p>
+          <p className="eyebrow">{t("BUILD EVIDENCE · the digest becomes the release identity; it must be built from the accepted commits")}</p>
           <div className="topology-form-grid">
-            <label className="span-2">Image digest (sha256:…)<input name="image_digest" value={build.image_digest} onChange={(event) => setBuild({ ...build, image_digest: event.target.value })} required placeholder="sha256:…" /></label>
-            <label>Source commit<input name="source_commit" value={build.source_commit} onChange={(event) => setBuild({ ...build, source_commit: event.target.value })} required /></label>
-            <label>Build id<input name="build_id" value={build.build_id} onChange={(event) => setBuild({ ...build, build_id: event.target.value })} /></label>
-            <label>Includes commits (one per line)<textarea name="includes_commits" rows={2} value={build.includes_commits} onChange={(event) => setBuild({ ...build, includes_commits: event.target.value })} /></label>
-            <label>Evidence ref<input name="evidence_ref" value={build.evidence_ref} onChange={(event) => setBuild({ ...build, evidence_ref: event.target.value })} placeholder="cloud build log url" /></label>
-            <label className="span-2">Reason<input name="reason" value={build.reason} onChange={(event) => setBuild({ ...build, reason: event.target.value })} required /></label>
+            <label className="span-2">{t("Image digest (sha256:…)")}<input name="image_digest" value={build.image_digest} onChange={(event) => setBuild({ ...build, image_digest: event.target.value })} required placeholder="sha256:…" /></label>
+            <label>{t("Source commit")}<input name="source_commit" value={build.source_commit} onChange={(event) => setBuild({ ...build, source_commit: event.target.value })} required /></label>
+            <label>{t("Build id")}<input name="build_id" value={build.build_id} onChange={(event) => setBuild({ ...build, build_id: event.target.value })} /></label>
+            <label>{t("Includes commits (one per line)")}<textarea name="includes_commits" rows={2} value={build.includes_commits} onChange={(event) => setBuild({ ...build, includes_commits: event.target.value })} /></label>
+            <label>{t("Evidence ref")}<input name="evidence_ref" value={build.evidence_ref} onChange={(event) => setBuild({ ...build, evidence_ref: event.target.value })} placeholder={t("cloud build log url")} /></label>
+            <label className="span-2">{t("Reason")}<input name="reason" value={build.reason} onChange={(event) => setBuild({ ...build, reason: event.target.value })} required /></label>
           </div>
-          <div className="topology-form-actions"><button type="submit" className="button-primary" disabled={controller.busy}>Record build</button></div>
+          <div className="topology-form-actions"><button type="submit" className="button-primary" disabled={controller.busy}>{t("Record build")}</button></div>
         </form>
       )}
 
       {release.approval && (
         <div className="decision-card" data-testid="release-approval">
           <div className="topology-change-heading">
-            <strong>Release approval</strong>
+            <strong>{t("Release approval")}</strong>
             <StatusBadge status={release.approval.decision} />
-            <span className="muted">{release.approval.actor} ({release.approval.role}) at {release.approval.at} · binds manifest {release.approval.manifest_hash.slice(7, 19)} · expires {release.approval.expires_at}</span>
+            <span className="muted">{release.approval.actor} ({release.approval.role}) {t("at")} {release.approval.at} · {t("binds manifest")} {release.approval.manifest_hash.slice(7, 19)} · {t("expires")} {release.approval.expires_at}</span>
           </div>
           <p className="topology-reason">{release.approval.reason}</p>
           {release.approval.waiver && <p className="reason">{release.approval.waiver}</p>}
@@ -225,39 +231,39 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
 
       {canApprove && (
         <form className="topology-form" data-testid="release-approval-form" onSubmit={(event) => { event.preventDefault(); void controller.approve(release.release_id, { actor: approval.actor.trim(), role: approval.role.trim(), decision: "APPROVE", rationale: approval.rationale.trim() }); }}>
-          <p className="eyebrow">RELEASE APPROVAL · third human decision, bound to manifest {manifest.manifest_hash.slice(7, 19)}</p>
+          <p className="eyebrow">{t("RELEASE APPROVAL · third human decision, bound to manifest {hash}", { hash: manifest.manifest_hash.slice(7, 19) })}</p>
           <div className="topology-form-grid">
-            <label>Approver<input name="actor" value={approval.actor} onChange={(event) => setApproval({ ...approval, actor: event.target.value })} required placeholder="must not be the run starter unless policy allows" /></label>
-            <label>Role<input name="role" value={approval.role} onChange={(event) => setApproval({ ...approval, role: event.target.value })} /></label>
-            <label className="span-2">Rationale<input name="rationale" value={approval.rationale} onChange={(event) => setApproval({ ...approval, rationale: event.target.value })} required /></label>
+            <label>{t("Approver")}<input name="actor" value={approval.actor} onChange={(event) => setApproval({ ...approval, actor: event.target.value })} required placeholder={t("must not be the run starter unless policy allows")} /></label>
+            <label>{t("Role")}<input name="role" value={approval.role} onChange={(event) => setApproval({ ...approval, role: event.target.value })} /></label>
+            <label className="span-2">{t("Rationale")}<input name="rationale" value={approval.rationale} onChange={(event) => setApproval({ ...approval, rationale: event.target.value })} required /></label>
           </div>
           <div className="topology-form-actions">
-            <button type="submit" className="button-primary" disabled={controller.busy}>Approve release</button>
-            <button type="button" className="button-secondary" disabled={controller.busy} onClick={() => void controller.approve(release.release_id, { actor: approval.actor.trim(), role: approval.role.trim(), decision: "REJECT", rationale: approval.rationale.trim() })}>Reject release</button>
+            <button type="submit" className="button-primary" disabled={controller.busy}>{t("Approve release")}</button>
+            <button type="button" className="button-secondary" disabled={controller.busy} onClick={() => void controller.approve(release.release_id, { actor: approval.actor.trim(), role: approval.role.trim(), decision: "REJECT", rationale: approval.rationale.trim() })}>{t("Reject release")}</button>
           </div>
         </form>
       )}
-      {!closed && blocked && <p className="reason" data-testid="release-blocked-note">Promotion is blocked; the approval control stays hidden until every gate passes. No partial promotion.</p>}
+      {!closed && blocked && <p className="reason" data-testid="release-blocked-note">{t("Promotion is blocked; the approval control stays hidden until every gate passes. No partial promotion.")}</p>}
 
       {canDeploy && (
         <form className="topology-form" data-testid="release-deployment-form" onSubmit={(event) => { event.preventDefault(); void controller.deployment(release.release_id, { reason: deploy.reason.trim(), idempotency_key: deploy.idempotency_key, operation_id: deploy.operation_id.trim() || undefined, revision: deploy.revision.trim(), service_url: deploy.service_url.trim() || undefined, deployed_digest: deploy.deployed_digest.trim(), deployed_target_ref: deploy.deployed_target_ref.trim(), smoke: { status: deploy.smoke_status, evidence_ref: deploy.smoke_ref.trim() } }); }}>
-          <p className="eyebrow">DEPLOYMENT RECORD · what actually landed (from scripts/record-promotion.sh or Cloud Run describe)</p>
+          <p className="eyebrow">{t("DEPLOYMENT RECORD · what actually landed (from scripts/record-promotion.sh or Cloud Run describe)")}</p>
           <div className="topology-form-grid">
-            <label>Idempotency key<input name="idempotency_key" value={deploy.idempotency_key} onChange={(event) => setDeploy({ ...deploy, idempotency_key: event.target.value })} required /></label>
-            <label>Operation id<input name="operation_id" value={deploy.operation_id} onChange={(event) => setDeploy({ ...deploy, operation_id: event.target.value })} /></label>
-            <label>Revision<input name="revision" value={deploy.revision} onChange={(event) => setDeploy({ ...deploy, revision: event.target.value })} required placeholder="service-00003-abc" /></label>
-            <label>Service URL<input name="service_url" value={deploy.service_url} onChange={(event) => setDeploy({ ...deploy, service_url: event.target.value })} /></label>
-            <label className="span-2">Deployed digest<input name="deployed_digest" value={deploy.deployed_digest} onChange={(event) => setDeploy({ ...deploy, deployed_digest: event.target.value })} required /></label>
-            <label className="span-2">Deployed target ref<input name="deployed_target_ref" value={deploy.deployed_target_ref} onChange={(event) => setDeploy({ ...deploy, deployed_target_ref: event.target.value })} required /></label>
-            <label>Smoke result
+            <label>{t("Idempotency key")}<input name="idempotency_key" value={deploy.idempotency_key} onChange={(event) => setDeploy({ ...deploy, idempotency_key: event.target.value })} required /></label>
+            <label>{t("Operation id")}<input name="operation_id" value={deploy.operation_id} onChange={(event) => setDeploy({ ...deploy, operation_id: event.target.value })} /></label>
+            <label>{t("Revision")}<input name="revision" value={deploy.revision} onChange={(event) => setDeploy({ ...deploy, revision: event.target.value })} required placeholder="service-00003-abc" /></label>
+            <label>{t("Service URL")}<input name="service_url" value={deploy.service_url} onChange={(event) => setDeploy({ ...deploy, service_url: event.target.value })} /></label>
+            <label className="span-2">{t("Deployed digest")}<input name="deployed_digest" value={deploy.deployed_digest} onChange={(event) => setDeploy({ ...deploy, deployed_digest: event.target.value })} required /></label>
+            <label className="span-2">{t("Deployed target ref")}<input name="deployed_target_ref" value={deploy.deployed_target_ref} onChange={(event) => setDeploy({ ...deploy, deployed_target_ref: event.target.value })} required /></label>
+            <label>{t("Smoke result")}
               <select name="smoke_status" value={deploy.smoke_status} onChange={(event) => setDeploy({ ...deploy, smoke_status: event.target.value })}>
                 <option value="PASS">PASS</option><option value="FAIL">FAIL</option>
               </select>
             </label>
-            <label>Smoke evidence ref<input name="smoke_ref" value={deploy.smoke_ref} onChange={(event) => setDeploy({ ...deploy, smoke_ref: event.target.value })} /></label>
-            <label className="span-2">Reason<input name="reason" value={deploy.reason} onChange={(event) => setDeploy({ ...deploy, reason: event.target.value })} required /></label>
+            <label>{t("Smoke evidence ref")}<input name="smoke_ref" value={deploy.smoke_ref} onChange={(event) => setDeploy({ ...deploy, smoke_ref: event.target.value })} /></label>
+            <label className="span-2">{t("Reason")}<input name="reason" value={deploy.reason} onChange={(event) => setDeploy({ ...deploy, reason: event.target.value })} required /></label>
           </div>
-          <div className="topology-form-actions"><button type="submit" className="button-primary" disabled={controller.busy}>Record deployment and verify</button></div>
+          <div className="topology-form-actions"><button type="submit" className="button-primary" disabled={controller.busy}>{t("Record deployment and verify")}</button></div>
         </form>
       )}
 
@@ -266,7 +272,7 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
           <div className="topology-change-heading">
             <code>{attempt.attempt_id}</code>
             <StatusBadge status={attempt.outcome} />
-            <span className="muted">{attempt.revision || "no revision"} · {attempt.deployed_digest.slice(0, 19)} → {attempt.deployed_target_ref} · key {attempt.idempotency_key} · {attempt.recorded_at}</span>
+            <span className="muted">{attempt.revision || t("no revision")} · {attempt.deployed_digest.slice(0, 19)} → {attempt.deployed_target_ref} · {t("key")} {attempt.idempotency_key} · {attempt.recorded_at}</span>
           </div>
           <GateTable gates={attempt.gates} testid={`attempt-gates-${attempt.attempt_id}`} />
         </div>
@@ -275,18 +281,18 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
       {release.receipt && (
         <div className="decision-card receipt-card" data-testid="release-receipt">
           <div className="topology-change-heading">
-            <strong>Release Receipt</strong>
+            <strong>{t("Release Receipt")}</strong>
             <code>{release.receipt.receipt_id}</code>
             <StatusBadge status={release.receipt.status} />
-            <span className="muted">issued {release.receipt.issued_at} · hash <code>{release.receipt.receipt_hash.slice(0, 26)}</code></span>
+            <span className="muted">{t("issued")} {release.receipt.issued_at} · {t("hash")} <code>{release.receipt.receipt_hash.slice(0, 26)}</code></span>
           </div>
           <ul className="reason-list">
-            <li>Transition {release.receipt.transition} → <code>{release.receipt.environment.target_ref}</code> (topology v{release.receipt.environment.topology_version}, config {release.receipt.environment.config_hash.slice(7, 19)})</li>
-            {release.receipt.changes.map((entry) => <li key={entry.change_id}>{entry.change_id} · {entry.decision_id} v{entry.decision_version} · {entry.work_order_id} · {entry.candidate_id} · commit <code>{entry.head_commit}</code> · review {entry.review_gate}</li>)}
-            <li>Image <code>{release.receipt.build.image_digest}</code> built from <code>{release.receipt.build.source_commit}</code></li>
-            <li>Approved by {release.receipt.approval.actor} ({release.receipt.approval.role}) at {release.receipt.approval.at}</li>
-            <li>Revision <code>{release.receipt.deployment.revision}</code> · {release.receipt.deployment.service_url || "no url"} · smoke {release.receipt.deployment.smoke?.status ?? "∅"} · operation {release.receipt.deployment.operation_id || "∅"}</li>
-            {release.receipt.previous_receipt_id && <li data-testid="receipt-chain">Promoted from receipt <code>{release.receipt.previous_receipt_id}</code> ({release.receipt.promotion?.source_environment.environment_id} revision <code>{release.receipt.promotion?.source_revision || "∅"}</code>) · {(release.receipt.environment_delta ?? []).length} configuration field(s) differed and were bound by the approval</li>}
+            <li>{t("Transition")} {release.receipt.transition} → <code>{release.receipt.environment.target_ref}</code> ({t("topology v{version}", { version: release.receipt.environment.topology_version })}, {t("config")} {release.receipt.environment.config_hash.slice(7, 19)})</li>
+            {release.receipt.changes.map((entry) => <li key={entry.change_id}>{entry.change_id} · {entry.decision_id} v{entry.decision_version} · {entry.work_order_id} · {entry.candidate_id} · {t("commit")} <code>{entry.head_commit}</code> · {t("review")} {entry.review_gate}</li>)}
+            <li>{t("Image")} <code>{release.receipt.build.image_digest}</code> {t("built from")} <code>{release.receipt.build.source_commit}</code></li>
+            <li>{t("Approved by")} {release.receipt.approval.actor} ({release.receipt.approval.role}) {t("at")} {release.receipt.approval.at}</li>
+            <li>{t("Revision")} <code>{release.receipt.deployment.revision}</code> · {release.receipt.deployment.service_url || t("no url")} · {t("smoke")} {release.receipt.deployment.smoke?.status ?? "∅"} · {t("operation")} {release.receipt.deployment.operation_id || "∅"}</li>
+            {release.receipt.previous_receipt_id && <li data-testid="receipt-chain">{t("Promoted from receipt")} <code>{release.receipt.previous_receipt_id}</code> ({release.receipt.promotion?.source_environment.environment_id} {t("revision")} <code>{release.receipt.promotion?.source_revision || "∅"}</code>) · {t("{count} configuration field(s) differed and were bound by the approval", { count: (release.receipt.environment_delta ?? []).length })}</li>}
           </ul>
         </div>
       )}
@@ -299,41 +305,42 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
 // ---------------------------------------------------------------- panel
 
 export function ReleasesPanel({ controller, changes, environments }: ReleasesPanelProps) {
+  const { t } = useLocale();
   const { status, releases, selected, error, busy } = controller;
   const [creating, setCreating] = useState(false);
   return (
     <section className="panel topology-panel" aria-labelledby="releases-heading" data-testid="releases-panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">PROMOTION · staging → prod-demo</p>
-          <h2 id="releases-heading">Releases</h2>
+          <p className="eyebrow">{t("PROMOTION · staging → prod-demo")}</p>
+          <h2 id="releases-heading">{t("Releases")}</h2>
         </div>
-        <span className="muted">Bundle → gate → build digest → third human approval → deployment record → receipt; then the same digest to prod-demo with the environment delta bound by a new approval. Same digest is necessary, not sufficient.</span>
+        <span className="muted">{t("Bundle → gate → build digest → third human approval → deployment record → receipt; then the same digest to prod-demo with the environment delta bound by a new approval. Same digest is necessary, not sufficient.")}</span>
       </div>
-      {status === "LOADING" && <p className="muted" data-testid="releases-loading"><span className="spinner" aria-hidden="true" />Loading releases…</p>}
+      {status === "LOADING" && <p className="muted" data-testid="releases-loading"><span className="spinner" aria-hidden="true" />{t("Loading releases…")}</p>}
       {error && (
         <div className="topology-inline-error" data-testid="releases-error" role="alert">
           <strong>{error.code}</strong> — {error.message}
-          {status === "ERROR" && <button type="button" className="button-secondary" onClick={controller.reload}>Reload releases</button>}
+          {status === "ERROR" && <button type="button" className="button-secondary" onClick={controller.reload}>{t("Reload releases")}</button>}
         </div>
       )}
       {status !== "LOADING" && (
         <div className="changes-layout">
           <div className="changes-list">
-            {releases.length === 0 && <p className="muted" data-testid="releases-empty">No release opened yet.</p>}
+            {releases.length === 0 && <p className="muted" data-testid="releases-empty">{t("No release opened yet.")}</p>}
             {releases.map((view) => (
               <button type="button" key={view.release.release_id} className={`project-card${controller.selectedID === view.release.release_id ? " project-card-selected" : ""}`} data-testid={`release-card-${view.release.release_id}`} onClick={() => { setCreating(false); controller.select(view.release.release_id); }}>
                 <span className="project-card-title">{view.release.release_id}</span>
-                <span className="project-card-id">{view.release.manifest.changes.map((entry) => entry.change_id).join(" + ")} → {view.release.manifest.environment.environment_id}{view.release.manifest.promotion ? ` (from ${view.release.manifest.promotion.source_release_id})` : ""}</span>
+                <span className="project-card-id">{view.release.manifest.changes.map((entry) => entry.change_id).join(" + ")} → {view.release.manifest.environment.environment_id}{view.release.manifest.promotion ? ` (${t("from")} ${view.release.manifest.promotion.source_release_id})` : ""}</span>
                 <span className="project-card-meta"><StatusBadge status={view.release.status} />{view.release.receipt && <StatusBadge status={view.release.receipt.receipt_id} />}</span>
               </button>
             ))}
-            {!creating && <button type="button" className="button-primary" disabled={busy} onClick={() => { controller.select(null); setCreating(true); }}>New release</button>}
+            {!creating && <button type="button" className="button-primary" disabled={busy} onClick={() => { controller.select(null); setCreating(true); }}>{t("New release")}</button>}
           </div>
           <div className="changes-detail">
             {creating && <CreateReleaseForm changes={changes} environments={environments} busy={busy} onCancel={() => setCreating(false)} onSubmit={controller.create} />}
             {!creating && selected && <ReleaseDetail key={`${selected.release.release_id}-${selected.release.manifest.manifest_hash}-${selected.release.approval?.decision ?? ""}-${selected.release.deployments.length}`} view={selected} controller={controller} environments={environments} />}
-            {!creating && !selected && releases.length > 0 && <p className="muted">Select a release.</p>}
+            {!creating && !selected && releases.length > 0 && <p className="muted">{t("Select a release.")}</p>}
           </div>
         </div>
       )}
