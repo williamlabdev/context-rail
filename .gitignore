@@ -7,3 +7,6 @@
 
 # Spec Kit agent integrations may contain machine-local credentials or state.
 .agents/
+
+# Local governance state written by the workspace (topology versions).
+.context-rail-state/

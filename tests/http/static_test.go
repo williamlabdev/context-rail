@@ -38,8 +38,12 @@ func TestHealthReportsLivenessOnly(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload["status"] != "ok" || payload["read_only"] != true || payload["mode"] != "container" {
+	if payload["status"] != "ok" || payload["mode"] != "container" {
 		t.Fatalf("unexpected health payload: %v", payload)
+	}
+	surfaces, _ := payload["surfaces"].(map[string]any)
+	if surfaces["registry"] != "read-only" || surfaces["topology"] != "versioned-writes" {
+		t.Fatalf("unexpected surfaces: %v", payload["surfaces"])
 	}
 	for _, forbidden := range []string{"readiness", "authorization", "deployed"} {
 		if _, present := payload[forbidden]; present {

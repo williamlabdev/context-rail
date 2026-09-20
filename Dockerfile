@@ -31,8 +31,13 @@ COPY --from=workspace /src/frontend/dist /app/static
 COPY demo/order-operations-portal /app/fixtures/order-operations-portal
 COPY examples/support-insights /app/fixtures/support-insights
 
+# Governance state (topology versions) is written as JSON files. On Cloud Run
+# /tmp is an in-memory filesystem scoped to the instance: state survives
+# requests, not redeploys or scale-to-zero. Durable persistence (GCS/Firestore)
+# is a later, separate decision — this is NOT durable storage.
 ENV CONTEXT_RAIL_STATIC_DIR=/app/static \
     CONTEXT_RAIL_FIXTURE_ROOTS=/app/fixtures/order-operations-portal,/app/fixtures/support-insights \
+    CONTEXT_RAIL_STATE_DIR=/tmp/context-rail-state \
     PORT=8080
 EXPOSE 8080
 USER nonroot:nonroot

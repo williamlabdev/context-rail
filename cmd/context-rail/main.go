@@ -16,6 +16,7 @@ import (
 
 	registryhttp "context-rail/internal/http"
 	"context-rail/internal/projectregistry"
+	"context-rail/internal/topology"
 )
 
 // Environment variables honoured in HTTP mode. They let a container image run
@@ -26,6 +27,7 @@ const (
 	envFixtureRoots = "CONTEXT_RAIL_FIXTURE_ROOTS" // comma-separated Project roots
 	envStaticDir    = "CONTEXT_RAIL_STATIC_DIR"    // built workspace directory
 	envScenario     = "CONTEXT_RAIL_FIXTURE_SCENARIO"
+	envStateDir     = "CONTEXT_RAIL_STATE_DIR" // governance state (topology versions); JSON files in P0
 )
 
 const shutdownGrace = 10 * time.Second
@@ -46,6 +48,7 @@ func main() {
 	var fixtureRoots rootsFlag
 	var addr string
 	var staticDir string
+	var stateDir string
 	var fixtureScenario string
 	var fixtureDelayMS int
 	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
@@ -54,6 +57,7 @@ func main() {
 	flags.Var(&fixtureRoots, "fixture-root", "Project root for HTTP mode; repeat for multiple Projects (or set "+envFixtureRoots+")")
 	flags.StringVar(&addr, "addr", "", "HTTP listen address; defaults to 127.0.0.1:8080, or 0.0.0.0:$PORT when "+envPort+" is set")
 	flags.StringVar(&staticDir, "static-dir", "", "Built workspace directory; defaults to frontend/dist or "+envStaticDir)
+	flags.StringVar(&stateDir, "state-dir", "", "Governance state directory for topology versions; defaults to .context-rail-state or "+envStateDir)
 	flags.StringVar(&fixtureScenario, "fixture-scenario", "", "Verification scenario: normal, empty, invalid or unavailable (or "+envScenario+")")
 	flags.IntVar(&fixtureDelayMS, "fixture-delay-ms", 0, "Delay fixture responses by this many milliseconds")
 	if err := flags.Parse(os.Args[1:]); err != nil {
@@ -78,10 +82,13 @@ func main() {
 		if staticDir == "" {
 			staticDir = firstNonEmpty(os.Getenv(envStaticDir), filepath.Join("frontend", "dist"))
 		}
+		if stateDir == "" {
+			stateDir = firstNonEmpty(os.Getenv(envStateDir), ".context-rail-state")
+		}
 		if addr == "" {
 			addr = listenAddress(os.Getenv(envPort))
 		}
-		serveHTTP(fixtureRoots, addr, staticDir, registryhttp.ServerOptions{Scenario: fixtureScenario, Delay: time.Duration(fixtureDelayMS) * time.Millisecond})
+		serveHTTP(fixtureRoots, addr, staticDir, stateDir, registryhttp.ServerOptions{Scenario: fixtureScenario, Delay: time.Duration(fixtureDelayMS) * time.Millisecond})
 		return
 	}
 	if len(roots) == 0 {
@@ -104,12 +111,18 @@ func main() {
 // serveHTTP runs the read-only registry API and the built workspace until the
 // process receives SIGTERM or SIGINT, then drains in-flight requests. Cloud Run
 // sends SIGTERM before stopping an instance; local runs stop with Ctrl-C.
-func serveHTTP(roots rootsFlag, addr, staticDir string, options registryhttp.ServerOptions) {
+func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options registryhttp.ServerOptions) {
 	mode := "local"
 	if os.Getenv(envPort) != "" {
 		mode = "container"
 	}
+	store, err := topology.NewFileStore(stateDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "CONTEXT RAIL BLOCKED: state directory unusable: %v\n", err)
+		os.Exit(2)
+	}
 	mux := http.NewServeMux()
+	registryhttp.NewTopologyHandler(topology.NewService(store, topology.NewRegistrySource(roots))).Register(mux)
 	mux.Handle("/v1/", registryhttp.NewServerWithOptions(roots, options))
 	mux.Handle("/healthz", registryhttp.NewHealthHandler(mode))
 	mux.Handle("/", registryhttp.NewStaticHandler(staticDir))
@@ -128,8 +141,8 @@ func serveHTTP(roots rootsFlag, addr, staticDir string, options registryhttp.Ser
 
 	errs := make(chan error, 1)
 	go func() {
-		fmt.Fprintf(os.Stderr, "ContextRail workspace listening on http://%s (mode=%s fixtures=%v static=%s scenario=%s delay_ms=%d)\n",
-			addr, mode, []string(roots), staticDir, options.Scenario, options.Delay/time.Millisecond)
+		fmt.Fprintf(os.Stderr, "ContextRail workspace listening on http://%s (mode=%s fixtures=%v static=%s state=%s scenario=%s delay_ms=%d)\n",
+			addr, mode, []string(roots), staticDir, stateDir, options.Scenario, options.Delay/time.Millisecond)
 		errs <- server.ListenAndServe()
 	}()
 

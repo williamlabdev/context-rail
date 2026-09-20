@@ -13,10 +13,10 @@ import (
 // It reports process liveness only; it is not a readiness, authorization or
 // deployment claim for any governed Project.
 type healthResponse struct {
-	Kind     string `json:"kind"`
-	Status   string `json:"status"`
-	ReadOnly bool   `json:"read_only"`
-	Mode     string `json:"mode"`
+	Kind     string            `json:"kind"`
+	Status   string            `json:"status"`
+	Mode     string            `json:"mode"`
+	Surfaces map[string]string `json:"surfaces"`
 }
 
 // NewHealthHandler returns a GET-only liveness endpoint.
@@ -31,7 +31,8 @@ func NewHealthHandler(mode string) http.Handler {
 		response.Header().Set("Cache-Control", "no-store")
 		response.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(response).Encode(healthResponse{
-			Kind: "ContextRailHealth", Status: "ok", ReadOnly: true, Mode: mode,
+			Kind: "ContextRailHealth", Status: "ok", Mode: mode,
+			Surfaces: map[string]string{"registry": "read-only", "topology": "versioned-writes"},
 		})
 	})
 }

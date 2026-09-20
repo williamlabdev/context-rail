@@ -16,8 +16,10 @@ test.describe("Project Registry read-only workspace", () => {
     await expect(page.getByTestId("project-context-page")).toContainText("UNDECLARED");
     await expect(page.getByTestId("document-docs/ai/context-pack.json")).toContainText("STALE");
 
+    // Browsing never mutates: only GET requests until an operator acts on the
+    // versioned topology panel (covered by environment-topology.spec.ts).
     expect(methods.every((method) => method === "GET")).toBe(true);
-    await expect(page.getByRole("button", { name: /create|edit|archive|upload|approve|deploy/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /create project|archive|upload|approve|deploy/i })).toHaveCount(0);
   });
 
   test("shows an explicit loading state while the registry response is delayed", async ({ page }) => {
@@ -65,7 +67,7 @@ test.describe("Project Registry read-only workspace", () => {
 
     await page.goto("/");
     await expect(page.getByTestId("state-error").first()).toContainText("PROJECT_UNAVAILABLE");
-    await expect(page.getByRole("button", { name: /create|edit|archive|upload|approve|deploy/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /create project|edit|archive|upload|approve|deploy/i })).toHaveCount(0);
     expect(methods.every((method) => method === "GET")).toBe(true);
   });
 });

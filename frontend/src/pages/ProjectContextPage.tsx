@@ -1,10 +1,15 @@
 import type { ProjectEntry } from "../api/projectRegistry";
+import { staleDecisions } from "../api/topology";
 import { DocumentStatusList } from "../components/DocumentStatusList";
+import { EnvironmentTopology } from "../components/EnvironmentTopology";
 import { ReadinessSummary } from "../components/ReadinessSummary";
 import { StatusBadge } from "../components/StatusBadge";
+import type { TopologyController } from "../state/useTopology";
 
 interface ProjectContextPageProps {
   entry: ProjectEntry;
+  /** Versioned topology controller; omitted in read-only/test renders. */
+  topology?: TopologyController;
 }
 
 function RelationshipList({ title, values, empty }: { title: string; values: string[]; empty: string }) {
@@ -16,8 +21,16 @@ function RelationshipList({ title, values, empty }: { title: string; values: str
   );
 }
 
-export function ProjectContextPage({ entry }: ProjectContextPageProps) {
+export function ProjectContextPage({ entry, topology }: ProjectContextPageProps) {
   const { project } = entry;
+  const stale = staleDecisions(topology?.state ?? null);
+  const decisionLabels = (entry.decisions ?? []).map((value) => {
+    const id = value.decision_id ?? "UNDECLARED";
+    const invalidation = stale.get(id);
+    return invalidation
+      ? `${id} · ${value.status ?? "UNKNOWN"} → STALE (topology v${invalidation.topology_version})`
+      : `${id} · ${value.status ?? "UNKNOWN"}`;
+  });
   return (
     <main className="context-column" data-testid="project-context-page">
       <section className="hero-panel">
@@ -45,10 +58,11 @@ export function ProjectContextPage({ entry }: ProjectContextPageProps) {
           <RelationshipList title="Repositories" values={(entry.repositories ?? []).map((value) => value.url ?? value.provider ?? "UNDECLARED")} empty="No repositories declared." />
           <RelationshipList title="Services" values={(entry.services ?? []).map((value) => `${value.id} · ${value.runtime ?? "UNDECLARED"}`)} empty="No services declared." />
           <RelationshipList title="Environments" values={(entry.environments ?? []).map((value) => `${value.sequence ?? "?"}. ${value.id} · ${value.type ?? "UNDECLARED"}`)} empty="No environments declared." />
-          <RelationshipList title="Decisions" values={(entry.decisions ?? []).map((value) => `${value.decision_id ?? "UNDECLARED"} · ${value.status ?? "UNKNOWN"}`)} empty="No decisions observed." />
+          <RelationshipList title="Decisions" values={decisionLabels} empty="No decisions observed." />
         </div>
       </section>
 
+      {topology && <EnvironmentTopology controller={topology} />}
       <DocumentStatusList documents={entry.documents ?? []} />
       <ReadinessSummary readiness={entry.readiness} />
     </main>

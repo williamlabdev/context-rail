@@ -4,11 +4,13 @@ import { ProjectContextPage } from "./pages/ProjectContextPage";
 import { ProjectRegistry } from "./components/ProjectRegistry";
 import { WorkspaceState } from "./components/WorkspaceState";
 import { errorWorkspaceState, loadingWorkspaceState, projectsWorkspaceState, type WorkspaceState as WorkspaceStateValue } from "./state/workspaceState";
+import { useTopology } from "./state/useTopology";
 
 export function App() {
   const [registryState, setRegistryState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
   const [selectedProjectID, setSelectedProjectID] = useState<string | null>(null);
   const [detailState, setDetailState] = useState<WorkspaceStateValue>(loadingWorkspaceState());
+  const topology = useTopology(selectedProjectID);
 
   useEffect(() => {
     let active = true;
@@ -47,7 +49,10 @@ export function App() {
           <p className="eyebrow">CONTEXT RAIL</p>
           <p className="app-title">Project Workspace</p>
         </div>
-        <span className="read-only-chip">READ-ONLY</span>
+        <div className="header-chips">
+          <span className="read-only-chip">REGISTRY READ-ONLY</span>
+          <span className="read-only-chip chip-versioned">TOPOLOGY VERSIONED</span>
+        </div>
       </header>
       <div className="workspace-layout">
         {registryState.status === "READY" ? (
@@ -55,7 +60,7 @@ export function App() {
         ) : (
           <WorkspaceState state={registryState} title="Project Registry" />
         )}
-        {selectedEntry ? <ProjectContextPage entry={selectedEntry} /> : <WorkspaceState state={detailState} title="Project context" />}
+        {selectedEntry ? <ProjectContextPage entry={selectedEntry} topology={topology} /> : <WorkspaceState state={detailState} title="Project context" />}
       </div>
     </div>
   );
