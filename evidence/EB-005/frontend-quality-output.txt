@@ -1,0 +1,11 @@
+$ npm run typecheck
+> tsc --noEmit
+
+$ npm run build
+dist/index.html                   0.41 kB │ gzip:  0.27 kB
+dist/assets/index-CKsbNqUC.css    7.74 kB │ gzip:  2.31 kB
+dist/assets/index-DtWEOe2L.js   243.15 kB │ gzip: 74.75 kB
+✓ built in 342ms
+$ npm test
+ Test Files  6 passed (6)
+      Tests  17 passed (17)

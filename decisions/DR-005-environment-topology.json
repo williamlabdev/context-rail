@@ -1,0 +1,96 @@
+{
+  "decision_id": "DR-005",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "versioned_topology_over_json_state_with_stale_invalidation",
+  "alternatives": [
+    {
+      "id": "edit_project_yaml_in_place",
+      "status": "rejected",
+      "reason": "The consumer manifest is a governed source document; mutating it from the control plane would destroy provenance and the immutable-version guarantee."
+    },
+    {
+      "id": "firestore_first",
+      "status": "deferred",
+      "reason": "Owner decision 2026-09-20: JSON files first behind a Store interface; Firestore only if Week 3 has slack."
+    },
+    {
+      "id": "hard_delete_endpoint",
+      "status": "rejected",
+      "reason": "Architecture §Environment lifecycle: no hard delete for referenced environments; retire keeps history readable."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "cmd/context-rail/",
+      "internal/http/",
+      "internal/topology/",
+      "frontend/src/",
+      "frontend/tests/",
+      "tests/http/",
+      "tests/topology/",
+      "tests/browser/",
+      "Dockerfile",
+      ".gitignore",
+      "docs/operations/",
+      "evidence/EB-005/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "internal/projectregistry/",
+      "demo/",
+      "examples/",
+      "auth-and-membership",
+      "secrets",
+      "production-targets",
+      "cloud-deployment"
+    ]
+  },
+  "architecture_impact": [
+    "Adds internal/topology: EnvironmentTopology versions are immutable snapshots chained by previous_version with a config_hash; version 1 is bootstrapped from project.yaml and labelled origin=manifest.",
+    "Add, edit, reorder, retire and restore each create a new version and an append-only audit event; every mutation carries expected_version and is refused with 409 when stale.",
+    "Material changes (type, sequence, target_ref, required_evidence, approver_policy, status) publish STALE invalidations for the Project's observed decisions with a visible reason; display_name and owner are informational.",
+    "Production may be renamed for display but its standard type cannot change and it cannot be retired (PRODUCTION_PROTECTED); it carries READ_ONLY_BLOCKED_IN_P0.",
+    "The registry API stays read-only and keeps reporting manifest environments; the topology is a separate governance surface under /v1/projects/{id}/environments.",
+    "The React workspace gains an Environment Topology panel and overlays STALE on invalidated decisions; header now distinguishes REGISTRY READ-ONLY from TOPOLOGY VERSIONED."
+  ],
+  "cost_assumptions": [
+    "No cloud resources; JSON files under CONTEXT_RAIL_STATE_DIR (instance-local /tmp on Cloud Run, not durable)."
+  ],
+  "unknowns": [
+    "Durable persistence target (GCS vs Firestore) and the migration of existing JSON state.",
+    "Actor identity: X-ContextRail-Actor is recorded, not authenticated; real membership/authorization is a later slice.",
+    "Which decisions depend on which environment: P0 invalidates every observed decision of the Project on a material change; a per-decision environment binding needs the DecisionRecord contract from VS-004."
+  ],
+  "acceptance_criteria": [
+    "UI-05: add, edit, reorder, retire, restore each produce a new topology version visible in the workspace.",
+    "Material edits mark observed decisions STALE with a visible reason; display-only edits do not.",
+    "Retired environments keep their history and cannot be edited until restored; production cannot be retired or re-typed.",
+    "A stale expected_version is refused with 409 and the operator is told to reload.",
+    "Consumer fixture trees are byte-identical before and after the full browser journey.",
+    "Existing VS-001/VS-002 evidence stays green."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "a82df93",
+  "source_refs": [
+    "roadmap.md#2-environment-management-decision",
+    "architecture.md#environment-lifecycle",
+    "docs/design/CONTEXT_RAIL_UI_FLOW_STATE_CONTRACT.zh-TW.md#42-project-settings-environment-topology",
+    "docs/planning/CONTEXT_RAIL_VERTICAL_SLICES_V1.zh-TW.md",
+    "decisions/DR-004-cloud-run-baseline.json"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-005/README.md"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-20T11:30:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Owner instructed to continue immediately after the Cloud Run baseline; VS-003 is the second half of the 2026-09-27 checkpoint. JSON-file persistence was the owner's explicit choice. Accepts local development/testing only; no deployment authorization."
+  }
+}

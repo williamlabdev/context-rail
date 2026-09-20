@@ -1,0 +1,11 @@
+consumer fixture tree hash before browser journey: d03e31a8514c661c
+consumer fixture tree hash after browser journey:  d03e31a8514c661c
+RESULT: PASS — no consumer source mutation
+
+governance state written by the journey (state dir, not the fixture):
+/tmp/ctr-state/support-insights/topology.json
+/tmp/ctr-state/order-operations-portal/topology.json
+
+current_version: 6
+operations: ['BOOTSTRAP', 'ADD', 'EDIT', 'REORDER', 'RETIRE', 'RESTORE']
+invalidations: 4 audit: 6

@@ -1,0 +1,50 @@
+$ go vet ./...
+$ go test ./... -count=1
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+?   	context-rail/internal/topology	[no test files]
+ok  	context-rail/tests/http	0.088s
+ok  	context-rail/tests/registry	0.012s
+ok  	context-rail/tests/topology	0.016s
+$ go test ./tests/topology ./tests/http -run 'Topology|Bootstrap|Add|Edit|Reorder|Retire|Production|State|Registry' -v -count=1
+=== RUN   TestBootstrapFromManifestIsVersionOne
+--- PASS: TestBootstrapFromManifestIsVersionOne (0.00s)
+=== RUN   TestUnknownProjectIsNotBootstrapped
+--- PASS: TestUnknownProjectIsNotBootstrapped (0.00s)
+=== RUN   TestAddCreatesNewVersionAndInvalidatesDecisions
+--- PASS: TestAddCreatesNewVersionAndInvalidatesDecisions (0.00s)
+=== RUN   TestAddWithoutTargetIsDraft
+--- PASS: TestAddWithoutTargetIsDraft (0.00s)
+=== RUN   TestAddValidation
+--- PASS: TestAddValidation (0.00s)
+=== RUN   TestDisplayOnlyEditIsInformational
+--- PASS: TestDisplayOnlyEditIsInformational (0.00s)
+=== RUN   TestMaterialEditInvalidatesWithVisibleReason
+--- PASS: TestMaterialEditInvalidatesWithVisibleReason (0.00s)
+=== RUN   TestEditRejectsNoop
+--- PASS: TestEditRejectsNoop (0.00s)
+=== RUN   TestProductionTypeAndRetireAreProtected
+--- PASS: TestProductionTypeAndRetireAreProtected (0.00s)
+=== RUN   TestReorderRebuildsSequenceAndRequiresPermutation
+--- PASS: TestReorderRebuildsSequenceAndRequiresPermutation (0.00s)
+=== RUN   TestRetireRestoreLifecycle
+--- PASS: TestRetireRestoreLifecycle (0.00s)
+=== RUN   TestStateSurvivesRestart
+--- PASS: TestStateSurvivesRestart (0.00s)
+=== RUN   TestRegistrySourceReadsDemoFixtures
+--- PASS: TestRegistrySourceReadsDemoFixtures (0.00s)
+PASS
+ok  	context-rail/tests/topology	0.030s
+=== RUN   TestUnknownProjectReturnsNotFoundError
+--- PASS: TestUnknownProjectReturnsNotFoundError (0.00s)
+=== RUN   TestEmptyRegistryReturnsUnavailableError
+--- PASS: TestEmptyRegistryReturnsUnavailableError (0.00s)
+=== RUN   TestTopologyGetBootstrapsFromManifestAndRegistryStaysReadable
+--- PASS: TestTopologyGetBootstrapsFromManifestAndRegistryStaysReadable (0.01s)
+=== RUN   TestTopologyMutationJourneyDoesNotTouchConsumerSources
+--- PASS: TestTopologyMutationJourneyDoesNotTouchConsumerSources (0.02s)
+=== RUN   TestTopologyErrorMapping
+--- PASS: TestTopologyErrorMapping (0.01s)
+PASS
+ok  	context-rail/tests/http	0.036s
