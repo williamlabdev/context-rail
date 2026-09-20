@@ -1,0 +1,99 @@
+{
+  "decision_id": "DR-007",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "deterministic_candidate_gate_over_observed_evidence",
+  "alternatives": [
+    {
+      "id": "trust_agent_run_declaration",
+      "status": "rejected",
+      "reason": "Constitution II: provenance over assertion. The run's own claims (paths, checks) are recorded but the gate evaluates what was observed."
+    },
+    {
+      "id": "gate_auto_accepts_green_candidates",
+      "status": "rejected",
+      "reason": "Constitution IV: deterministic gates may block but not approve; the candidate needs a named human, separate from the requirement and release decisions."
+    },
+    {
+      "id": "wait_for_real_github_run_before_building_the_gate",
+      "status": "rejected",
+      "reason": "The gate rules are contract logic and can be verified against fixtures now; the GitHub adapter is an interface behind them and is exercised once the demo repository exists."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "cmd/context-rail/",
+      "internal/change/",
+      "internal/http/",
+      "frontend/src/",
+      "frontend/tests/",
+      "tests/change/",
+      "tests/http/",
+      "tests/browser/",
+      "docs/operations/",
+      "evidence/EB-007/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "internal/projectregistry/",
+      "demo/",
+      "examples/",
+      "agent-execution",
+      "auth-and-membership",
+      "secrets",
+      "production-targets",
+      "cloud-deployment"
+    ]
+  },
+  "architecture_impact": [
+    "Adds Candidate to the change ledger: an AgentRunRecord (agent-run-record/v1: agent identity, work order id + hash, starter, declared paths/commands) plus an Observation (branch, base, commits, changed paths, checks, reviews, compensating controls) evaluated by deterministic gates.",
+    "Gates: work_order_bound (id + hash), decision_current (staleness), branch_matches, commit_observed, allowed_paths (UI-10, violating paths named), forbidden_actions (modify:<prefix>), required_checks (PASS evidence per check; smoke/receipt/release-approval deferred to promotion), independent_review (UI-11; human ≠ run starter, or WAIVED under single-operator controls + AI review only when the target policy lists single-operator-controls), work_order_expiry.",
+    "Verdict order BLOCKED > NEEDS_EVIDENCE > NEEDS_REVIEW > CANDIDATE_ACCEPTABLE; only CANDIDATE_ACCEPTABLE can be human-accepted, the run starter cannot self-accept without a waiver, and a stale decision blocks acceptance and marks evaluated candidates STALE.",
+    "ReadBack interface with a GitHub REST adapter (compare, pulls, reviews, check-runs) enabled by GITHUB_TOKEN; provider observations override the declaration for identity/diff/checks/reviews while declared local checks and controls are kept. UNVERIFIED against real GitHub.",
+    "HTTP: POST /changes/{id}/candidates (optional read_back block), POST /candidates/{cid}/decision. React: candidate submission form, gate table, violations, second human decision."
+  ],
+  "cost_assumptions": [
+    "No cloud resources; GitHub API calls only when GITHUB_TOKEN is set."
+  ],
+  "unknowns": [
+    "GitHubReadBack UNVERIFIED: no demo repository on GitHub yet and the verification workspace's GitHub access is bound to configured repositories.",
+    "No real coding-agent run has been recorded; all candidates in evidence are declared fixtures (the negative and positive journeys).",
+    "An ACCEPTED_FOR_PROMOTION candidate whose decision later goes STALE keeps its status; the promotion gate (VS-006) must re-check staleness before deploying.",
+    "Forbidden actions are enforced by path prefix only; non-path actions (deploy:production, modify:iam without a path) are promotion-gate concerns."
+  ],
+  "acceptance_criteria": [
+    "UI-10: a candidate touching a path outside allowed_paths is BLOCKED; the violating path, the evidence and the next step are visible; acceptance is refused.",
+    "UI-11: a candidate without an independent review is NEEDS_REVIEW and cannot be accepted; self-review by the run starter does not count.",
+    "A compliant candidate is CANDIDATE_ACCEPTABLE with smoke deferred to promotion, and a named human other than the run starter accepts it (change → CANDIDATE_ACCEPTED).",
+    "Single-operator policy: AI review + declared controls yields WAIVED and permits self-acceptance; without the policy it does not.",
+    "Work order hash mismatch, wrong branch, failed check and expired order each BLOCK; missing checks are NEEDS_EVIDENCE.",
+    "Provider read-back replaces the declaration and can block a candidate the operator declared as clean.",
+    "Consumer fixtures byte-identical after the browser journey."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "7dd463b",
+  "source_refs": [
+    "roadmap.md#p0-d",
+    "architecture.md",
+    ".specify/memory/constitution.md",
+    "docs/design/CONTEXT_RAIL_UI_FLOW_STATE_CONTRACT.zh-TW.md#5-ui-驗證案例",
+    "docs/examples/CANDIDATE_REVIEW_BLOCKED_HERO.example.json",
+    "demo/order-operations-portal/runs/ARR-001-manual-order-review.json",
+    "demo/order-operations-portal/evidence/EB-001/README.md",
+    "decisions/DR-006-change-decision-pack.json"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-007/README.md"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-20T12:40:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Owner instructed to continue with the VS-005 gate logic on fixtures while the real agent run waits for the GitHub repository (\"可以 那就繼續吧\"). Accepts local development/testing only; no agent execution, deployment or production authorization."
+  }
+}

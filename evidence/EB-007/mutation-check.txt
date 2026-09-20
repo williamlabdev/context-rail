@@ -1,0 +1,10 @@
+consumer fixture trees before: d03e31a8514c661c
+consumer fixture trees after:  d03e31a8514c661c
+RESULT: PASS — no consumer source mutation
+
+change: CHG-001 Candidate gate w4dh CANDIDATE_ACCEPTED
+    CAND-001 BLOCKED REJECTED violations: ['infra/iam/public-bucket.yaml'] human: REJECTED
+    CAND-002 NEEDS_REVIEW EVALUATED violations: [] human: None
+    CAND-003 CANDIDATE_ACCEPTABLE ACCEPTED_FOR_PROMOTION violations: [] human: ACCEPTED
+change: CHG-002 Manual order review w5z5 ACCEPTED
+audit: ['change.create', 'decision.accepted', 'work-order.issue', 'candidate.submit', 'candidate.rejected', 'candidate.submit', 'candidate.submit', 'candidate.accepted', 'change.create', 'change.inputs', 'decision.accepted', 'work-order.issue']

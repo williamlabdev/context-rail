@@ -1,0 +1,36 @@
+$ go vet ./...
+$ go test ./... -count=1
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/change	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+?   	context-rail/internal/topology	[no test files]
+ok  	context-rail/tests/change	0.013s
+ok  	context-rail/tests/http	0.201s
+ok  	context-rail/tests/registry	0.012s
+ok  	context-rail/tests/topology	0.023s
+$ go test ./tests/change ./tests/http -run 'Candidate' -v -count=1
+=== RUN   TestCandidateWithinContractIsAcceptableAndHumanAccepts
+--- PASS: TestCandidateWithinContractIsAcceptableAndHumanAccepts (0.00s)
+=== RUN   TestCandidateOutsideAllowedPathsIsBlockedWithThePath
+--- PASS: TestCandidateOutsideAllowedPathsIsBlockedWithThePath (0.00s)
+=== RUN   TestCandidateWithoutIndependentReviewNeedsReview
+--- PASS: TestCandidateWithoutIndependentReviewNeedsReview (0.01s)
+=== RUN   TestCandidateMissingChecksNeedsEvidenceAndFailedCheckBlocks
+--- PASS: TestCandidateMissingChecksNeedsEvidenceAndFailedCheckBlocks (0.00s)
+=== RUN   TestCandidateContractMismatchesBlock
+--- PASS: TestCandidateContractMismatchesBlock (0.00s)
+=== RUN   TestCandidateForbiddenModifyPrefixBlocks
+--- PASS: TestCandidateForbiddenModifyPrefixBlocks (0.00s)
+=== RUN   TestCandidateUnderStaleDecisionIsBlockedAndShownStale
+--- PASS: TestCandidateUnderStaleDecisionIsBlockedAndShownStale (0.01s)
+=== RUN   TestCandidateRequiresIssuedWorkOrder
+--- PASS: TestCandidateRequiresIssuedWorkOrder (0.00s)
+PASS
+ok  	context-rail/tests/change	0.025s
+=== RUN   TestCandidateSubmissionAndDecisionOverHTTP
+--- PASS: TestCandidateSubmissionAndDecisionOverHTTP (0.03s)
+=== RUN   TestCandidateReadBackOverridesDeclaration
+--- PASS: TestCandidateReadBackOverridesDeclaration (0.03s)
+PASS
+ok  	context-rail/tests/http	0.063s
