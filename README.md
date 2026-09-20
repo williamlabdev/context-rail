@@ -100,6 +100,6 @@ ContextRail is built the way it asks its users to build: every slice has a Decis
 
 - [Vision](vision.md) · [Roadmap](roadmap.md) · [Architecture](architecture.md)
 - [Project Context Contract](docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md) · [UI flow and state contract](docs/design/CONTEXT_RAIL_UI_FLOW_STATE_CONTRACT.zh-TW.md)
-- [Cloud Run baseline runbook](docs/operations/CLOUD_RUN_BASELINE.md)
+- [Cloud Run baseline runbook](docs/operations/CLOUD_RUN_BASELINE.md) · [Real run playbook (Claude Code + GitHub read-back)](docs/operations/REAL_RUN_PLAYBOOK.md)
 - [Demo video script](docs/submission/VIDEO_SCRIPT.md) · [Deck outline](docs/submission/DECK_OUTLINE.md)
-- Template: [Project Context Contract template](template/README.md) · Example Project: [Order Operations Portal](demo/order-operations-portal/README.md)
+- Template: [Project Context Contract template](template/README.md) · Example Project: [Order Operations Portal](demo/order-operations-portal/README.md) (fixture) — real governed repository: [williamlabdev/order-operations-portal](https://github.com/williamlabdev/order-operations-portal)
