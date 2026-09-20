@@ -1,0 +1,22 @@
+$ go vet ./...
+$ go test ./... -count=1
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+ok  	context-rail/tests/http	0.041s
+ok  	context-rail/tests/registry	0.010s
+$ go test ./tests/http -run 'Health|Static' -v -count=1
+=== RUN   TestHealthReportsLivenessOnly
+--- PASS: TestHealthReportsLivenessOnly (0.00s)
+=== RUN   TestHealthRejectsNonGET
+--- PASS: TestHealthRejectsNonGET (0.00s)
+=== RUN   TestStaticServesIndexAssetsAndSPAFallback
+--- PASS: TestStaticServesIndexAssetsAndSPAFallback (0.00s)
+=== RUN   TestStaticNeverEscapesWorkspaceRoot
+--- PASS: TestStaticNeverEscapesWorkspaceRoot (0.00s)
+=== RUN   TestStaticRejectsMutationMethods
+--- PASS: TestStaticRejectsMutationMethods (0.00s)
+=== RUN   TestStaticReportsUnbuiltWorkspace
+--- PASS: TestStaticReportsUnbuiltWorkspace (0.00s)
+PASS
+ok  	context-rail/tests/http	0.008s

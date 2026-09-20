@@ -1,0 +1,42 @@
+## server log
+ContextRail workspace listening on http://0.0.0.0:8091 (mode=container fixtures=[/tmp/ctr-image/app/fixtures/order-operations-portal /tmp/ctr-image/app/fixtures/support-insights] static=/tmp/ctr-image/app/static scenario=normal delay_ms=0)
+
+## GET /healthz
+{"kind":"ContextRailHealth","status":"ok","read_only":true,"mode":"container"}
+
+HTTP 200
+## GET /v1/projects (ids)
+order-operations-portal DERIVED ['CURRENT', 'CURRENT', 'CURRENT', 'CURRENT']
+support-insights STALE ['CURRENT', 'CURRENT', 'CURRENT', 'CURRENT']
+## GET /v1/projects/support-insights
+HTTP 200
+## GET / (workspace)
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ContextRail Project Workspace</title>
+    <script type="module" crossorigin src="/assets/index-CyEDPOWZ.js"></script>
+    <link rel="styleshe
+## GET /assets/<js>
+HTTP 200 text/javascript; charset=utf-8
+## GET /projects/order-operations-portal (client route → index)
+HTTP 200
+## GET /assets/nope.js
+{"kind":"ProjectRegistryError","code":"ASSET_NOT_FOUND","message":"The requested asset does not exist in the built workspace.","read_only":true}
+
+HTTP 404
+## POST /v1/projects
+{"kind":"ProjectRegistryError","code":"METHOD_NOT_ALLOWED","message":"This read-only registry accepts GET requests only.","read_only":true}
+
+HTTP 405
+## DELETE /
+{"kind":"ProjectRegistryError","code":"METHOD_NOT_ALLOWED","message":"The read-only workspace accepts GET requests only.","read_only":true}
+
+HTTP 405
+## SIGTERM graceful shutdown
+## SIGTERM graceful shutdown
+ContextRail workspace listening on http://0.0.0.0:8092 (mode=container fixtures=[/tmp/ctr-image/app/fixtures/order-operations-portal /tmp/ctr-image/app/fixtures/support-insights] static=/tmp/ctr-image/app/static scenario=normal delay_ms=0)
+ContextRail workspace shutting down
+process exited after SIGTERM: yes

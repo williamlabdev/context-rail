@@ -1,0 +1,12 @@
+> context-rail-workspace@0.1.0 test:e2e
+> NODE_PATH=$(npm prefix)/node_modules playwright test --reporter=list
+
+
+Running 4 tests using 1 worker
+
+  ✓  1 ../tests/browser/project-context.spec.ts:4:7 › Project Registry read-only workspace › browses both Projects and replaces detail state on switching (827ms)
+  ✓  2 ../tests/browser/project-context.spec.ts:23:7 › Project Registry read-only workspace › shows an explicit loading state while the registry response is delayed (355ms)
+  ✓  3 ../tests/browser/project-context.spec.ts:37:7 › Project Registry read-only workspace › shows an explicit empty state without a create action (266ms)
+  ✓  4 ../tests/browser/project-context.spec.ts:52:7 › Project Registry read-only workspace › shows an explicit unavailable state without stale detail or mutation controls (237ms)
+
+  4 passed (3.4s)

@@ -1,0 +1,86 @@
+{
+  "decision_id": "DR-004",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "containerize_existing_read_only_workspace_for_cloud_run_staging",
+  "alternatives": [
+    {
+      "id": "keep_local_only_until_vs_003",
+      "status": "rejected",
+      "reason": "Roadmap G1 requires a real Cloud Run path; leaving it to Week 3 puts every deployment-evidence slice (VS-005, VS-006) behind an unverified cloud setup."
+    },
+    {
+      "id": "deploy_with_persistence_and_gemini_in_the_same_slice",
+      "status": "deferred",
+      "reason": "Persistence and model access are separate decisions; bundling them would hide which part of G1 actually passed."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "cmd/context-rail/",
+      "internal/http/",
+      "tests/http/",
+      "Dockerfile",
+      ".dockerignore",
+      "cloudbuild.yaml",
+      "scripts/deploy-cloud-run.sh",
+      "docs/operations/",
+      "evidence/EB-004/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "project-crud-writes",
+      "auth-and-membership",
+      "secrets",
+      "production-targets",
+      "frontend/src/",
+      "internal/projectregistry/"
+    ]
+  },
+  "architecture_impact": [
+    "The Go service honours the Cloud Run container contract (PORT, 0.0.0.0, SIGTERM drain) while staying loopback-only without PORT.",
+    "The built React workspace is served by the same Go process with single-page fallback; no second runtime is introduced.",
+    "Fixture Project roots are baked into the image as explicit paths; there is still no filesystem scan, remote discovery or write path.",
+    "One staging Cloud Run service is the only cloud target; production remains a protected, undeployed threshold."
+  ],
+  "cost_assumptions": [
+    "Cloud Run min-instances=0, max-instances=2, 256Mi; expected cost within free tier for demo traffic.",
+    "Cloud Build and Artifact Registry usage is minutes and a few hundred MB; unknown exact monthly figure stays UNKNOWN until billing export is checked."
+  ],
+  "unknowns": [
+    "Actual GCP project id, region, billing state and deploying identity (G0 items).",
+    "Whether the organization policy allows an unauthenticated Cloud Run service; if not, the demo needs an IAM-authenticated invoker.",
+    "Docker daemon was unavailable in the verification workspace, so the image build itself is verified only by the first Cloud Build run."
+  ],
+  "acceptance_criteria": [
+    "GET /healthz returns liveness only and rejects non-GET.",
+    "GET /v1/projects and /v1/projects/{id} keep the VS-002 contract and 405 on mutation methods.",
+    "GET / serves the built workspace; unknown client routes fall back to index.html; missing assets return 404; paths cannot escape the static root.",
+    "PORT selects 0.0.0.0:$PORT; without PORT the server binds 127.0.0.1:8080.",
+    "SIGTERM drains and exits.",
+    "Existing Go, frontend and browser evidence stays green."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "c1c2e2cde74ec40ebd0806cade099dec6dc4b5f2",
+  "source_refs": [
+    "roadmap.md",
+    "docs/planning/CONTEXT_RAIL_PROJECT_PLAN_V4.2.zh-TW.md",
+    "docs/planning/CONTEXT_RAIL_VERTICAL_SLICES_V1.zh-TW.md",
+    "decisions/DR-003-project-registry-context-ui.json",
+    "evidence/EB-003/README.md"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-004/README.md"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-20T11:05:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "Owner instructed to start Week 1 work immediately (Cloud Run baseline for roadmap G1) with a single-operator, vibe-coding cadence. This accepts containerization and one staging service only; it does not authorize production, IAM beyond the demo invoker, persistence or model access."
+  }
+}
