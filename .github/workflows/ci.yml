@@ -70,11 +70,26 @@ jobs:
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz >/dev/null 2>&1 && break; sleep 1; done
           curl -fsS http://127.0.0.1:8080/healthz
       - name: Browser journeys
-        run: cd frontend && BASE_URL=http://127.0.0.1:8080 npm run test:e2e
+        run: |
+          cd frontend
+          BASE_URL=http://127.0.0.1:8080 npm run test:e2e -- --reporter=list 2>&1 | tee "$RUNNER_TEMP/e2e.log"
+          test "${PIPESTATUS[0]}" -eq 0
       - name: Hash consumer fixtures (after) — must be identical
         run: |
           find demo/order-operations-portal examples/support-insights -type f | LC_ALL=C sort | xargs sha256sum | sha256sum | cut -c1-64 > /tmp/fixtures-after
           diff /tmp/fixtures-before /tmp/fixtures-after && echo "consumer fixtures unchanged"
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Browser journeys"
+            echo
+            echo '```'
+            grep -E "^ +[✓✘-] |passed|failed|flaky|skipped|did not run" "$RUNNER_TEMP/e2e.log" || echo "no journey output"
+            echo '```'
+            echo
+            echo "Consumer fixture tree hash before: \`$(cat /tmp/fixtures-before)\` · after: \`$(cat /tmp/fixtures-after 2>/dev/null || echo unavailable)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Server log
         if: always()
         run: tail -n 50 "$RUNNER_TEMP/server.log" || true
