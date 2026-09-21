@@ -1,17 +1,11 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { LocaleProvider, translate } from "../../src/i18n";
 import { zhTW } from "../../src/i18n/zh-TW";
 import { StatusBadge } from "../../src/components/StatusBadge";
 
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const full = join(dir, name);
-    if (statSync(full).isDirectory()) return name === "i18n" ? [] : sourceFiles(full);
-    return /\.(tsx?|ts)$/.test(name) ? [full] : [];
-  });
-}
+// Every workspace source file as raw text (the dictionary itself excluded),
+// resolved by Vite at test time — no Node file-system access needed.
+const workspaceSources = import.meta.glob(["../../src/**/*.{ts,tsx}", "!../../src/i18n/**"], { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
 // UI-16: every static message that goes through t() has a zh-TW entry, so a
 // zh-TW screen never falls back to English copy (proper names and technical
@@ -19,8 +13,10 @@ function sourceFiles(dir: string): string[] {
 describe("workspace locale", () => {
   it("covers every t() key with a zh-TW translation", () => {
     const keys = new Set<string>(["Decision inputs", "Local development", "Cloud testing", "Staging inputs", "Staging verification", "Production threshold", "stage:decision", "stage:development", "stage:work-order", "stage:staging"]);
-    for (const file of sourceFiles(join(__dirname, "../../src"))) {
-      const source = readFileSync(file, "utf8");
+    const files = Object.keys(workspaceSources);
+    expect(files.length).toBeGreaterThan(10);
+    for (const file of files) {
+      const source = workspaceSources[file];
       for (const match of source.matchAll(/\bt\(\s*"((?:[^"\\]|\\.)*)"/g)) keys.add(match[1]);
     }
     const missing = [...keys].filter((key) => !(key in zhTW.messages));

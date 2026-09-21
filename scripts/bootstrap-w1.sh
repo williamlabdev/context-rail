@@ -13,7 +13,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BRANCH="${BRANCH:-docs/w4-submission-prep}"
+BRANCH="${BRANCH:-develop}"
 REPO_NAME="${REPO_NAME:-context-rail}"
 PROJECT_ID="${1:-}"
 REGION="${REGION:-asia-east1}"

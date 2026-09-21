@@ -1,5 +1,7 @@
 # ContextRail
 
+[![ci](https://github.com/williamlabdev/context-rail/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/williamlabdev/context-rail/actions/workflows/ci.yml)
+
 **Environment-aware AI Change Assurance for cloud-native business systems.**
 
 Before an AI-assisted change advances to the next governed environment, ContextRail proves that the change still matches the accepted intent, scope, policy and release identity — and blocks it when it does not.
