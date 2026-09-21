@@ -54,3 +54,9 @@ Release bundle, build digest, staging and prod-demo are not part of this bundle 
 - The human decisions were taken by the operator through Cowork prompts and recorded with the `X-ContextRail-Actor` header (`founder-001`); the header is recorded, not authenticated (P0 boundary, DR-006/DR-007).
 - The AI review is a compensating control under the single-operator policy for low-risk staging only; production still requires an independent human reviewer.
 - No deployment, no Cloud Run, no Gemini in this run (rule-advisor only).
+
+## Follow-up (same day, operator decisions via Cowork)
+
+- PR #1 merged into `main` with a merge commit (`53a0d2a`) so the accepted head `8853114` stays in `main`'s history — the 10/8 build record can list it in `includes_commits` truthfully (squash or rebase would have replaced the reviewed sha).
+- `project.yaml` `visibility: private → public` fixed on `main` as a governance-metadata chore commit (`d843463`; CI green). Checked first that the field is not part of the decision snapshot: `CHG-001` stays `stale: false`.
+- The submission material now uses this run: `docs/submission/VIDEO_SCRIPT.md` (beats 3–5 replay this state; 6–8 continue it on 10/8) and `docs/submission/DECK_OUTLINE.md` (slide 6).
