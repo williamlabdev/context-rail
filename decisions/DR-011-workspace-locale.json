@@ -48,7 +48,9 @@
     "Every static copy in App, ProjectRegistry, WorkspaceState, ProjectContextPage, ReadinessSummary, DocumentStatusList, EnvironmentTopology, ChangesPanel, CandidateReview, ReleasesPanel and DocumentsPanel goes through t(); a unit test scans the sources and fails when a t() key lacks a zh-TW entry.",
     "Server-generated text (gate details, reasons, impacts, advisor unknowns) stays English as technical detail in both locales."
   ],
-  "cost_assumptions": ["No cloud resources; frontend only."],
+  "cost_assumptions": [
+    "No cloud resources; frontend only."
+  ],
   "unknowns": [
     "Server-generated details are not localised; the UI-16 wording about mixed copy is met for static copy and deferred for machine details.",
     "Only zh-TW and en exist; adding a locale means adding a dictionary and a status label map."
@@ -68,12 +70,27 @@
     "decisions/DR-010-context-pack-rebuild.json"
   ],
   "policy_version": "project-workspace-v1",
-  "evidence_refs": ["evidence/EB-011/README.md"],
+  "evidence_refs": [
+    "evidence/EB-011/README.md"
+  ],
   "human_decision": {
     "actor": "founder-001",
     "role": "founder_and_solution_architect",
     "at": "2026-09-21T00:00:00+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
     "reason": "Owner chose to build every non-GCP slice now (\"都做\"). Accepts the workspace locale and persistence slice as local development/testing."
+  },
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T04:28:20Z",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "17c3fc7",
+    "mode": "single-operator review via Claude Cowork prompts; tests not re-run (CI green); no independent reviewer separation claimed",
+    "packet": "evidence/EB-011/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "伺服器產生的 gate detail / reason / audit 文字保持英文（影片切繁中時會看到中英混合，接受為技術細節）",
+      "只有 en 與 zh-TW"
+    ]
   }
 }

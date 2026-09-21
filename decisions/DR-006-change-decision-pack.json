@@ -96,5 +96,19 @@
     "at": "2026-09-20T12:10:00+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
     "reason": "Owner instructed to open VS-004 immediately after VS-003 (\"然後你再開VS-004\"). Accepts local development/testing of the decision pack path; no agent execution, deployment or production authorization."
+  },
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T04:28:20Z",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "17c3fc7",
+    "mode": "single-operator review via Claude Cowork prompts; tests not re-run (CI green); no independent reviewer separation claimed",
+    "packet": "evidence/EB-006/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "Gemini advisor UNVERIFIED，只驗過 rule-advisor；有 AI Studio key 後另行驗證",
+      "business constraints 是固定清單（data_classification、expected_monthly_volume）",
+      "cost 只列 driver，不算金額"
+    ]
   }
 }

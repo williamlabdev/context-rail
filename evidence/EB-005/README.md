@@ -4,7 +4,7 @@
 - Base source commit: `a82df93` (feat/cloud-run-baseline)
 - Decision: `decisions/DR-005-environment-topology.json` — `ACCEPTED_FOR_DEVELOPMENT`
 - Scope: local development/testing; JSON-file state; no Cloud Run, IAM or production action
-- Review: AI-assisted implementation with automated evidence; human review of DR-005 pending
+- Review: AI-assisted implementation with automated evidence; **human review `ACCEPTED_FOR_LOCAL_DEVELOPMENT`** by `founder-001` on 2026-09-21 (single-operator; see [HUMAN_REVIEW_PACKET.zh-TW.md](HUMAN_REVIEW_PACKET.zh-TW.md))
 
 ## What the slice shows
 

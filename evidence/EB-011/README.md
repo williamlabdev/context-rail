@@ -4,7 +4,7 @@
 - Base source commit: `00cf52a` (feat/ui-20-context-pack)
 - Decision: `decisions/DR-011-workspace-locale.json` — `ACCEPTED_FOR_DEVELOPMENT`
 - Scope: frontend only; no Go change (suites re-run for the record)
-- Review: AI-assisted implementation with automated evidence; human review of DR-011 pending
+- Review: AI-assisted implementation with automated evidence; **human review `ACCEPTED_FOR_LOCAL_DEVELOPMENT`** by `founder-001` on 2026-09-21 (single-operator; see [HUMAN_REVIEW_PACKET.zh-TW.md](HUMAN_REVIEW_PACKET.zh-TW.md))
 
 ## What the slice shows
 

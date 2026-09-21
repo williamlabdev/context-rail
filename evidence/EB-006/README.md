@@ -4,7 +4,7 @@
 - Base source commit: `8a058e2` (feat/vs-003-topology)
 - Decision: `decisions/DR-006-change-decision-pack.json` — `ACCEPTED_FOR_DEVELOPMENT`
 - Scope: local development/testing; JSON ledger; rule advisor; no agent run, Cloud Run, IAM or production action
-- Review: AI-assisted implementation with automated evidence; human review of DR-006 pending
+- Review: AI-assisted implementation with automated evidence; **human review `ACCEPTED_FOR_LOCAL_DEVELOPMENT`** by `founder-001` on 2026-09-21 (single-operator; see [HUMAN_REVIEW_PACKET.zh-TW.md](HUMAN_REVIEW_PACKET.zh-TW.md))
 
 ## What the slice shows
 

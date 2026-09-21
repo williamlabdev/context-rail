@@ -82,5 +82,18 @@
     "at": "2026-09-20T11:05:00+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
     "reason": "Owner instructed to start Week 1 work immediately (Cloud Run baseline for roadmap G1) with a single-operator, vibe-coding cadence. This accepts containerization and one staging service only; it does not authorize production, IAM beyond the demo invoker, persistence or model access."
+  },
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T04:28:20Z",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "17c3fc7",
+    "mode": "single-operator review via Claude Cowork prompts; tests not re-run (CI green); no independent reviewer separation claimed",
+    "packet": "evidence/EB-004/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "GCP project / region / billing / deploying identity 全部是 10/8 的 G0 事項",
+      "接受的是本機容器合約，不是 staging 部署授權"
+    ]
   }
 }

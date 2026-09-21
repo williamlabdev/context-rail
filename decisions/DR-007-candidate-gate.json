@@ -105,5 +105,19 @@
       "summary": "Real run on the real governed repository with GitHub read-back; unknowns 1 and 2 resolved, id-namespace limitation added. Decision content unchanged (version stays 1).",
       "by": "claude-cowork (on the operator's instruction)"
     }
-  ]
+  ],
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T04:28:20Z",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "17c3fc7",
+    "mode": "single-operator review via Claude Cowork prompts; tests not re-run (CI green); no independent reviewer separation claimed",
+    "packet": "evidence/EB-007/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "ledger id（AWO-001）與 consumer 既有 brownfield work-orders/AWO-001 撞名（DR-007 新 unknown，排進 roadmap）",
+      "forbidden actions 只按路徑前綴擋，非路徑動作留給 promotion gate",
+      "AI review 是同一模型的另一個 run，不是人；只作為 staging 的 compensating control，production 仍需獨立人審"
+    ]
+  }
 }

@@ -92,5 +92,19 @@
     "at": "2026-09-20T11:30:00+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
     "reason": "Owner instructed to continue immediately after the Cloud Run baseline; VS-003 is the second half of the 2026-09-27 checkpoint. JSON-file persistence was the owner's explicit choice. Accepts local development/testing only; no deployment authorization."
+  },
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T04:28:20Z",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "17c3fc7",
+    "mode": "single-operator review via Claude Cowork prompts; tests not re-run (CI green); no independent reviewer separation claimed",
+    "packet": "evidence/EB-005/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "P0 一次 material 變更會讓該 Project 所有觀察到的決策 STALE，不是只影響用到該環境的決策（保守設計，接受）",
+      "X-ContextRail-Actor 只記錄不驗證",
+      "JSON 檔 state，無 Firestore"
+    ]
   }
 }

@@ -93,5 +93,18 @@
     "at": "2026-09-20T13:00:00+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
     "reason": "Owner instructed to build VS-006 next (\"你先做vs6好了\"). Accepts local development/testing of the promotion gate and receipt; no deployment execution or production authorization."
+  },
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T04:28:20Z",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "17c3fc7",
+    "mode": "single-operator review via Claude Cowork prompts; tests not re-run (CI green); no independent reviewer separation claimed",
+    "packet": "evidence/EB-008/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "Cloud Run revision read-back 不在 service 內，P0 靠 operator script",
+      "真實 staging 部署與第一張真實 receipt 是 10/8 的工作，屬於同一個 DR 的下一步"
+    ]
   }
 }

@@ -4,6 +4,7 @@
 - Base source commit: `c1c2e2c` (develop, fast-forwarded from `codex/001-manual-order-review`)
 - Decision: `decisions/DR-004-cloud-run-baseline.json` — `ACCEPTED_FOR_DEVELOPMENT`
 - Scope: make the existing read-only workspace deployable to one Cloud Run staging service
+- Review: AI-assisted implementation with automated evidence; **human review `ACCEPTED_FOR_LOCAL_DEVELOPMENT`** by `founder-001` on 2026-09-21 (single-operator; see [HUMAN_REVIEW_PACKET.zh-TW.md](HUMAN_REVIEW_PACKET.zh-TW.md))
 - Cloud Run, IAM, production: **not yet executed** — this bundle proves the container contract locally; the first real deployment must add its own receipt (see below)
 
 ## Result

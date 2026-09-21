@@ -94,5 +94,18 @@
     "at": "2026-09-21T00:00:00+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
     "reason": "Owner chose to build every non-GCP slice now (\"都做\") with GCP deferred to 10/8. Accepts local development/testing of the prod-demo promotion; no deployment execution or production authorization."
+  },
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-21T04:28:20Z",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "17c3fc7",
+    "mode": "single-operator review via Claude Cowork prompts; tests not re-run (CI green); no independent reviewer separation claimed",
+    "packet": "evidence/EB-009/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "決策之後才加 prod-demo 節點會讓決策 STALE（by design）：10/8 的 runbook 必須先加節點再開 release；real-run state 的 topology v1 目前沒有 prod-demo，這一步要排進 10/8 流程（加節點 → DEC-001 STALE → 重新評估 / 重新決策 → 重發 AWO → 重新 read-back），或把 STALE 當成影片的一個 beat",
+      "Cloud Run read-back 仍靠 operator script"
+    ]
   }
 }
