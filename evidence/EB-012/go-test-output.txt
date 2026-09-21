@@ -1,0 +1,16 @@
+# governed repository order-operations-portal @ change/chg-001 (14554c9): go test -v ./... (summary lines)
+--- PASS: TestHealthAndOrderList (0.00s)
+--- PASS: TestReviewRequiresNote (0.00s)
+--- PASS: TestReviewRejectsInvalidJSON (0.00s)
+--- PASS: TestReviewRejectsTrailingJSON (0.00s)
+--- PASS: TestReviewRejectsUnsupportedDecision (0.00s)
+--- PASS: TestReviewUpdatesOrder (0.00s)
+--- PASS: TestReviewCanBeRepeated (0.00s)
+--- PASS: TestReviewUnknownOrder (0.00s)
+--- PASS: TestEvidenceRequiresLabelAndHTTPURL (0.00s)
+--- PASS: TestEvidenceIsCappedAtThreePerOrder (0.00s)
+--- PASS: TestEvidenceUnknownOrder (0.00s)
+--- PASS: TestEvidenceIsListedWithTheOrder (0.00s)
+--- PASS: TestUnknownOrderActionIsNotFound (0.00s)
+PASS
+ok  	example.com/order-operations-portal	0.005s

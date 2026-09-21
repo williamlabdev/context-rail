@@ -1,0 +1,7 @@
+# ContextRail consumer fixtures are not touched by the real run (it uses the clone under tmp/, git-ignored)
+$ git status --short demo/ examples/
+(empty — clean)
+
+# real-run state and clone live outside the tracked tree
+.context-rail-state/  (git-ignored)
+tmp/                  (git-ignored)

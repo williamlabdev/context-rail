@@ -2,10 +2,12 @@
 
 Goal: replace the *declared* fixtures behind VS-004/VS-005 with a real coding-agent run on the real demo repository, observed back from GitHub. Everything here runs on the operator's Mac; the only cloud service touched is GitHub.
 
-Repositories (both private until submission):
+Repositories:
 
-- ContextRail — `github.com/williamlabdev/context-rail` (branch `docs/w4-submission-prep` or later)
-- Governed Project — `github.com/williamlabdev/order-operations-portal` (split from `demo/order-operations-portal` with its history; `main`; CI check runs `test` and `build` on pull requests)
+- ContextRail — `github.com/williamlabdev/context-rail` (branch `develop`)
+- Governed Project — `github.com/williamlabdev/order-operations-portal` (public; split from `demo/order-operations-portal` with its history; `main`; CI check runs `test` and `build` on pull requests and pushes)
+
+> **Executed 2026-09-21 — see [`evidence/EB-012/README.md`](../../evidence/EB-012/README.md).** The run below was carried out once with Claude in Cowork as the coding agent (`claude-cowork`, not Claude Code): CHG-001 → DEC-001 (accepted by the operator as `founder-001`) → AWO-001 → PR #1 on the governed repository → CAND-001 NEEDS_REVIEW → independent AI review → CAND-002 CANDIDATE_ACCEPTABLE → accepted for promotion. The governance state of that run is in `context-rail/.context-rail-state/real-run/` (git-ignored) and the clone in `context-rail/tmp/order-operations-portal` (git-ignored); start the server on the Mac with `CONTEXT_RAIL_STATE_DIR=.context-rail-state/real-run CONTEXT_RAIL_FIXTURE_ROOTS=tmp/order-operations-portal` to see it. Rerunning the steps below with Claude Code produces a second run record (`ARR-003`) and a new Change; nothing here is single-use.
 
 ## 0. Prerequisites (Mac)
 
@@ -15,13 +17,13 @@ Go 1.22+, Node 22, `gh` logged in as `williamlabdev`, Claude Code. The fixture c
 git clone https://github.com/williamlabdev/order-operations-portal.git ~/dev/source/projects/order-operations-portal
 ```
 
-**CI status (2026-09-21):** GitHub Actions is enabled on the repository, but jobs on a private repository do not start until the account's billing / spending limit is settled (the first run failed with *"recent account payments have failed or your spending limit needs to be increased"*). Decision: run without CI for now — the `ci` workflow is **disabled** (`gh workflow disable ci`) so that no failed check runs are attached to the PR, and `test` / `build` are **declared** in the candidate form with a local evidence ref. The read-back still observes the diff, the head commit, the PR and its reviews. To turn CI back on later (billing fixed, or the repository made public — public repositories do not need billing): `gh workflow enable ci --repo williamlabdev/order-operations-portal`, then re-run the read-back; observed check runs replace the declared ones.
+**CI status (2026-09-21):** the repository is public (Actions on a private repository would not start until the account's billing was settled; public repositories need none), the `ci` workflow is active and the first run is green — check runs `test` and `build` with conclusion `success` on `main` ([run 35527471989](https://github.com/williamlabdev/order-operations-portal/actions/runs/35527471989)). Those are exactly what the read-back turns into `test=PASS` / `build=PASS`.
 
 ## 1. Run ContextRail against the real Project
 
 ```sh
 cd ~/dev/source/projects/context-rail
-git checkout docs/w4-submission-prep
+git checkout develop
 cd frontend && npm ci && npm run build && cd ..
 go build -o bin/context-rail ./cmd/context-rail
 GITHUB_TOKEN="$(gh auth token)" \
@@ -74,11 +76,10 @@ In ContextRail → the Change → **Submit candidate**:
 
 - Run id `ARR-002`, started by `<your GitHub login>`, agent `claude-code`, model as reported by Claude Code.
 - Branch = the PR branch, base `main`, repository `github.com/williamlabdev/order-operations-portal`.
-- Tick **Read back branch, diff, checks and reviews from GitHub**. Leave changed paths / head commit as declared placeholders — the read-back replaces them with what GitHub returns (compare diff, PR reviews, check runs when CI is on).
-- Checks: while CI is off, declare them from the local run, one per line, with an evidence ref: `test=PASS=runs/ARR-002-order-exception-evidence-links.json` and `build=PASS=runs/ARR-002-order-exception-evidence-links.json` (the run record holds the exact command output). Declared checks the provider did not see are kept and marked `declared` in the gate table.
-- If there is no independent reviewer: tick **Single-operator controls documented** with an evidence ref (e.g. the PR URL plus `docs/governance/policies.md#single-operator`).
+- Tick **Read back branch, diff, checks and reviews from GitHub**. Leave changed paths / head commit / checks as declared placeholders — the read-back replaces them with what GitHub returns (compare diff, PR reviews, the `test` and `build` check runs of the head commit). Wait for the PR's checks to finish before submitting; a check still running reads back as FAIL.
+- If there is no independent reviewer: tick **Single-operator controls documented** with an evidence ref (e.g. the PR URL plus `docs/governance/policies.md#single-operator`) **and** add an AI review (`kind: ai`, verdict `APPROVED`, evidence ref = the review comment on the PR) from a separate agent run — the waiver needs both; without the AI review the candidate is NEEDS_REVIEW (that is exactly what CAND-001 in EB-012 shows).
 
-Expected: `commit_observed`, `branch_matches`, `allowed_paths` (all changed paths within the four allowed entries), `required_checks` PASS (declared while CI is off; observed once it is on), `independent_review` PASS or WAIVED → verdict **CANDIDATE_ACCEPTABLE**. Then **Accept candidate for promotion** as `founder-001`.
+Expected: `commit_observed`, `branch_matches`, `allowed_paths` (all changed paths within the four allowed entries), `required_checks` PASS from the observed check runs, `independent_review` PASS or WAIVED → verdict **CANDIDATE_ACCEPTABLE**. Then **Accept candidate for promotion** as `founder-001`.
 
 If the diff touched a file outside `allowed_paths`, the verdict is **BLOCKED** with the path named — that is the real UI-10 evidence; fix the branch and resubmit (`Submit another candidate`).
 

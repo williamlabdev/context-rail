@@ -43,7 +43,7 @@ Everything that can drift is hashed and versioned: topology config, source snaps
 | Project Registry | Read-only import of the Project Context Contract (`project.yaml`, documents, decisions, readiness) | VS-001/002 |
 | Environment Topology | Add / edit / reorder / retire / restore environments as immutable versions; production stays read-only; material changes invalidate decisions | VS-003 |
 | Change Decision Pack | Deterministic readiness (missing inputs name their owner), rule or Gemini advisor, first human decision, Brief + Agent Context Pack from one DecisionRecord, hashed Work Order | VS-004 |
-| Candidate gate | Agent run + observed evidence (optionally read back from GitHub) → BLOCKED / NEEDS_EVIDENCE / NEEDS_REVIEW / CANDIDATE_ACCEPTABLE, second human decision | VS-005 |
+| Candidate gate | Agent run + observed evidence (read back from GitHub — verified on a real PR, [EB-012](evidence/EB-012/README.md)) → BLOCKED / NEEDS_EVIDENCE / NEEDS_REVIEW / CANDIDATE_ACCEPTABLE, second human decision | VS-005 |
 | Staging promotion | Release bundle gate (no partial promotion), build digest, third human approval bound to the manifest hash, deployment verification, Release Receipt | VS-006 |
 | Prod-demo promotion | Same digest to the next environment, environment delta listed and bound by a new approval, new revision required, receipts chained | VS-007 |
 | Documents / AI Context | Versioned document baseline, missing documents mapped to readiness stages, rebuildable Context Pack (`PARTIAL` when anything is missing — nothing is synthesized) | UI-20 |

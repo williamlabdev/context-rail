@@ -59,10 +59,11 @@
     "No cloud resources; GitHub API calls only when GITHUB_TOKEN is set."
   ],
   "unknowns": [
-    "GitHubReadBack UNVERIFIED: no demo repository on GitHub yet and the verification workspace's GitHub access is bound to configured repositories.",
-    "No real coding-agent run has been recorded; all candidates in evidence are declared fixtures (the negative and positive journeys).",
+    "RESOLVED 2026-09-21 (EB-012): GitHubReadBack VERIFIED against github.com/williamlabdev/order-operations-portal PR #1 — compare, pulls, reviews and check-runs observed; provider facts replaced the declared head commit, changed paths and checks.",
+    "RESOLVED 2026-09-21 (EB-012): a real coding-agent run (ARR-002, agent claude-cowork) is recorded in the governed repository and evaluated: CAND-001 NEEDS_REVIEW, CAND-002 CANDIDATE_ACCEPTABLE → ACCEPTED_FOR_PROMOTION by founder-001. The declared fixtures of EB-007 remain as regression journeys.",
     "An ACCEPTED_FOR_PROMOTION candidate whose decision later goes STALE keeps its status; the promotion gate (VS-006) must re-check staleness before deploying.",
-    "Forbidden actions are enforced by path prefix only; non-path actions (deploy:production, modify:iam without a path) are promotion-gate concerns."
+    "Forbidden actions are enforced by path prefix only; non-path actions (deploy:production, modify:iam without a path) are promotion-gate concerns.",
+    "OPEN (found in EB-012): ledger ids (CHG/DEC/AWO/CAND) are issued per ContextRail state and are not reconciled with ids the consumer already uses in its own files (the governed repository carries a brownfield work-orders/AWO-001 for REQ-001); a later slice should import or prefix them."
   ],
   "acceptance_criteria": [
     "UI-10: a candidate touching a path outside allowed_paths is BLOCKED; the violating path, the evidence and the next step are visible; acceptance is refused.",
@@ -87,7 +88,8 @@
   ],
   "policy_version": "project-workspace-v1",
   "evidence_refs": [
-    "evidence/EB-007/README.md"
+    "evidence/EB-007/README.md",
+    "evidence/EB-012/README.md"
   ],
   "human_decision": {
     "actor": "founder-001",
@@ -95,5 +97,13 @@
     "at": "2026-09-20T12:40:00+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
     "reason": "Owner instructed to continue with the VS-005 gate logic on fixtures while the real agent run waits for the GitHub repository (\"可以 那就繼續吧\"). Accepts local development/testing only; no agent execution, deployment or production authorization."
-  }
+  },
+  "verification_updates": [
+    {
+      "at": "2026-09-21T03:10:00Z",
+      "evidence": "evidence/EB-012/README.md",
+      "summary": "Real run on the real governed repository with GitHub read-back; unknowns 1 and 2 resolved, id-namespace limitation added. Decision content unchanged (version stays 1).",
+      "by": "claude-cowork (on the operator's instruction)"
+    }
+  ]
 }

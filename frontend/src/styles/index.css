@@ -161,6 +161,13 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .candidate-card { gap: 8px; }
 .violation-list li { margin: 4px 0; }
 .gate-table td { font-size: 0.78rem; }
+.gate-table { table-layout: auto; width: 100%; }
+.gate-table th:first-child, .gate-table td:first-child { white-space: nowrap; width: 1%; }
+.gate-table th:nth-child(2), .gate-table td:nth-child(2) { width: 1%; }
+.gate-table td:nth-child(2) .status-badge { white-space: normal; }
+.gate-table td:nth-child(2) .status-badge .status-label, .gate-table td:nth-child(2) .status-badge .status-code { white-space: nowrap; display: inline-block; }
+.gate-table td:last-child { min-width: 14rem; }
+.gate-table td:last-child { overflow-wrap: anywhere; }
 .status-candidate-acceptable, .status-pass, .status-accepted-for-promotion { border-color: #3f8a5f; color: #9ee0b4; }
 .status-needs-evidence, .status-needs-review, .status-waived { border-color: #b9773c; color: #f0c48a; }
 .status-deferred-to-promotion, .status-evaluated { border-color: #526174; color: #cbd5e1; }

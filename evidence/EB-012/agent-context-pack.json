@@ -1,0 +1,98 @@
+{
+  "artifact_type": "agent_context_pack",
+  "schema_version": "agent-context-pack/v1",
+  "lineage": {
+    "decision_id": "DEC-001",
+    "decision_version": 1,
+    "change_id": "CHG-001",
+    "project_id": "order-operations-portal",
+    "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+    "topology_version": 1,
+    "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+    "policy_version": "project-workspace-v1"
+  },
+  "status": "ISSUED_FOR_DEVELOPMENT_CANDIDATE",
+  "objective": "Let a reviewer attach up to three supporting evidence references (label + http(s) link) to an order exception before deciding, kept in memory next to the order, listed with the order in GET /api/orders and visible in the UI above the review buttons.",
+  "environment_topology": {
+    "allowed_transition_id": "testing-to-staging",
+    "config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+    "production_action": "forbidden",
+    "source_environment_id": "testing",
+    "target_environment_id": "staging",
+    "target_ref": "cloud-run/order-operations-portal-staging",
+    "version": 1
+  },
+  "business_constraints": {
+    "data_classification": "internal",
+    "expected_monthly_volume": "200 references per month"
+  },
+  "accepted_scope": [
+    "POST /api/orders/{id}/evidence accepting {label, url}",
+    "at most three references per order",
+    "references listed with the order in GET /api/orders",
+    "references visible in the UI card above the review buttons",
+    "validation errors as JSON; the review note stays required"
+  ],
+  "out_of_scope": [
+    "file upload or storage (no Cloud Storage bucket, no persistence)",
+    "authentication",
+    "payment or fulfillment changes",
+    "production deployment",
+    "any change to docs/operations/environments.md or the review decision rules"
+  ],
+  "allowed_paths": [
+    "main.go",
+    "main_test.go",
+    "web/index.html",
+    "runs/"
+  ],
+  "forbidden_actions": [
+    "deploy:production",
+    "modify:iam",
+    "read:deployment-secrets",
+    "merge-or-approve-release",
+    "change-scope-without-new-decision-version",
+    "no storage bucket or persistence",
+    "no IAM change",
+    "no change to review decision rules",
+    "no change to docs/operations/environments.md",
+    "no production deploy"
+  ],
+  "acceptance_tests": [
+    {
+      "id": "AC-001",
+      "expected": "a reference needs a non-empty label and an http(s) URL; anything else returns 400 with a JSON error"
+    },
+    {
+      "id": "AC-002",
+      "expected": "the fourth reference on the same order returns 409"
+    },
+    {
+      "id": "AC-003",
+      "expected": "unknown order returns 404"
+    },
+    {
+      "id": "AC-004",
+      "expected": "references appear in GET /api/orders and in the UI card of that order"
+    },
+    {
+      "id": "AC-005",
+      "expected": "existing review behaviour and tests keep passing; go test ./... and go build ./... stay green"
+    }
+  ],
+  "required_checks": [
+    "allowed-paths-diff-check",
+    "independent-review",
+    "decision-record",
+    "review",
+    "single-operator-controls",
+    "test",
+    "build",
+    "smoke"
+  ],
+  "unknowns": [
+    "project context is STALE; some architecture facts may be outdated"
+  ],
+  "evidence_refs": [],
+  "rendered_at": "2026-09-21T02:42:18Z"
+}

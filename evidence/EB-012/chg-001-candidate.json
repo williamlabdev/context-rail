@@ -1,0 +1,1135 @@
+{
+    "change": {
+        "change_id": "CHG-001",
+        "project_id": "order-operations-portal",
+        "title": "Order exception evidence links",
+        "status": "CANDIDATE_ACCEPTED",
+        "current_version": 1,
+        "versions": [
+            {
+                "version": 1,
+                "created_at": "2026-09-21T02:37:38Z",
+                "actor": "claude-cowork",
+                "reason": "REQ-002 from requests/REQ-002-order-exception-evidence-links.md: reviewers need auditable evidence references on order exceptions",
+                "request": {
+                    "title": "Order exception evidence links",
+                    "objective": "Let a reviewer attach up to three supporting evidence references (label + http(s) link) to an order exception before deciding, kept in memory next to the order, listed with the order in GET /api/orders and visible in the UI above the review buttons.",
+                    "scope_included": [
+                        "POST /api/orders/{id}/evidence accepting {label, url}",
+                        "at most three references per order",
+                        "references listed with the order in GET /api/orders",
+                        "references visible in the UI card above the review buttons",
+                        "validation errors as JSON; the review note stays required"
+                    ],
+                    "scope_excluded": [
+                        "file upload or storage (no Cloud Storage bucket, no persistence)",
+                        "authentication",
+                        "payment or fulfillment changes",
+                        "production deployment",
+                        "any change to docs/operations/environments.md or the review decision rules"
+                    ],
+                    "acceptance_criteria": [
+                        {
+                            "id": "AC-001",
+                            "text": "a reference needs a non-empty label and an http(s) URL; anything else returns 400 with a JSON error"
+                        },
+                        {
+                            "id": "AC-002",
+                            "text": "the fourth reference on the same order returns 409"
+                        },
+                        {
+                            "id": "AC-003",
+                            "text": "unknown order returns 404"
+                        },
+                        {
+                            "id": "AC-004",
+                            "text": "references appear in GET /api/orders and in the UI card of that order"
+                        },
+                        {
+                            "id": "AC-005",
+                            "text": "existing review behaviour and tests keep passing; go test ./... and go build ./... stay green"
+                        }
+                    ],
+                    "allowed_paths": [
+                        "main.go",
+                        "main_test.go",
+                        "web/index.html",
+                        "runs/"
+                    ],
+                    "forbidden_actions": [
+                        "no storage bucket or persistence",
+                        "no IAM change",
+                        "no change to review decision rules",
+                        "no change to docs/operations/environments.md",
+                        "no production deploy"
+                    ],
+                    "target_environment_id": "staging",
+                    "business_constraints": {
+                        "data_classification": "internal",
+                        "expected_monthly_volume": "200 references per month"
+                    },
+                    "requested_by": "demo/operations"
+                },
+                "evaluation": {
+                    "status": "DECISION_READY",
+                    "missing_inputs": [],
+                    "observations": [
+                        "project context is STALE; the decision is made against sources that may have moved"
+                    ],
+                    "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+                    "topology_version": 1,
+                    "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+                    "target_environment": {
+                        "id": "staging",
+                        "type": "staging",
+                        "sequence": 3,
+                        "target_ref": "cloud-run/order-operations-portal-staging",
+                        "required_evidence": [
+                            "decision-record",
+                            "review",
+                            "single-operator-controls",
+                            "test",
+                            "build",
+                            "smoke"
+                        ],
+                        "status": "ACTIVE"
+                    },
+                    "source_environment": {
+                        "id": "testing",
+                        "type": "testing",
+                        "sequence": 2,
+                        "target_ref": "ci",
+                        "required_evidence": [
+                            "test",
+                            "build",
+                            "code-review"
+                        ],
+                        "status": "ACTIVE"
+                    },
+                    "allowed_transition": "testing-to-staging",
+                    "project_context_status": "STALE",
+                    "decision_inputs_readiness": "READY",
+                    "evaluated_at": "2026-09-21T02:37:38Z"
+                },
+                "options": [
+                    {
+                        "id": "minimal_reversible_slice",
+                        "title": "Minimal reversible slice",
+                        "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+                        "cost_drivers": [
+                            "compute of the existing service",
+                            "build and test minutes"
+                        ],
+                        "risks": [
+                            "may not cover the full business need on its own",
+                            "state resets if the slice is stateless"
+                        ],
+                        "recommended": true,
+                        "advisor_source": "rule-advisor"
+                    },
+                    {
+                        "id": "defer",
+                        "title": "Defer / keep current process",
+                        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+                        "cost_drivers": [
+                            "ongoing manual effort (not measured)"
+                        ],
+                        "risks": [
+                            "business impact of waiting is not quantified"
+                        ],
+                        "recommended": false,
+                        "advisor_source": "rule-advisor"
+                    },
+                    {
+                        "id": "managed_storage_with_signed_urls",
+                        "title": "Managed object storage with short-lived signed URLs",
+                        "summary": "Store objects in a private bucket and have the service authorize first, then issue short-lived signed URLs; needs retention, region and access-pattern inputs before its cost can be known.",
+                        "cost_drivers": [
+                            "stored bytes over retention",
+                            "download egress",
+                            "metadata reads/writes"
+                        ],
+                        "risks": [
+                            "URL replay and revocation limits",
+                            "IAM and bucket policy must be provisioned outside the agent's scope"
+                        ],
+                        "recommended": false,
+                        "advisor_source": "rule-advisor"
+                    }
+                ],
+                "unknowns": [
+                    "project context is STALE; some architecture facts may be outdated"
+                ]
+            }
+        ],
+        "decisions": [
+            {
+                "decision_id": "DEC-001",
+                "project_id": "order-operations-portal",
+                "change_id": "CHG-001",
+                "change_version": 1,
+                "version": 1,
+                "status": "ACCEPTED_FOR_DEVELOPMENT",
+                "risk_level": "low",
+                "selected_option": "minimal_reversible_slice",
+                "alternatives": [
+                    {
+                        "id": "minimal_reversible_slice",
+                        "title": "Minimal reversible slice",
+                        "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+                        "cost_drivers": [
+                            "compute of the existing service",
+                            "build and test minutes"
+                        ],
+                        "risks": [
+                            "may not cover the full business need on its own",
+                            "state resets if the slice is stateless"
+                        ],
+                        "recommended": true,
+                        "advisor_source": "rule-advisor"
+                    },
+                    {
+                        "id": "defer",
+                        "title": "Defer / keep current process",
+                        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+                        "cost_drivers": [
+                            "ongoing manual effort (not measured)"
+                        ],
+                        "risks": [
+                            "business impact of waiting is not quantified"
+                        ],
+                        "recommended": false,
+                        "advisor_source": "rule-advisor"
+                    },
+                    {
+                        "id": "managed_storage_with_signed_urls",
+                        "title": "Managed object storage with short-lived signed URLs",
+                        "summary": "Store objects in a private bucket and have the service authorize first, then issue short-lived signed URLs; needs retention, region and access-pattern inputs before its cost can be known.",
+                        "cost_drivers": [
+                            "stored bytes over retention",
+                            "download egress",
+                            "metadata reads/writes"
+                        ],
+                        "risks": [
+                            "URL replay and revocation limits",
+                            "IAM and bucket policy must be provisioned outside the agent's scope"
+                        ],
+                        "recommended": false,
+                        "advisor_source": "rule-advisor"
+                    }
+                ],
+                "rationale": "Decision taken by William (founder-001) via Claude Cowork on 2026-09-21: smallest reversible slice, in-memory references only; storage-backed attachments deferred to a separate Change.",
+                "objective": "Let a reviewer attach up to three supporting evidence references (label + http(s) link) to an order exception before deciding, kept in memory next to the order, listed with the order in GET /api/orders and visible in the UI above the review buttons.",
+                "accepted_scope": [
+                    "POST /api/orders/{id}/evidence accepting {label, url}",
+                    "at most three references per order",
+                    "references listed with the order in GET /api/orders",
+                    "references visible in the UI card above the review buttons",
+                    "validation errors as JSON; the review note stays required"
+                ],
+                "out_of_scope": [
+                    "file upload or storage (no Cloud Storage bucket, no persistence)",
+                    "authentication",
+                    "payment or fulfillment changes",
+                    "production deployment",
+                    "any change to docs/operations/environments.md or the review decision rules"
+                ],
+                "allowed_paths": [
+                    "main.go",
+                    "main_test.go",
+                    "web/index.html",
+                    "runs/"
+                ],
+                "forbidden_actions": [
+                    "deploy:production",
+                    "modify:iam",
+                    "read:deployment-secrets",
+                    "merge-or-approve-release",
+                    "change-scope-without-new-decision-version",
+                    "no storage bucket or persistence",
+                    "no IAM change",
+                    "no change to review decision rules",
+                    "no change to docs/operations/environments.md",
+                    "no production deploy"
+                ],
+                "acceptance_criteria": [
+                    {
+                        "id": "AC-001",
+                        "text": "a reference needs a non-empty label and an http(s) URL; anything else returns 400 with a JSON error"
+                    },
+                    {
+                        "id": "AC-002",
+                        "text": "the fourth reference on the same order returns 409"
+                    },
+                    {
+                        "id": "AC-003",
+                        "text": "unknown order returns 404"
+                    },
+                    {
+                        "id": "AC-004",
+                        "text": "references appear in GET /api/orders and in the UI card of that order"
+                    },
+                    {
+                        "id": "AC-005",
+                        "text": "existing review behaviour and tests keep passing; go test ./... and go build ./... stay green"
+                    }
+                ],
+                "business_constraints": {
+                    "data_classification": "internal",
+                    "expected_monthly_volume": "200 references per month"
+                },
+                "unknowns": [
+                    "project context is STALE; some architecture facts may be outdated"
+                ],
+                "target_environment": {
+                    "id": "staging",
+                    "type": "staging",
+                    "sequence": 3,
+                    "target_ref": "cloud-run/order-operations-portal-staging",
+                    "required_evidence": [
+                        "decision-record",
+                        "review",
+                        "single-operator-controls",
+                        "test",
+                        "build",
+                        "smoke"
+                    ],
+                    "status": "ACTIVE"
+                },
+                "source_environment": {
+                    "id": "testing",
+                    "type": "testing",
+                    "sequence": 2,
+                    "target_ref": "ci",
+                    "required_evidence": [
+                        "test",
+                        "build",
+                        "code-review"
+                    ],
+                    "status": "ACTIVE"
+                },
+                "allowed_transition": "testing-to-staging",
+                "production_action": "forbidden",
+                "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+                "topology_version": 1,
+                "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+                "policy_version": "project-workspace-v1",
+                "evidence_refs": [],
+                "human_decision": {
+                    "actor": "founder-001",
+                    "role": "founder",
+                    "at": "2026-09-21T02:42:18Z",
+                    "decision": "ACCEPTED",
+                    "reason": "Decision taken by William (founder-001) via Claude Cowork on 2026-09-21: smallest reversible slice, in-memory references only; storage-backed attachments deferred to a separate Change."
+                },
+                "created_at": "2026-09-21T02:42:18Z"
+            }
+        ],
+        "work_order": {
+            "kind": "AgentWorkOrder",
+            "schema_version": "agent-work-order/v1",
+            "work_order_id": "AWO-001",
+            "lineage": {
+                "decision_id": "DEC-001",
+                "decision_version": 1,
+                "change_id": "CHG-001",
+                "project_id": "order-operations-portal",
+                "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+                "topology_version": 1,
+                "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+                "policy_version": "project-workspace-v1"
+            },
+            "status": "ISSUED",
+            "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+            "issuer": "founder-001",
+            "repository": "github.com/williamlabdev/order-operations-portal",
+            "base_branch": "main",
+            "target_branch": "change/chg-001",
+            "target_environment_id": "staging",
+            "allowed_transition": "testing-to-staging",
+            "allowed_paths": [
+                "main.go",
+                "main_test.go",
+                "web/index.html",
+                "runs/"
+            ],
+            "forbidden_actions": [
+                "deploy:production",
+                "modify:iam",
+                "read:deployment-secrets",
+                "merge-or-approve-release",
+                "change-scope-without-new-decision-version",
+                "no storage bucket or persistence",
+                "no IAM change",
+                "no change to review decision rules",
+                "no change to docs/operations/environments.md",
+                "no production deploy"
+            ],
+            "acceptance_ids": [
+                "AC-001",
+                "AC-002",
+                "AC-003",
+                "AC-004",
+                "AC-005"
+            ],
+            "required_checks": [
+                "allowed-paths-diff-check",
+                "independent-review",
+                "decision-record",
+                "review",
+                "single-operator-controls",
+                "test",
+                "build",
+                "smoke"
+            ],
+            "output_paths": [
+                "runs/",
+                "evidence/"
+            ],
+            "issued_at": "2026-09-21T02:42:18Z",
+            "expires_at": "2026-10-05T02:42:18Z",
+            "work_order_hash": "sha256:952c8da4ad9322b4aee874fbee14b81697d033f2b9741da091a66654b0dfe061"
+        },
+        "candidates": [
+            {
+                "candidate_id": "CAND-001",
+                "change_id": "CHG-001",
+                "work_order_id": "AWO-001",
+                "lineage": {
+                    "decision_id": "DEC-001",
+                    "decision_version": 1,
+                    "change_id": "CHG-001",
+                    "project_id": "order-operations-portal",
+                    "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+                    "topology_version": 1,
+                    "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+                    "policy_version": "project-workspace-v1"
+                },
+                "run": {
+                    "kind": "AgentRunRecord",
+                    "schema_version": "agent-run-record/v1",
+                    "run_id": "ARR-002",
+                    "work_order_id": "AWO-001",
+                    "work_order_hash": "sha256:952c8da4ad9322b4aee874fbee14b81697d033f2b9741da091a66654b0dfe061",
+                    "agent": {
+                        "name": "claude-cowork",
+                        "provider": "anthropic",
+                        "model": "claude-fable-5-1",
+                        "version": "cowork-2026-09"
+                    },
+                    "adapter": "claude-cowork",
+                    "started_by": "williamlabdev",
+                    "started_at": "2026-09-21T02:42:54Z",
+                    "finished_at": "2026-09-21T02:45:46Z",
+                    "declared_commands": [
+                        "gofmt -l .",
+                        "go vet ./...",
+                        "go test ./...",
+                        "go build ./..."
+                    ],
+                    "declared_changed_paths": [
+                        "main.go",
+                        "main_test.go",
+                        "web/index.html",
+                        "runs/ARR-002-order-exception-evidence-links.json"
+                    ]
+                },
+                "observation": {
+                    "source": "github",
+                    "repository": "github.com/williamlabdev/order-operations-portal",
+                    "branch": "change/chg-001",
+                    "base_branch": "main",
+                    "base_commit": "7b2402e10c091a8b2666ab9403eb076c48e18177",
+                    "head_commit": "88531146a25e9fa7e68ffdb25d1290735ddd81cd",
+                    "pull_request": "https://github.com/williamlabdev/order-operations-portal/pull/1",
+                    "changed_paths": [
+                        "main.go",
+                        "main_test.go",
+                        "runs/ARR-002-order-exception-evidence-links.json",
+                        "web/index.html"
+                    ],
+                    "checks": [
+                        {
+                            "name": "test",
+                            "status": "PASS",
+                            "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/actions/runs/35555264157/job/106197574979",
+                            "observed_at": "2026-09-21T02:46:38Z"
+                        },
+                        {
+                            "name": "build",
+                            "status": "PASS",
+                            "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/actions/runs/35555264157/job/106197574760",
+                            "observed_at": "2026-09-21T02:46:40Z"
+                        },
+                        {
+                            "name": "local-smoke",
+                            "status": "PASS",
+                            "evidence_ref": "context-rail evidence/EB-012/order-portal-evidence-links.png",
+                            "observed_at": ""
+                        }
+                    ],
+                    "reviews": [],
+                    "compensating_controls": {
+                        "declared": true,
+                        "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/pull/1 + docs/governance/policies.md (single_operator mode) + runs/ARR-002-order-exception-evidence-links.json",
+                        "reason": "single operator: the same person accepted the decision and pushed the branch; the agent run record, the PR diff and the CI check runs are read back from GitHub rather than declared"
+                    },
+                    "observed_at": "2026-09-21T02:47:40Z"
+                },
+                "gates": [
+                    {
+                        "gate": "work_order_bound",
+                        "status": "PASS",
+                        "detail": "AWO-001 sha256:952c8da4ad93"
+                    },
+                    {
+                        "gate": "decision_current",
+                        "status": "PASS",
+                        "detail": "DEC-001 v1 bound to topology v1"
+                    },
+                    {
+                        "gate": "branch_matches",
+                        "status": "PASS",
+                        "detail": "change/chg-001 \u2190 main"
+                    },
+                    {
+                        "gate": "commit_observed",
+                        "status": "PASS",
+                        "detail": "88531146a25e9fa7e68"
+                    },
+                    {
+                        "gate": "allowed_paths",
+                        "status": "PASS",
+                        "detail": "4 changed path(s) all within allowed_paths"
+                    },
+                    {
+                        "gate": "forbidden_actions",
+                        "status": "PASS",
+                        "detail": "no forbidden path touched (non-path actions are enforced at promotion)"
+                    },
+                    {
+                        "gate": "required_checks",
+                        "status": "PASS",
+                        "detail": "all required pre-promotion checks have PASS evidence"
+                    },
+                    {
+                        "gate": "promotion_checks",
+                        "status": "DEFERRED_TO_PROMOTION",
+                        "detail": "verified by the promotion gate after deployment: smoke"
+                    },
+                    {
+                        "gate": "independent_review",
+                        "status": "NEEDS_REVIEW",
+                        "detail": "no independent review observed; the candidate cannot enter staging",
+                        "missing": [
+                            "human review by someone other than williamlabdev",
+                            "or: AI review APPROVED + declared single-operator controls"
+                        ]
+                    },
+                    {
+                        "gate": "work_order_expiry",
+                        "status": "PASS",
+                        "detail": "run started before 2026-10-05T02:42:18Z"
+                    }
+                ],
+                "violations": [],
+                "verdict": "NEEDS_REVIEW",
+                "status": "EVALUATED",
+                "recommended_action": "Obtain an independent review (or the documented single-operator controls where policy allows) and submit a new candidate.",
+                "human_decision": null,
+                "submitted_by": "claude-cowork",
+                "reason": "ARR-002 finished: PR #1 open, check runs test/build green on the head; observe branch, diff, checks and reviews from GitHub instead of trusting the declaration",
+                "created_at": "2026-09-21T02:47:40Z"
+            },
+            {
+                "candidate_id": "CAND-002",
+                "change_id": "CHG-001",
+                "work_order_id": "AWO-001",
+                "lineage": {
+                    "decision_id": "DEC-001",
+                    "decision_version": 1,
+                    "change_id": "CHG-001",
+                    "project_id": "order-operations-portal",
+                    "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+                    "topology_version": 1,
+                    "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+                    "policy_version": "project-workspace-v1"
+                },
+                "run": {
+                    "kind": "AgentRunRecord",
+                    "schema_version": "agent-run-record/v1",
+                    "run_id": "ARR-002",
+                    "work_order_id": "AWO-001",
+                    "work_order_hash": "sha256:952c8da4ad9322b4aee874fbee14b81697d033f2b9741da091a66654b0dfe061",
+                    "agent": {
+                        "name": "claude-cowork",
+                        "provider": "anthropic",
+                        "model": "claude-fable-5-1",
+                        "version": "cowork-2026-09"
+                    },
+                    "adapter": "claude-cowork",
+                    "started_by": "williamlabdev",
+                    "started_at": "2026-09-21T02:42:54Z",
+                    "finished_at": "2026-09-21T02:45:46Z",
+                    "declared_commands": [
+                        "gofmt -l .",
+                        "go vet ./...",
+                        "go test ./...",
+                        "go build ./..."
+                    ],
+                    "declared_changed_paths": [
+                        "main.go",
+                        "main_test.go",
+                        "web/index.html",
+                        "runs/ARR-002-order-exception-evidence-links.json"
+                    ]
+                },
+                "observation": {
+                    "source": "github",
+                    "repository": "github.com/williamlabdev/order-operations-portal",
+                    "branch": "change/chg-001",
+                    "base_branch": "main",
+                    "base_commit": "7b2402e10c091a8b2666ab9403eb076c48e18177",
+                    "head_commit": "88531146a25e9fa7e68ffdb25d1290735ddd81cd",
+                    "pull_request": "https://github.com/williamlabdev/order-operations-portal/pull/1",
+                    "changed_paths": [
+                        "main.go",
+                        "main_test.go",
+                        "runs/ARR-002-order-exception-evidence-links.json",
+                        "web/index.html"
+                    ],
+                    "checks": [
+                        {
+                            "name": "test",
+                            "status": "PASS",
+                            "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/actions/runs/35555264157/job/106197574979",
+                            "observed_at": "2026-09-21T02:46:38Z"
+                        },
+                        {
+                            "name": "build",
+                            "status": "PASS",
+                            "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/actions/runs/35555264157/job/106197574760",
+                            "observed_at": "2026-09-21T02:46:40Z"
+                        },
+                        {
+                            "name": "local-smoke",
+                            "status": "PASS",
+                            "evidence_ref": "context-rail evidence/EB-012/order-portal-evidence-links.png",
+                            "observed_at": ""
+                        }
+                    ],
+                    "reviews": [
+                        {
+                            "reviewer": "claude-cowork-reviewer",
+                            "kind": "ai",
+                            "verdict": "APPROVED",
+                            "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/pull/1#pullrequestreview-5262715677",
+                            "at": "2026-09-21T02:52:24Z"
+                        }
+                    ],
+                    "compensating_controls": {
+                        "declared": true,
+                        "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/pull/1 + docs/governance/policies.md (single_operator mode) + runs/ARR-002-order-exception-evidence-links.json",
+                        "reason": "single operator: the same person accepted the decision and pushed the branch; the agent run record, the PR diff and the CI check runs are read back from GitHub rather than declared"
+                    },
+                    "observed_at": "2026-09-21T02:52:37Z"
+                },
+                "gates": [
+                    {
+                        "gate": "work_order_bound",
+                        "status": "PASS",
+                        "detail": "AWO-001 sha256:952c8da4ad93"
+                    },
+                    {
+                        "gate": "decision_current",
+                        "status": "PASS",
+                        "detail": "DEC-001 v1 bound to topology v1"
+                    },
+                    {
+                        "gate": "branch_matches",
+                        "status": "PASS",
+                        "detail": "change/chg-001 \u2190 main"
+                    },
+                    {
+                        "gate": "commit_observed",
+                        "status": "PASS",
+                        "detail": "88531146a25e9fa7e68"
+                    },
+                    {
+                        "gate": "allowed_paths",
+                        "status": "PASS",
+                        "detail": "4 changed path(s) all within allowed_paths"
+                    },
+                    {
+                        "gate": "forbidden_actions",
+                        "status": "PASS",
+                        "detail": "no forbidden path touched (non-path actions are enforced at promotion)"
+                    },
+                    {
+                        "gate": "required_checks",
+                        "status": "PASS",
+                        "detail": "all required pre-promotion checks have PASS evidence"
+                    },
+                    {
+                        "gate": "promotion_checks",
+                        "status": "DEFERRED_TO_PROMOTION",
+                        "detail": "verified by the promotion gate after deployment: smoke"
+                    },
+                    {
+                        "gate": "independent_review",
+                        "status": "WAIVED",
+                        "detail": "no second human; accepted under documented single-operator controls (https://github.com/williamlabdev/order-operations-portal/pull/1 + docs/governance/policies.md (single_operator mode) + runs/ARR-002-order-exception-evidence-links.json) plus AI technical review \u2014 low-risk staging only, never production"
+                    },
+                    {
+                        "gate": "work_order_expiry",
+                        "status": "PASS",
+                        "detail": "run started before 2026-10-05T02:42:18Z"
+                    }
+                ],
+                "violations": [],
+                "verdict": "CANDIDATE_ACCEPTABLE",
+                "status": "ACCEPTED_FOR_PROMOTION",
+                "recommended_action": "A human may accept this candidate for promotion; acceptance is a separate decision from the requirement and from release.",
+                "human_decision": {
+                    "actor": "founder-001",
+                    "role": "founder",
+                    "at": "2026-09-21T03:01:03Z",
+                    "decision": "ACCEPTED",
+                    "reason": "Decision taken by William (founder-001) via Claude Cowork on 2026-09-21: candidate observed from GitHub (PR #1, head 8853114, test/build check runs PASS, diff within allowed_paths), independent AI review APPROVED under documented single-operator controls; accepted for promotion to staging only."
+                },
+                "submitted_by": "claude-cowork",
+                "reason": "CAND-001 was NEEDS_REVIEW (no independent review). Separate AI technical review run (claude-cowork-reviewer) APPROVED and posted on PR #1; single-operator controls declared; re-read from GitHub.",
+                "created_at": "2026-09-21T02:52:37Z"
+            }
+        ],
+        "created_at": "2026-09-21T02:37:38Z",
+        "updated_at": "2026-09-21T03:01:03Z"
+    },
+    "decision": {
+        "decision_id": "DEC-001",
+        "project_id": "order-operations-portal",
+        "change_id": "CHG-001",
+        "change_version": 1,
+        "version": 1,
+        "status": "ACCEPTED_FOR_DEVELOPMENT",
+        "risk_level": "low",
+        "selected_option": "minimal_reversible_slice",
+        "alternatives": [
+            {
+                "id": "minimal_reversible_slice",
+                "title": "Minimal reversible slice",
+                "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+                "cost_drivers": [
+                    "compute of the existing service",
+                    "build and test minutes"
+                ],
+                "risks": [
+                    "may not cover the full business need on its own",
+                    "state resets if the slice is stateless"
+                ],
+                "recommended": true,
+                "advisor_source": "rule-advisor"
+            },
+            {
+                "id": "defer",
+                "title": "Defer / keep current process",
+                "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+                "cost_drivers": [
+                    "ongoing manual effort (not measured)"
+                ],
+                "risks": [
+                    "business impact of waiting is not quantified"
+                ],
+                "recommended": false,
+                "advisor_source": "rule-advisor"
+            },
+            {
+                "id": "managed_storage_with_signed_urls",
+                "title": "Managed object storage with short-lived signed URLs",
+                "summary": "Store objects in a private bucket and have the service authorize first, then issue short-lived signed URLs; needs retention, region and access-pattern inputs before its cost can be known.",
+                "cost_drivers": [
+                    "stored bytes over retention",
+                    "download egress",
+                    "metadata reads/writes"
+                ],
+                "risks": [
+                    "URL replay and revocation limits",
+                    "IAM and bucket policy must be provisioned outside the agent's scope"
+                ],
+                "recommended": false,
+                "advisor_source": "rule-advisor"
+            }
+        ],
+        "rationale": "Decision taken by William (founder-001) via Claude Cowork on 2026-09-21: smallest reversible slice, in-memory references only; storage-backed attachments deferred to a separate Change.",
+        "objective": "Let a reviewer attach up to three supporting evidence references (label + http(s) link) to an order exception before deciding, kept in memory next to the order, listed with the order in GET /api/orders and visible in the UI above the review buttons.",
+        "accepted_scope": [
+            "POST /api/orders/{id}/evidence accepting {label, url}",
+            "at most three references per order",
+            "references listed with the order in GET /api/orders",
+            "references visible in the UI card above the review buttons",
+            "validation errors as JSON; the review note stays required"
+        ],
+        "out_of_scope": [
+            "file upload or storage (no Cloud Storage bucket, no persistence)",
+            "authentication",
+            "payment or fulfillment changes",
+            "production deployment",
+            "any change to docs/operations/environments.md or the review decision rules"
+        ],
+        "allowed_paths": [
+            "main.go",
+            "main_test.go",
+            "web/index.html",
+            "runs/"
+        ],
+        "forbidden_actions": [
+            "deploy:production",
+            "modify:iam",
+            "read:deployment-secrets",
+            "merge-or-approve-release",
+            "change-scope-without-new-decision-version",
+            "no storage bucket or persistence",
+            "no IAM change",
+            "no change to review decision rules",
+            "no change to docs/operations/environments.md",
+            "no production deploy"
+        ],
+        "acceptance_criteria": [
+            {
+                "id": "AC-001",
+                "text": "a reference needs a non-empty label and an http(s) URL; anything else returns 400 with a JSON error"
+            },
+            {
+                "id": "AC-002",
+                "text": "the fourth reference on the same order returns 409"
+            },
+            {
+                "id": "AC-003",
+                "text": "unknown order returns 404"
+            },
+            {
+                "id": "AC-004",
+                "text": "references appear in GET /api/orders and in the UI card of that order"
+            },
+            {
+                "id": "AC-005",
+                "text": "existing review behaviour and tests keep passing; go test ./... and go build ./... stay green"
+            }
+        ],
+        "business_constraints": {
+            "data_classification": "internal",
+            "expected_monthly_volume": "200 references per month"
+        },
+        "unknowns": [
+            "project context is STALE; some architecture facts may be outdated"
+        ],
+        "target_environment": {
+            "id": "staging",
+            "type": "staging",
+            "sequence": 3,
+            "target_ref": "cloud-run/order-operations-portal-staging",
+            "required_evidence": [
+                "decision-record",
+                "review",
+                "single-operator-controls",
+                "test",
+                "build",
+                "smoke"
+            ],
+            "status": "ACTIVE"
+        },
+        "source_environment": {
+            "id": "testing",
+            "type": "testing",
+            "sequence": 2,
+            "target_ref": "ci",
+            "required_evidence": [
+                "test",
+                "build",
+                "code-review"
+            ],
+            "status": "ACTIVE"
+        },
+        "allowed_transition": "testing-to-staging",
+        "production_action": "forbidden",
+        "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+        "topology_version": 1,
+        "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+        "policy_version": "project-workspace-v1",
+        "evidence_refs": [],
+        "human_decision": {
+            "actor": "founder-001",
+            "role": "founder",
+            "at": "2026-09-21T02:42:18Z",
+            "decision": "ACCEPTED",
+            "reason": "Decision taken by William (founder-001) via Claude Cowork on 2026-09-21: smallest reversible slice, in-memory references only; storage-backed attachments deferred to a separate Change."
+        },
+        "created_at": "2026-09-21T02:42:18Z"
+    },
+    "brief": {
+        "artifact_type": "change_decision_brief",
+        "lineage": {
+            "decision_id": "DEC-001",
+            "decision_version": 1,
+            "change_id": "CHG-001",
+            "project_id": "order-operations-portal",
+            "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+            "topology_version": 1,
+            "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+            "policy_version": "project-workspace-v1"
+        },
+        "audience": "business owner, engineering manager, PM",
+        "headline": "Proceed with \"minimal_reversible_slice\" in staging; verify in staging before anything further.",
+        "sections": [
+            {
+                "heading": "Decision identity",
+                "lines": [
+                    "Project: Order Operations Portal (order-operations-portal)",
+                    "Change: CHG-001 \u00b7 decision DEC-001 v1",
+                    "Status: ACCEPTED_FOR_DEVELOPMENT \u00b7 risk low",
+                    "Source snapshot: sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+                    "Environment topology: v1 (sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e) \u00b7 policy project-workspace-v1"
+                ]
+            },
+            {
+                "heading": "Where this change sits",
+                "lines": [
+                    "Next transition: testing \u2192 staging (testing-to-staging); target cloud-run/order-operations-portal-staging",
+                    "Production: forbidden \u2014 this decision does not authorize any production change."
+                ]
+            },
+            {
+                "heading": "One-line conclusion",
+                "lines": [
+                    "Proceed with \"minimal_reversible_slice\" in staging; verify in staging before anything further."
+                ]
+            },
+            {
+                "heading": "Why",
+                "lines": [
+                    "Decision taken by William (founder-001) via Claude Cowork on 2026-09-21: smallest reversible slice, in-memory references only; storage-backed attachments deferred to a separate Change."
+                ]
+            },
+            {
+                "heading": "Objective",
+                "lines": [
+                    "Let a reviewer attach up to three supporting evidence references (label + http(s) link) to an order exception before deciding, kept in memory next to the order, listed with the order in GET /api/orders and visible in the UI above the review buttons."
+                ]
+            },
+            {
+                "heading": "Approved this time",
+                "lines": [
+                    "POST /api/orders/{id}/evidence accepting {label, url}",
+                    "at most three references per order",
+                    "references listed with the order in GET /api/orders",
+                    "references visible in the UI card above the review buttons",
+                    "validation errors as JSON; the review note stays required"
+                ]
+            },
+            {
+                "heading": "Not approved / out of scope",
+                "lines": [
+                    "file upload or storage (no Cloud Storage bucket, no persistence)",
+                    "authentication",
+                    "payment or fulfillment changes",
+                    "production deployment",
+                    "any change to docs/operations/environments.md or the review decision rules"
+                ]
+            },
+            {
+                "heading": "What must be true before the next gate",
+                "lines": [
+                    "Required evidence for staging: build, decision-record, review, single-operator-controls, smoke, test",
+                    "An independent review and an allowed-paths diff check of the agent candidate.",
+                    "The same decision_id, version and source snapshot on the candidate; any input, topology or source change makes this decision STALE."
+                ]
+            },
+            {
+                "heading": "Unknowns you accepted knowingly",
+                "lines": [
+                    "project context is STALE; some architecture facts may be outdated"
+                ]
+            },
+            {
+                "heading": "Who decided",
+                "lines": [
+                    "founder-001 (founder) ACCEPTED at 2026-09-21T02:42:18Z"
+                ]
+            },
+            {
+                "heading": "Alternatives considered, not selected",
+                "lines": [
+                    "Defer / keep current process \u2014 Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+                    "Managed object storage with short-lived signed URLs \u2014 Store objects in a private bucket and have the service authorize first, then issue short-lived signed URLs; needs retention, region and access-pattern inputs before its cost can be known."
+                ]
+            }
+        ],
+        "rendered_at": "2026-09-21T02:42:18Z"
+    },
+    "agent_context_pack": {
+        "artifact_type": "agent_context_pack",
+        "schema_version": "agent-context-pack/v1",
+        "lineage": {
+            "decision_id": "DEC-001",
+            "decision_version": 1,
+            "change_id": "CHG-001",
+            "project_id": "order-operations-portal",
+            "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+            "topology_version": 1,
+            "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+            "policy_version": "project-workspace-v1"
+        },
+        "status": "ISSUED_FOR_DEVELOPMENT_CANDIDATE",
+        "objective": "Let a reviewer attach up to three supporting evidence references (label + http(s) link) to an order exception before deciding, kept in memory next to the order, listed with the order in GET /api/orders and visible in the UI above the review buttons.",
+        "environment_topology": {
+            "allowed_transition_id": "testing-to-staging",
+            "config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+            "production_action": "forbidden",
+            "source_environment_id": "testing",
+            "target_environment_id": "staging",
+            "target_ref": "cloud-run/order-operations-portal-staging",
+            "version": 1
+        },
+        "business_constraints": {
+            "data_classification": "internal",
+            "expected_monthly_volume": "200 references per month"
+        },
+        "accepted_scope": [
+            "POST /api/orders/{id}/evidence accepting {label, url}",
+            "at most three references per order",
+            "references listed with the order in GET /api/orders",
+            "references visible in the UI card above the review buttons",
+            "validation errors as JSON; the review note stays required"
+        ],
+        "out_of_scope": [
+            "file upload or storage (no Cloud Storage bucket, no persistence)",
+            "authentication",
+            "payment or fulfillment changes",
+            "production deployment",
+            "any change to docs/operations/environments.md or the review decision rules"
+        ],
+        "allowed_paths": [
+            "main.go",
+            "main_test.go",
+            "web/index.html",
+            "runs/"
+        ],
+        "forbidden_actions": [
+            "deploy:production",
+            "modify:iam",
+            "read:deployment-secrets",
+            "merge-or-approve-release",
+            "change-scope-without-new-decision-version",
+            "no storage bucket or persistence",
+            "no IAM change",
+            "no change to review decision rules",
+            "no change to docs/operations/environments.md",
+            "no production deploy"
+        ],
+        "acceptance_tests": [
+            {
+                "id": "AC-001",
+                "expected": "a reference needs a non-empty label and an http(s) URL; anything else returns 400 with a JSON error"
+            },
+            {
+                "id": "AC-002",
+                "expected": "the fourth reference on the same order returns 409"
+            },
+            {
+                "id": "AC-003",
+                "expected": "unknown order returns 404"
+            },
+            {
+                "id": "AC-004",
+                "expected": "references appear in GET /api/orders and in the UI card of that order"
+            },
+            {
+                "id": "AC-005",
+                "expected": "existing review behaviour and tests keep passing; go test ./... and go build ./... stay green"
+            }
+        ],
+        "required_checks": [
+            "allowed-paths-diff-check",
+            "independent-review",
+            "decision-record",
+            "review",
+            "single-operator-controls",
+            "test",
+            "build",
+            "smoke"
+        ],
+        "unknowns": [
+            "project context is STALE; some architecture facts may be outdated"
+        ],
+        "evidence_refs": [],
+        "rendered_at": "2026-09-21T02:42:18Z"
+    },
+    "work_order": {
+        "kind": "AgentWorkOrder",
+        "schema_version": "agent-work-order/v1",
+        "work_order_id": "AWO-001",
+        "lineage": {
+            "decision_id": "DEC-001",
+            "decision_version": 1,
+            "change_id": "CHG-001",
+            "project_id": "order-operations-portal",
+            "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+            "topology_version": 1,
+            "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+            "policy_version": "project-workspace-v1"
+        },
+        "status": "ISSUED",
+        "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+        "issuer": "founder-001",
+        "repository": "github.com/williamlabdev/order-operations-portal",
+        "base_branch": "main",
+        "target_branch": "change/chg-001",
+        "target_environment_id": "staging",
+        "allowed_transition": "testing-to-staging",
+        "allowed_paths": [
+            "main.go",
+            "main_test.go",
+            "web/index.html",
+            "runs/"
+        ],
+        "forbidden_actions": [
+            "deploy:production",
+            "modify:iam",
+            "read:deployment-secrets",
+            "merge-or-approve-release",
+            "change-scope-without-new-decision-version",
+            "no storage bucket or persistence",
+            "no IAM change",
+            "no change to review decision rules",
+            "no change to docs/operations/environments.md",
+            "no production deploy"
+        ],
+        "acceptance_ids": [
+            "AC-001",
+            "AC-002",
+            "AC-003",
+            "AC-004",
+            "AC-005"
+        ],
+        "required_checks": [
+            "allowed-paths-diff-check",
+            "independent-review",
+            "decision-record",
+            "review",
+            "single-operator-controls",
+            "test",
+            "build",
+            "smoke"
+        ],
+        "output_paths": [
+            "runs/",
+            "evidence/"
+        ],
+        "issued_at": "2026-09-21T02:42:18Z",
+        "expires_at": "2026-10-05T02:42:18Z",
+        "work_order_hash": "sha256:952c8da4ad9322b4aee874fbee14b81697d033f2b9741da091a66654b0dfe061"
+    },
+    "staleness": {
+        "stale": false
+    }
+}

@@ -1,0 +1,65 @@
+{
+  "kind": "AgentWorkOrder",
+  "schema_version": "agent-work-order/v1",
+  "work_order_id": "AWO-001",
+  "lineage": {
+    "decision_id": "DEC-001",
+    "decision_version": 1,
+    "change_id": "CHG-001",
+    "project_id": "order-operations-portal",
+    "source_snapshot_hash": "sha256:436aec8eafc58f6369e9362d08571a61d10f1a94c8797ad526bea0214f520a48",
+    "topology_version": 1,
+    "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+    "policy_version": "project-workspace-v1"
+  },
+  "status": "ISSUED",
+  "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+  "issuer": "founder-001",
+  "repository": "github.com/williamlabdev/order-operations-portal",
+  "base_branch": "main",
+  "target_branch": "change/chg-001",
+  "target_environment_id": "staging",
+  "allowed_transition": "testing-to-staging",
+  "allowed_paths": [
+    "main.go",
+    "main_test.go",
+    "web/index.html",
+    "runs/"
+  ],
+  "forbidden_actions": [
+    "deploy:production",
+    "modify:iam",
+    "read:deployment-secrets",
+    "merge-or-approve-release",
+    "change-scope-without-new-decision-version",
+    "no storage bucket or persistence",
+    "no IAM change",
+    "no change to review decision rules",
+    "no change to docs/operations/environments.md",
+    "no production deploy"
+  ],
+  "acceptance_ids": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005"
+  ],
+  "required_checks": [
+    "allowed-paths-diff-check",
+    "independent-review",
+    "decision-record",
+    "review",
+    "single-operator-controls",
+    "test",
+    "build",
+    "smoke"
+  ],
+  "output_paths": [
+    "runs/",
+    "evidence/"
+  ],
+  "issued_at": "2026-09-21T02:42:18Z",
+  "expires_at": "2026-10-05T02:42:18Z",
+  "work_order_hash": "sha256:952c8da4ad9322b4aee874fbee14b81697d033f2b9741da091a66654b0dfe061"
+}
