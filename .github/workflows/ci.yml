@@ -81,14 +81,18 @@ jobs:
       - name: Job summary
         if: always()
         run: |
+          result="$(grep -E "[0-9]+ (passed|failed|flaky|skipped)|did not run" "$RUNNER_TEMP/e2e.log" | tr '\n' ' ' || true)"
+          before="$(cat /tmp/fixtures-before 2>/dev/null || echo unavailable)"
+          after="$(cat /tmp/fixtures-after 2>/dev/null || echo unavailable)"
+          echo "::notice title=Browser journeys::${result:-no journey output} · fixture tree hash before ${before} after ${after}"
           {
             echo "## Browser journeys"
             echo
             echo '```'
-            grep -E "^ +[✓✘-] |passed|failed|flaky|skipped|did not run" "$RUNNER_TEMP/e2e.log" || echo "no journey output"
+            grep -E "^ +[✓✘-] |[0-9]+ (passed|failed|flaky|skipped)|did not run" "$RUNNER_TEMP/e2e.log" || echo "no journey output"
             echo '```'
             echo
-            echo "Consumer fixture tree hash before: \`$(cat /tmp/fixtures-before)\` · after: \`$(cat /tmp/fixtures-after 2>/dev/null || echo unavailable)\`"
+            echo "Consumer fixture tree hash before: \`${before}\` · after: \`${after}\`"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Server log
         if: always()
