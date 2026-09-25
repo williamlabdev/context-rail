@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import type { ChangeView } from "../api/changes";
-import { newIdempotencyKey, type EnvironmentDeltaField, type GateResult, type ReleaseView } from "../api/releases";
+import { newIdempotencyKey, type EnvironmentDeltaField, type GateResult, type Receipt, type ReleaseView } from "../api/releases";
 import type { TopologyEnvironment } from "../api/topology";
 import type { ReleasesController } from "../state/useReleases";
 import { StatusBadge } from "./StatusBadge";
@@ -95,6 +95,24 @@ function ReleaseOutcome({ view }: { view: ReleaseView }) {
           {firstGate ? <><code>{lastFailed.attempt_id}</code> <code>{firstGate.gate}</code> <StatusBadge status={firstGate.status} /> {firstGate.detail}</> : <code>{lastFailed.attempt_id}</code>}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Decision-maker version of the receipt: what landed where, who approved it, when — no full sha256. */
+function ReceiptSummary({ receipt }: { receipt: Receipt }) {
+  const { t } = useLocale();
+  return (
+    <div className="decision-card receipt-summary" data-testid="release-receipt-summary">
+      <div className="topology-change-heading">
+        <strong>{t("Release Receipt")}</strong>
+        <code>{receipt.receipt_id}</code>
+        <StatusBadge status={receipt.status} />
+      </div>
+      <p className="topology-reason">
+        {t("Landed on {target} as revision {revision}; approved by {actor} ({role}) on {at}.", { target: receipt.environment.target_ref, revision: receipt.deployment.revision || "∅", actor: receipt.approval.actor, role: receipt.approval.role, at: receipt.approval.at })}
+      </p>
+      {receipt.previous_receipt_id && <p className="muted">{t("Promoted from an earlier receipt; see the technical report for the full chain.")}</p>}
     </div>
   );
 }
@@ -222,18 +240,40 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
   const canBuild = !closed && promotion === null;
   const canApprove = !closed && !blocked && manifest.build !== null && !(release.approval?.decision === "APPROVED");
   const canDeploy = !closed && release.approval?.decision === "APPROVED" && !staleness.stale;
+  const [reportView, setReportView] = useState<"summary" | "technical">("summary");
+  const technical = reportView === "technical";
+  const failedGates = notPassing(liveGates);
+  const attempts = release.deployments.slice().reverse();
+  const shownAttempts = technical ? attempts : attempts.filter((attempt) => attempt.outcome !== "PROMOTED");
 
   return (
     <div className="change-detail" data-testid="release-detail">
       <div className="topology-change-heading">
         <code>{release.release_id}</code>
         <StatusBadge status={release.status} />
-        <span className="muted">{manifest.transition} · {t("target")} <code>{manifest.environment.target_ref}</code> · {t("topology v{version}", { version: manifest.environment.topology_version })} · {t("config")} <code title={manifest.environment.config_hash}>{manifest.environment.config_hash.slice(7, 19)}</code> · {t("manifest")} <code title={manifest.manifest_hash}>{manifest.manifest_hash.slice(7, 19)}</code></span>
       </div>
+      <div className="release-view-switch" role="group" aria-label={t("Detail view")}>
+        <button type="button" data-testid="release-view-summary" aria-pressed={!technical} className={`button-secondary${!technical ? " release-view-active" : ""}`} onClick={() => setReportView("summary")}>{t("Summary")}</button>
+        <button type="button" data-testid="release-view-technical" aria-pressed={technical} className={`button-secondary${technical ? " release-view-active" : ""}`} onClick={() => setReportView("technical")}>{t("Technical report")}</button>
+      </div>
+      {technical && (
+        <div className="topology-change-heading" data-testid="release-heading-technical">
+          <span className="muted">{manifest.transition} · {t("target")} <code>{manifest.environment.target_ref}</code> · {t("topology v{version}", { version: manifest.environment.topology_version })} · {t("config")} <code title={manifest.environment.config_hash}>{manifest.environment.config_hash.slice(7, 19)}</code> · {t("manifest")} <code title={manifest.manifest_hash}>{manifest.manifest_hash.slice(7, 19)}</code></span>
+        </div>
+      )}
       {staleness.stale && <div className="topology-inline-error" data-testid="release-stale" role="alert"><strong>STALE</strong> — {staleness.reason}</div>}
 
       <ReleaseOutcome view={view} />
-      {release.receipt && (
+      {release.receipt && !technical && <ReceiptSummary receipt={release.receipt} />}
+      {!technical && (
+        <div data-testid="release-includes">
+          <p className="eyebrow">{t("Changes in this release")}</p>
+          <ul className="release-includes">
+            {manifest.changes.map((entry) => <li key={entry.change_id}><code>{entry.change_id}</code> {entry.title}</li>)}
+          </ul>
+        </div>
+      )}
+      {release.receipt && technical && (
         <div className="decision-card receipt-card" data-testid="release-receipt">
           <div className="topology-change-heading">
             <strong>{t("Release Receipt")}</strong>
@@ -252,7 +292,7 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
         </div>
       )}
 
-      {promotion && (
+      {promotion && technical && (
         <div className="decision-card" data-testid="release-promotion">
           <p className="eyebrow">{t("PROMOTION · same digest, new environment — digest equality is necessary, not sufficient")}</p>
           <p className="topology-reason">
@@ -263,30 +303,40 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
         </div>
       )}
 
-      <div className="decision-card">
-        <p className="eyebrow">{t("MANIFEST · changes in this release")}</p>
-        <table className="topology-table">
-          <thead><tr><th>{t("Change")}</th><th>{t("Decision")}</th><th>{t("Work order")}</th><th>{t("Candidate")}</th><th>{t("Commit")}</th><th>{t("Review")}</th></tr></thead>
-          <tbody>
-            {manifest.changes.map((entry) => (
-              <tr key={entry.change_id} data-testid={`release-change-${entry.change_id}`}>
-                <td><code>{entry.change_id}</code> {entry.title}</td>
-                <td>{entry.decision_id ? `${entry.decision_id} v${entry.decision_version}` : <span className="muted">∅</span>}</td>
-                <td>{entry.work_order_id || <span className="muted">∅</span>}</td>
-                <td>{entry.candidate_id ? `${entry.candidate_id} ${t("by")} ${entry.candidate_accepted_by}` : <span className="reason">{t("none accepted")}</span>}</td>
-                <td><code>{entry.head_commit || "∅"}</code></td>
-                <td>{entry.review_gate || <span className="muted">∅</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="topology-reason"><span className="muted">{t("build:")}</span> {manifest.build ? <>{manifest.build.image_digest} <span className="muted">{t("from")} {manifest.build.source_commit} · {manifest.build.build_id || t("no build id")} · {manifest.build.evidence_ref || t("no evidence ref")}{promotion ? ` · ${t("inherited from {release}, a promotion never rebuilds", { release: promotion.source_release_id })}` : ""}</span></> : <span className="reason">{t("no image digest yet")}</span>}</p>
-      </div>
+      {technical && (
+        <div className="decision-card" data-testid="release-manifest">
+          <p className="eyebrow">{t("MANIFEST · changes in this release")}</p>
+          <table className="topology-table">
+            <thead><tr><th>{t("Change")}</th><th>{t("Decision")}</th><th>{t("Work order")}</th><th>{t("Candidate")}</th><th>{t("Commit")}</th><th>{t("Review")}</th></tr></thead>
+            <tbody>
+              {manifest.changes.map((entry) => (
+                <tr key={entry.change_id} data-testid={`release-change-${entry.change_id}`}>
+                  <td><code>{entry.change_id}</code> {entry.title}</td>
+                  <td>{entry.decision_id ? `${entry.decision_id} v${entry.decision_version}` : <span className="muted">∅</span>}</td>
+                  <td>{entry.work_order_id || <span className="muted">∅</span>}</td>
+                  <td>{entry.candidate_id ? `${entry.candidate_id} ${t("by")} ${entry.candidate_accepted_by}` : <span className="reason">{t("none accepted")}</span>}</td>
+                  <td><code>{entry.head_commit || "∅"}</code></td>
+                  <td>{entry.review_gate || <span className="muted">∅</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="topology-reason"><span className="muted">{t("build:")}</span> {manifest.build ? <>{manifest.build.image_digest} <span className="muted">{t("from")} {manifest.build.source_commit} · {manifest.build.build_id || t("no build id")} · {manifest.build.evidence_ref || t("no evidence ref")}{promotion ? ` · ${t("inherited from {release}, a promotion never rebuilds", { release: promotion.source_release_id })}` : ""}</span></> : <span className="reason">{t("no image digest yet")}</span>}</p>
+        </div>
+      )}
 
-      <div>
-        <p className="eyebrow">{t("PROMOTION GATE · live")}</p>
-        <GateTable gates={liveGates} testid="release-gates" />
-      </div>
+      {technical && (
+        <div>
+          <p className="eyebrow">{t("PROMOTION GATE · live")}</p>
+          <GateTable gates={liveGates} testid="release-gates" />
+        </div>
+      )}
+      {!technical && failedGates.length > 0 && (
+        <div data-testid="release-gates-summary">
+          <p className="eyebrow">{t("PROMOTION GATE · blocking")}</p>
+          <GateRows gates={failedGates} testid="release-gates" />
+        </div>
+      )}
 
       {canBuild && (
         <form className="topology-form" data-testid="release-build-form" onSubmit={(event) => { event.preventDefault(); void controller.build(release.release_id, { reason: build.reason.trim(), image_digest: build.image_digest.trim(), image_ref: build.image_ref.trim() || undefined, build_id: build.build_id.trim() || undefined, source_commit: build.source_commit.trim(), includes_commits: lines(build.includes_commits), evidence_ref: build.evidence_ref.trim() || undefined }); }}>
@@ -353,7 +403,7 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
         </form>
       )}
 
-      {release.deployments.slice().reverse().map((attempt) => (
+      {shownAttempts.map((attempt) => (
         <div className="decision-card" key={attempt.attempt_id} data-testid={`release-attempt-${attempt.attempt_id}`}>
           <div className="topology-change-heading">
             <code>{attempt.attempt_id}</code>

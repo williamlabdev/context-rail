@@ -49,7 +49,7 @@
 | 2 | 白話摘要由人撰寫：request 新增 `owner_summary`，缺少時回傳 `NEEDS_INPUT`（owner：requester），renderer 不自動產生。舊決策沒有這個欄位時，明確顯示「未提供」，並原封不動列出技術目標，不拿其他內容代替 | `feat/brief-readability` 已實作 |
 | 3 | Renderer 只輸出結構化資料（`change-decision-brief/v2`）；前端負責翻譯標題和標籤，資料值不翻譯 | `feat/brief-readability` 已實作 |
 | 4 | Receipt 結論優先：開頭一句話說明結果；下方只列非 PASS 的項目，PASS 合併成一行 | `feat/receipt-conclusion-first` 已實作（見第 7 節） |
-| 5 | 完整 gate 表與 hash 移到給審查者看的 Technical Report，讓「role-specific」真正成立 | 未做 |
+| 5 | 完整 gate 表與 hash 移到給審查者看的 Technical Report，讓「role-specific」真正成立 | `feat/release-technical-report` 已實作（見第 8 節） |
 | 6 | 驗收：找 2–3 位不同角色的人讀完後回答三個問題（核准了什麼？沒核准什麼？最大的風險是什麼？），結果記入 G5 | 未做；是第 1～3 點能否算完成的依據 |
 
 ## 6. 第 1～3 點實作後的已知限制
@@ -68,3 +68,13 @@
 - 高度參考：改版前 EB-009 的整頁截圖約 3200px；改版後，同一個 prod-demo 流程的發布詳情區塊約 1780px。兩者量的範圍不同，這個數字只能當大略參考。
 
 仍有的限制：gate 的 detail、轉換名稱等由 server 產生的文字在 zh-TW 仍是英文；manifest、delta 等技術區塊仍和決策者的資訊放在同一頁，這部分屬於第 5 點。
+
+## 8. 第 5 點實作（決策者摘要 vs. 技術報告）
+
+- 發布詳情新增兩顆切換鈕（`release-view-summary` / `release-view-technical`），預設落在「摘要」。這是純前端的顯示切換，renderer 不因切換而新增或改變任何事實，只決定同一批資料要不要顯示、如何排列。
+- **摘要視圖**（決策者預設看到的）留下：結論句（`release-outcome`，第 4 點的產出）、一段人讀的收據摘要（`release-receipt-summary`：上線到哪裡、部署到第幾個 revision、誰核准、何時核准——不含完整 sha256，最多顯示短 hash）、核准卡片（`release-approval`）、目前未通過的 gate（存活的和每次失敗部署各自的）、以及全部操作表單（建置／核准／部署／晉升）。表單刻意設計成兩個視圖都能用，不因切換而被鎖住。
+- **技術報告視圖**新增：完整標頭（release id、transition、target、topology、config hash、manifest hash，`release-heading-technical`）、完整 Receipt 卡片（含完整 sha256）、晉升卡片與 Delta 表、MANIFEST 表與 build 資訊、完整 gate 表（含所有 PASS 列）、以及每一次部署嘗試（含已成功晉升的那次，摘要視圖只留非 PROMOTED 的嘗試）。
+- 因為 `ReleaseDetail` 在每次建置／核准／部署動作後都會依 key 重新掛載（既有設計），視圖選擇不做 localStorage 記憶——每次動作完成都乾淨地回到摘要，行為可預期，也不需要额外處理跨動作的狀態一致性。這點屬於任務書允許的「optional」，選擇不做。
+- 判斷取捨：`ReleaseOutcome` 結論句與核准卡片（`release-approval`）在兩個視圖都顯示，未嚴格照最初條列收進摘要限定——結論句是導向性的一句話，核准卡片對審查者同樣有用，沒有理由只留在技術報告。
+- 已知限制：MANIFEST 表（這次發布包含哪些變更）完全收進技術報告，決策者在摘要視圖看不到「這次上線了哪些變更」的清單，需要切到技術報告才看得到；如果日後驗收（第 6 點）發現決策者確實需要這份清單，屬於下一輪要處理的項目。
+- 驗證：`frontend/tests/components/releasesPanel.test.tsx`（新增，3 個案例，覆蓋摘要隱藏技術細節／技術報告顯示完整內容／摘要 gate 表只列未通過項）；既有的 `tests/browser/release-promotion.spec.ts`、`tests/browser/prod-demo-promotion.spec.ts` 已更新為在需要技術細節的斷言前先切換視圖，並新增摘要視圖不含完整 hash／manifest 的斷言。全數本地跑過，CI 未跑。
