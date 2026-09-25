@@ -1,7 +1,7 @@
 # Change Decision Brief 讀者測試（三問測試）
 
 - 對應：可讀性 review 第 6 點（[review](../reviews/CONTEXT_RAIL_BRIEF_READABILITY_REVIEW_2026-09-25.zh-TW.md)）、roadmap G5 usability、DoD #5「human-readable Change Decision Brief」
-- 受測版本：`fix/brief-reader-preview` @ `cf9de5c`（Brief v2 + 第 9 節 AI 預演後的三項顯示修正：範圍兩欄皆空時合併成一行、「進入 staging 之前必須做到」只顯示人類標籤、「考慮過但未採用」加上分隔線與「未採用：」標籤）。EB-013（`develop` @ `7b51de4`）是 AI 預演當時看的舊版，不再用於真人施測。
+- 受測版本：`docs/reader-test-zh-material` @ `115eb13`（畫面本身沿用 `fix/brief-reader-preview` @ `cf9de5c` 的顯示修正，未再變更；這次只換了截圖素材——zh-TW 與 en 改成由撰寫者分別以中文／英文各寫一次 owner_summary、範圍、決策理由等自由文字後各自擷取，見第 2 節，取代先前殘留英文自由文字的版本）。EB-013（`develop` @ `7b51de4`）是 AI 預演當時看的舊版，不再用於真人施測。
 - 狀態：**題目已備妥，尚未施測**
 - 目的：確認沒看過 ContextRail 的人，只讀 Brief 就能說出核准了什麼、沒核准什麼、最大的風險是什麼。現有的截圖和測試只能證明畫面正確，不能證明讀得懂。
 
@@ -11,7 +11,7 @@
 
 | 代號 | 角色 | 用哪一版 |
 |---|---|---|
-| R1 | 業主／PM（不寫程式、要做決定的人） | zh-TW |
+| R1 | 業主／PM（不寫程式、要做決定的人） | zh-TW（預設）；能流暢讀英文者可用 en |
 | R2 | 工程主管或 tech lead | zh-TW 或 en |
 | R3（選填） | 審查、稽核或維運角色 | zh-TW 或 en |
 
@@ -19,8 +19,13 @@
 
 ## 2. 材料
 
-- zh-TW：`docs/validation/reader-test-materials/brief-zh-TW.png`
+- zh-TW（預設）：`docs/validation/reader-test-materials/brief-zh-TW.png`
 - en：`docs/validation/reader-test-materials/brief-en.png`
+
+zh-TW 和 en 是**兩筆各自撰寫的紀錄**，不是同一筆 decision 互譯出來的：同一個 Change 決策流程各跑一次，owner_summary、範圍（included／not included）、決策理由等自由文字欄位，由撰寫者（requester）分別用中文和英文各寫一次，語意、結構、選中的方案（最小可退回的一步）、目標環境（staging）都相同；renderer 本身從不翻譯資料（見 `frontend/src/components/ChangeBrief.tsx` 檔頭註解「Data values are never passed through t()」），所以兩張截圖的 decision id 也不同（en 是 DEC-001，zh-TW 是 DEC-002）。
+
+截圖由 `tests/browser/reader-test-material.capture.ts` 產生，是可重複執行的腳本（不算進 `npm run test:e2e`，見該檔檔頭註解與 `tests/browser/reader-test-material.capture.config.ts`）。跑法：對一個全新、空的 `CONTEXT_RAIL_STATE_DIR` 啟動伺服器後，於 `frontend/` 下執行：
+`PLAYWRIGHT_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" BASE_URL=http://127.0.0.1:<port> npx playwright test --config=../tests/browser/reader-test-material.capture.config.ts`
 
 （舊版 `evidence/EB-013/brief-zh-TW.png`、`brief-en.png` 是第 9 節 AI 預演當時看的截圖，修正前的版本；真人施測一律用上面這組新截圖，不要用 EB-013 的。）
 
@@ -65,6 +70,7 @@
 - 測的是示範資料，不是真實的變更。
 - 看的是靜態截圖，沒有測到展開追溯區、切換語系等互動。
 - 2～3 人只能找出明顯的理解問題，不足以作為統計上的結論。
+- zh/en 兩張截圖是兩筆各自撰寫的紀錄，內容相同但不是同一筆 decision（見第 2 節）；R1 若改用 en，第 7 節紀錄表「語系」欄要據實填寫，第 8 節結果表也要註明用的是哪個語系。
 
 ## 7. 紀錄表
 
