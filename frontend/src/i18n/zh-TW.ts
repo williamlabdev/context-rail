@@ -431,6 +431,7 @@ const messages: Record<string, string> = {
   "PROMOTION GATE · blocking": "晉升閘門・阻擋中",
   "Landed on {target} as revision {revision}; approved by {actor} ({role}) on {at}.": "已上線到 {target},revision 為 {revision};由 {actor}({role})於 {at} 核准。",
   "Promoted from an earlier receipt; see the technical report for the full chain.": "從先前的收據晉升而來；完整鏈結請見技術報告。",
+  "Changes in this release": "這次發布包含的變更",
 };
 
 // UI-18：機器狀態碼的人類標籤；狀態碼本身仍保留在標籤旁。

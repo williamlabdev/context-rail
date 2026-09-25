@@ -265,6 +265,14 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
 
       <ReleaseOutcome view={view} />
       {release.receipt && !technical && <ReceiptSummary receipt={release.receipt} />}
+      {!technical && (
+        <div data-testid="release-includes">
+          <p className="eyebrow">{t("Changes in this release")}</p>
+          <ul className="release-includes">
+            {manifest.changes.map((entry) => <li key={entry.change_id}><code>{entry.change_id}</code> {entry.title}</li>)}
+          </ul>
+        </div>
+      )}
       {release.receipt && technical && (
         <div className="decision-card receipt-card" data-testid="release-receipt">
           <div className="topology-change-heading">

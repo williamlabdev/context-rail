@@ -168,6 +168,9 @@ test.describe("Prod-demo promotion (VS-007)", () => {
     await expect(page.getByTestId("receipt-chain")).toContainText(`Promoted from receipt ${staging.receiptID}`);
     await expect(page.getByTestId("receipt-chain")).toContainText(stagingRevision);
     await expect(page.getByTestId("release-outcome")).toHaveAttribute("data-tone", "done");
+    // The summary names what the release contains; the manifest table stays in the technical report.
+    await page.getByTestId("release-view-summary").click();
+    await expect(page.getByTestId("release-includes")).toContainText(changeID);
     await expect(page.getByTestId("release-outcome")).toContainText(`Promoted to prod-demo: revision oop-prod-demo-00001-${suffix}`);
     await expect(page.getByTestId("release-outcome-failures")).toContainText("1 earlier attempt(s) failed first");
     await expect(page.getByTestId("release-outcome-failures")).toContainText("new_revision");

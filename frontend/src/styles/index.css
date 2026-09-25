@@ -242,3 +242,5 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .relationship-decision .status-badge .status-label { display: inline-block; white-space: nowrap; }
 /* The code is the secondary line; when even it is wider than the column it may break, the label never does. */
 .relationship-decision .status-badge .status-code { display: block; margin-left: 0; overflow-wrap: anywhere; white-space: normal; }
+.release-includes { color: #b6c1cf; font-size: 0.8rem; list-style: none; margin: 0; padding: 0; }
+.release-includes li + li { margin-top: 2px; }
