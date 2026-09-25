@@ -17,6 +17,9 @@ func RenderBrief(decision *DecisionRecord, staleness Staleness) ChangeDecisionBr
 	alternatives := []BriefOption{}
 	for _, option := range decision.Alternatives {
 		entry := BriefOption{ID: option.ID, Title: option.Title, Summary: option.Summary}
+		if option.AdvisorSource == "rule-advisor" && ruleOptionIDs[option.ID] {
+			entry.Code = option.ID
+		}
 		if option.ID == decision.SelectedOption {
 			selected = entry
 			continue
@@ -26,9 +29,15 @@ func RenderBrief(decision *DecisionRecord, staleness Staleness) ChangeDecisionBr
 	route := BriefRoute{
 		TargetEnvironmentID: decision.TargetEnvironment.ID, TargetType: decision.TargetEnvironment.Type,
 		TargetRef: decision.TargetEnvironment.TargetRef, Transition: decision.AllowedTransition, ProductionAction: decision.ProductionAction,
+		Path: append([]PathStep{}, decision.PromotionPath...),
 	}
 	if decision.SourceEnvironment != nil {
 		route.SourceEnvironmentID = decision.SourceEnvironment.ID
+	}
+	unknowns := []BriefNote{}
+	for _, text := range decision.Unknowns {
+		code, value := NoteCode(text)
+		unknowns = append(unknowns, BriefNote{Text: text, Code: code, Value: value})
 	}
 	evidence := append([]string{}, decision.TargetEnvironment.RequiredEvidence...)
 	sort.Strings(evidence)
@@ -37,7 +46,7 @@ func RenderBrief(decision *DecisionRecord, staleness Staleness) ChangeDecisionBr
 		Audience: "business owner, engineering manager, PM", State: state, StaleReason: staleness.Reason,
 		OwnerSummary: decision.OwnerSummary, OwnerSummaryMissing: strings.TrimSpace(decision.OwnerSummary) == "",
 		Objective: decision.Objective, Selected: selected, Route: route, RiskLevel: decision.RiskLevel,
-		Unknowns: nonNil(decision.Unknowns), InScope: nonNil(decision.AcceptedScope), OutOfScope: nonNil(decision.OutOfScope),
+		Unknowns: unknowns, InScope: nonNil(decision.AcceptedScope), OutOfScope: nonNil(decision.OutOfScope),
 		RequiredEvidence: evidence,
 		DecidedBy:        BriefDecider{Actor: decision.HumanDecision.Actor, Role: decision.HumanDecision.Role, At: decision.HumanDecision.At, Rationale: decision.Rationale},
 		Alternatives:     alternatives, RenderedAt: decision.CreatedAt,

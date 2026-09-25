@@ -357,6 +357,7 @@ func (service *Service) Decide(projectID, changeID string, request DecideRequest
 		AcceptanceCriteria: current.Request.AcceptanceCriteria, BusinessConstraints: current.Request.BusinessConstraints,
 		Unknowns:          current.Unknowns,
 		SourceEnvironment: current.Evaluation.SourceEnvironment, AllowedTransition: current.Evaluation.AllowedTransition,
+		PromotionPath:      current.Evaluation.PromotionPath,
 		ProductionAction:   "forbidden",
 		SourceSnapshotHash: current.Evaluation.SourceSnapshotHash, TopologyVersion: current.Evaluation.TopologyVersion,
 		TopologyConfigHash: current.Evaluation.TopologyConfigHash, PolicyVersion: PolicyVersion,
@@ -517,6 +518,11 @@ func evaluate(request Request, facts *ProjectFacts, at string) Evaluation {
 		} else {
 			ordered := append([]topology.Environment(nil), current.Environments...)
 			sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].Sequence < ordered[j].Sequence })
+			for _, environment := range ordered {
+				if environment.Status != topology.StatusRetired {
+					evaluation.PromotionPath = append(evaluation.PromotionPath, PathStep{ID: environment.ID, DisplayName: environment.DisplayName, Type: environment.Type, Status: string(environment.Status)})
+				}
+			}
 			targetIndex := -1
 			for index, environment := range ordered {
 				if environment.ID == request.TargetEnvironmentID {

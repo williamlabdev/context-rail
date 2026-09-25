@@ -77,6 +77,7 @@ type Evaluation struct {
 	TargetEnvironment   *EnvironmentRef `json:"target_environment"`
 	SourceEnvironment   *EnvironmentRef `json:"source_environment"`
 	AllowedTransition   string          `json:"allowed_transition"`
+	PromotionPath       []PathStep      `json:"promotion_path,omitempty"`
 	ProjectContext      string          `json:"project_context_status"`
 	DecisionInputsReady string          `json:"decision_inputs_readiness"`
 	EvaluatedAt         string          `json:"evaluated_at"`
@@ -91,6 +92,16 @@ type EnvironmentRef struct {
 	RequiredEvidence []string `json:"required_evidence"`
 	Status           string   `json:"status"`
 	Protection       string   `json:"protection,omitempty"`
+}
+
+// PathStep is one active environment of the bound topology version, in
+// promotion order. Decisions record the whole path so the Brief can show
+// where the approval ends without re-reading a topology that may have moved.
+type PathStep struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"display_name,omitempty"`
+	Type        string `json:"type"`
+	Status      string `json:"status"`
 }
 
 // Option is a candidate the advisor proposes; a human selects one.
@@ -150,6 +161,7 @@ type DecisionRecord struct {
 	TargetEnvironment   EnvironmentRef        `json:"target_environment"`
 	SourceEnvironment   *EnvironmentRef       `json:"source_environment"`
 	AllowedTransition   string                `json:"allowed_transition"`
+	PromotionPath       []PathStep            `json:"promotion_path,omitempty"`
 	ProductionAction    string                `json:"production_action"`
 	SourceSnapshotHash  string                `json:"source_snapshot_hash"`
 	TopologyVersion     int                   `json:"topology_version"`
@@ -178,6 +190,17 @@ type BriefOption struct {
 	ID      string `json:"id"`
 	Title   string `json:"title"`
 	Summary string `json:"summary"`
+	// Code is the option id when RuleAdvisor wrote the wording, so the
+	// workspace may show it in the reader's language; empty otherwise.
+	Code string `json:"code,omitempty"`
+}
+
+// BriefNote is one accepted unknown: the recorded text, plus a code and
+// value when it is a fixed RuleAdvisor sentence.
+type BriefNote struct {
+	Text  string `json:"text"`
+	Code  string `json:"code,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // BriefRoute is where the decision lets the change go next.
@@ -188,6 +211,9 @@ type BriefRoute struct {
 	TargetRef           string `json:"target_ref"`
 	Transition          string `json:"transition"`
 	ProductionAction    string `json:"production_action"`
+	// Path is the promotion path recorded with the decision; empty for
+	// decisions made before paths were recorded.
+	Path []PathStep `json:"path"`
 }
 
 // BriefDecider is the recorded human act, as the reader sees it.
@@ -217,7 +243,7 @@ type ChangeDecisionBrief struct {
 	Selected            BriefOption   `json:"selected"`
 	Route               BriefRoute    `json:"route"`
 	RiskLevel           string        `json:"risk_level"`
-	Unknowns            []string      `json:"unknowns"`
+	Unknowns            []BriefNote   `json:"unknowns"`
 	InScope             []string      `json:"in_scope"`
 	OutOfScope          []string      `json:"out_of_scope"`
 	RequiredEvidence    []string      `json:"required_evidence"`

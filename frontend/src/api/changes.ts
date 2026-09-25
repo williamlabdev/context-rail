@@ -62,10 +62,15 @@ export interface DecisionRecord {
   human_decision: HumanDecision; created_at: string;
 }
 
-export interface BriefOption { id: string; title: string; summary: string }
+// code is set when RuleAdvisor wrote the wording; the UI may localise it.
+export interface BriefOption { id: string; title: string; summary: string; code?: string }
+export interface BriefNote { text: string; code?: string; value?: string }
 
+export interface PathStep { id: string; display_name?: string; type: string; status: string }
 export interface BriefRoute {
   source_environment_id?: string; target_environment_id: string; target_type: string; target_ref: string; transition: string; production_action: string;
+  // Promotion path recorded with the decision; empty for older decisions.
+  path: PathStep[];
 }
 
 // change-decision-brief/v2: structured values copied from the DecisionRecord;
@@ -74,7 +79,7 @@ export interface ChangeDecisionBrief {
   artifact_type: string; schema_version: string; lineage: Lineage; audience: string;
   state: "ACCEPTED" | "STALE" | string; stale_reason?: string;
   owner_summary: string; owner_summary_missing: boolean; objective: string;
-  selected: BriefOption; route: BriefRoute; risk_level: string; unknowns: string[];
+  selected: BriefOption; route: BriefRoute; risk_level: string; unknowns: BriefNote[];
   in_scope: string[]; out_of_scope: string[]; required_evidence: string[];
   decided_by: { actor: string; role: string; at: string; rationale: string };
   alternatives: BriefOption[]; rendered_at: string;

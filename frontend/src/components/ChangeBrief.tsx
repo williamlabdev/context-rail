@@ -6,8 +6,9 @@
 // risk was accepted, what must happen next, who decided — and the machine
 // identity (ids, hashes, policy) sits in a collapsed traceability block.
 // Data values are never passed through t().
-import type { ChangeDecisionBrief, Lineage } from "../api/changes";
+import type { BriefRoute, ChangeDecisionBrief, Lineage, PathStep } from "../api/changes";
 import { useLocale } from "../i18n";
+import { noteWording, optionWording } from "../i18n/advisor";
 
 export function LineageStrip({ lineage }: { lineage: Pick<Lineage, "decision_id" | "decision_version" | "source_snapshot_hash" | "topology_version" | "policy_version"> }) {
   const { t } = useLocale();
@@ -40,11 +41,50 @@ function formatMoment(value: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(parsed);
 }
 
+// RouteDiagram draws the promotion path recorded with the decision and marks
+// where this approval ends. Older decisions recorded only source and target;
+// they get those two steps and a note instead of a guessed path.
+function RouteDiagram({ route, stale }: { route: BriefRoute; stale: boolean }) {
+  const { t } = useLocale();
+  const recorded = route.path.length > 0;
+  const path: PathStep[] = recorded
+    ? route.path
+    : [
+        ...(route.source_environment_id ? [{ id: route.source_environment_id, type: "", status: "" }] : []),
+        { id: route.target_environment_id, type: route.target_type, status: "" },
+      ];
+  const targetIndex = path.findIndex((step) => step.id === route.target_environment_id);
+  const sourceIndex = path.findIndex((step) => step.id === route.source_environment_id);
+
+  return (
+    <figure className={`route-diagram${stale ? " route-diagram-stale" : ""}`} data-testid="brief-route-diagram">
+      <ol>
+        {path.map((step, index) => {
+          const place = index < targetIndex ? "before" : index === targetIndex ? "target" : "beyond";
+          const gate = place === "beyond" && index === targetIndex + 1;
+          let note = "";
+          if (place === "target") note = stale ? t("Was approved up to here") : t("Approved up to here");
+          else if (index === sourceIndex) note = t("Comes from here");
+          else if (place === "beyond") note = step.type === "production" ? t("Production — not authorized") : t("Needs another decision");
+          return (
+            <li key={step.id} className={`route-step route-step-${place}${gate ? " route-step-gate" : ""}`} data-testid={`route-step-${step.id}`} data-place={place}>
+              <span className="route-node" title={step.display_name}>{step.id}</span>
+              <span className="route-note">{note}</span>
+            </li>
+          );
+        })}
+      </ol>
+      {!recorded && <figcaption className="muted">{t("This decision recorded only where the change comes from and where it may go; later environments are not shown and still need their own decision.")}</figcaption>}
+    </figure>
+  );
+}
+
 export function ChangeBrief({ brief }: { brief: ChangeDecisionBrief }) {
   const { t, locale } = useLocale();
   const stale = brief.state === "STALE";
   const route = brief.route;
   const risk = riskLabels[brief.risk_level] ? t(riskLabels[brief.risk_level]) : brief.risk_level;
+  const selected = optionWording(brief.selected, brief.selected.code, locale);
 
   return (
     <section className="dual-pane brief" data-testid="change-brief">
@@ -67,11 +107,11 @@ export function ChangeBrief({ brief }: { brief: ChangeDecisionBrief }) {
         <h3 className="brief-headline" data-testid="brief-summary">{brief.owner_summary}</h3>
       )}
       <p className="brief-route" data-testid="brief-route">
-        {t("Approach:")} <strong>{brief.selected.title}</strong>
+        {t("Approach:")} <strong>{selected.title}</strong>
         {" · "}{t("Next stop:")} <strong>{route.target_environment_id}</strong>
-        {route.source_environment_id && <span className="muted"> ({route.source_environment_id} → {route.target_environment_id})</span>}
         {route.production_action === "forbidden" && <>{" · "}<span className="brief-no-prod">{t("Production is not authorized by this decision")}</span></>}
       </p>
+      <RouteDiagram route={route} stale={stale} />
 
       <div className={brief.unknowns.length > 0 ? "brief-warning" : "brief-section"} data-testid="brief-risk">
         <h4>{brief.unknowns.length > 0 ? t("Risk accepted knowingly") : t("Risk")}</h4>
@@ -79,7 +119,7 @@ export function ChangeBrief({ brief }: { brief: ChangeDecisionBrief }) {
         {brief.unknowns.length > 0 && (
           <>
             <p className="brief-line">{t("The decision was made with these open questions:")}</p>
-            <ul>{brief.unknowns.map((line) => <li key={line}>{line}</li>)}</ul>
+            <ul>{brief.unknowns.map((note) => <li key={note.text} title={note.code ? note.text : undefined}>{noteWording(note, locale)}</li>)}</ul>
           </>
         )}
       </div>
@@ -116,7 +156,10 @@ export function ChangeBrief({ brief }: { brief: ChangeDecisionBrief }) {
       {brief.alternatives.length > 0 && (
         <div className="brief-section" data-testid="brief-alternatives">
           <h4>{t("Considered, not chosen")}</h4>
-          <ul>{brief.alternatives.map((option) => <li key={option.id}><strong>{option.title}</strong> — {option.summary}</li>)}</ul>
+          <ul>{brief.alternatives.map((option) => {
+            const wording = optionWording(option, option.code, locale);
+            return <li key={option.id}><strong>{wording.title}</strong> — {wording.summary}</li>;
+          })}</ul>
         </div>
       )}
 

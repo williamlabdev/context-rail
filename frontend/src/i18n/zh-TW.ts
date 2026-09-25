@@ -371,7 +371,7 @@ const messages: Record<string, string> = {
   "It was decided before the owner summary was required; the requester's technical objective is shown instead, unedited:": "它是在「業主摘要」成為必填之前決定的；以下改為原封不動顯示提出者的技術目標：",
   "Approach:": "做法：",
   "Next stop:": "下一站：",
-  "Production is not authorized by this decision": "這項決策不授權任何 production 變更",
+  "Production is not authorized by this decision": "這項決策不授權任何正式環境的變更",
   "Risk accepted knowingly": "明知仍接受的風險",
   "Risk": "風險",
   "Risk level: {level}": "風險等級：{level}",
@@ -404,6 +404,12 @@ const messages: Record<string, string> = {
   "A staging release receipt exists": "已有 staging 的發布收據",
   "Owner summary (plain language, for the business owner)": "業主摘要（白話，給業務負責人看）",
   "What changes for the people who use it, in one or two sentences": "用一兩句話說明：對使用它的人來說，什麼會改變",
+  "Was approved up to here": "原本核准到這裡",
+  "Approved up to here": "本次核准到這裡",
+  "Comes from here": "從這裡出發",
+  "Production — not authorized": "正式環境：未授權",
+  "Needs another decision": "需要另一個決定",
+  "This decision recorded only where the change comes from and where it may go; later environments are not shown and still need their own decision.": "這項決策只記錄了出發點和可到達的環境；之後的環境沒有列出，仍需各自的決定。",
 };
 
 // UI-18：機器狀態碼的人類標籤；狀態碼本身仍保留在標籤旁。

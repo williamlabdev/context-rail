@@ -63,7 +63,7 @@ func newHarness(t *testing.T) *harness {
 func completeRequest() change.Request {
 	return change.Request{
 		Title: "Manual order review", Objective: "Let operations staff approve or reject an order exception with a note.",
-		OwnerSummary: "Operations can approve or reject an order exception, and must leave a note either way.",
+		OwnerSummary:  "Operations can approve or reject an order exception, and must leave a note either way.",
 		ScopeIncluded: []string{"review action", "required note"}, ScopeExcluded: []string{"payment", "fulfillment"},
 		AcceptanceCriteria: []change.AcceptanceCriterion{{Text: "approve and reject require a note"}, {ID: "AC-404", Text: "unknown order returns 404"}},
 		AllowedPaths:       []string{"main.go", "web/index.html", "main_test.go"}, ForbiddenActions: []string{"authentication"},
@@ -201,6 +201,21 @@ func TestAcceptRendersBriefAndPackFromTheSameRecord(t *testing.T) {
 	}
 	if brief.Route.SourceEnvironmentID != "testing" || brief.Route.TargetEnvironmentID != "staging" || brief.Route.ProductionAction != "forbidden" {
 		t.Fatalf("brief route wrong: %+v", brief.Route)
+	}
+	if brief.Selected.Code != "minimal_reversible_slice" {
+		t.Fatalf("a rule-advisor option must carry its code for localisation: %+v", brief.Selected)
+	}
+	for _, note := range brief.Unknowns {
+		if note.Code == "" || note.Text == "" {
+			t.Fatalf("every rule-advisor unknown must keep its text and carry a code: %+v", brief.Unknowns)
+		}
+	}
+	var path []string
+	for _, step := range brief.Route.Path {
+		path = append(path, step.ID)
+	}
+	if strings.Join(path, ">") != "development>testing>staging>production" {
+		t.Fatalf("brief must carry the promotion path recorded with the decision, in order: %v", path)
 	}
 	if brief.Lineage != view.Pack.Lineage || brief.DecidedBy.Actor != "founder-001" || !strings.Contains(strings.Join(brief.OutOfScope, " "), "payment") {
 		t.Fatalf("brief must share lineage with the pack and name who decided and what is out of scope: %+v", brief)
@@ -364,8 +379,8 @@ func strPtr(value string) *string { return &value }
 func TestBriefOfARecordWithoutOwnerSummaryFlagsItInsteadOfSubstituting(t *testing.T) {
 	record := &change.DecisionRecord{
 		DecisionID: "DEC-009", ChangeID: "CHG-009", Version: 1, Objective: "POST /api/orders/{id}/evidence",
-		SelectedOption: "minimal_reversible_slice",
-		Alternatives:   []change.Option{{ID: "minimal_reversible_slice", Title: "Minimal reversible slice"}, {ID: "defer", Title: "Defer"}},
+		SelectedOption:    "minimal_reversible_slice",
+		Alternatives:      []change.Option{{ID: "minimal_reversible_slice", Title: "Minimal reversible slice"}, {ID: "defer", Title: "Defer"}},
 		TargetEnvironment: change.EnvironmentRef{ID: "staging"}, ProductionAction: "forbidden",
 	}
 	brief := change.RenderBrief(record, change.Staleness{})
@@ -375,7 +390,23 @@ func TestBriefOfARecordWithoutOwnerSummaryFlagsItInsteadOfSubstituting(t *testin
 	if brief.Selected.Title != "Minimal reversible slice" || len(brief.Alternatives) != 1 || brief.Alternatives[0].ID != "defer" {
 		t.Fatalf("options must be resolved from the record's alternatives: %+v", brief)
 	}
-	if brief.Unknowns == nil || brief.InScope == nil || brief.OutOfScope == nil || brief.RequiredEvidence == nil {
+	if brief.Unknowns == nil || brief.InScope == nil || brief.OutOfScope == nil || brief.RequiredEvidence == nil || brief.Route.Path == nil {
 		t.Fatal("empty lists must serialize as [], not null")
+	}
+}
+
+func TestNoteCodeRecognisesOnlyRuleAdvisorSentences(t *testing.T) {
+	cases := map[string][2]string{
+		"expected_monthly_volume not declared; cost status UNKNOWN":                                            {"constraint_not_declared", "expected_monthly_volume"},
+		"project context is STALE; some architecture facts may be outdated":                                    {"project_context_not_current", "STALE"},
+		"no explicit out-of-scope list; the agent boundary relies on allowed_paths and forbidden_actions only": {"no_out_of_scope_list", ""},
+		"retention period for attachments is not stated":                                                       {"", ""},
+		" not declared; cost status UNKNOWN":                                                                   {"", ""},
+	}
+	for text, want := range cases {
+		code, value := change.NoteCode(text)
+		if code != want[0] || value != want[1] {
+			t.Errorf("NoteCode(%q) = %q, %q; want %q, %q", text, code, value, want[0], want[1])
+		}
 	}
 }

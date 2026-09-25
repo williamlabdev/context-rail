@@ -5,7 +5,8 @@ import type { TopologyEnvironment } from "../api/topology";
 import { CandidateReview } from "./CandidateReview";
 import { ChangeBrief, LineageStrip } from "./ChangeBrief";
 import { StatusBadge } from "./StatusBadge";
-import { useLocale } from "../i18n";
+import { useLocale, type Locale } from "../i18n";
+import { optionWording } from "../i18n/advisor";
 
 interface ChangesPanelProps {
   controller: ChangesController;
@@ -162,7 +163,7 @@ interface DecisionFormProps {
 }
 
 function DecisionForm({ view, busy, onSubmit }: DecisionFormProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const version = currentVersion(view.change);
   const recommended = version.options.find((option) => option.recommended)?.id ?? version.options[0]?.id ?? "";
   const [values, setValues] = useState({ actor: "", role: "solution_architect", selected_option: recommended, rationale: "", risk_level: "low" });
@@ -177,7 +178,7 @@ function DecisionForm({ view, busy, onSubmit }: DecisionFormProps) {
       <p className="eyebrow">{t("HUMAN DECISION · version {version} is DECISION_READY; nothing below is chosen by the advisor", { version: version.version })}</p>
       <fieldset className="option-list" data-testid="change-options">
         <legend>{t("Select one candidate")}</legend>
-        {version.options.map((option: Option) => (
+        {version.options.map((recorded: Option) => optionWording(recorded, recorded.advisor_source === "rule-advisor" ? recorded.id : undefined, locale)).map((option: Option) => (
           <label key={option.id} className={`option-card${values.selected_option === option.id ? " option-selected" : ""}`}>
             <input type="radio" name="selected_option" value={option.id} checked={values.selected_option === option.id} onChange={update("selected_option")} />
             <span className="option-title">{option.title}{option.recommended && <StatusBadge status="RECOMMENDED" />} <span className="muted">{option.advisor_source}</span></span>
@@ -224,7 +225,7 @@ function MissingInputs({ inputs }: { inputs: MissingInput[] }) {
 }
 
 function ChangeDetail({ view, controller, environments }: { view: ChangeView; controller: ChangesController; environments: TopologyEnvironment[] }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { change, decision, brief, agent_context_pack: pack, work_order: order, staleness } = view;
   const version = currentVersion(change);
   const evaluation = version.evaluation;
@@ -278,7 +279,7 @@ function ChangeDetail({ view, controller, environments }: { view: ChangeView; co
             <StatusBadge status={staleness.stale && decision.status !== "REJECTED" ? "STALE" : decision.status} />
             <span className="muted">{decision.human_decision.actor} ({decision.human_decision.role}) {decision.human_decision.decision} {t("at")} {decision.human_decision.at}</span>
           </div>
-          <p className="topology-reason"><span className="muted">{t("Selected:")}</span> {decision.alternatives.find((option) => option.id === decision.selected_option)?.title ?? decision.selected_option} <code className="muted">{decision.selected_option}</code> · <span className="muted">{t("rationale:")}</span> {decision.rationale}</p>
+          <p className="topology-reason"><span className="muted">{t("Selected:")}</span> {selectedTitle(decision.alternatives, decision.selected_option, locale)} <code className="muted">{decision.selected_option}</code> · <span className="muted">{t("rationale:")}</span> {decision.rationale}</p>
         </div>
       )}
 
@@ -345,6 +346,12 @@ function decidedIsIssued(view: ChangeView): boolean {
 }
 
 // ---------------------------------------------------------------- panel
+
+function selectedTitle(options: Option[], id: string, locale: Locale): string {
+  const option = options.find((candidate) => candidate.id === id);
+  if (!option) return id;
+  return optionWording(option, option.advisor_source === "rule-advisor" ? option.id : undefined, locale).title;
+}
 
 export function ChangesPanel({ controller, environments }: ChangesPanelProps) {
   const { t } = useLocale();

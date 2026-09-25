@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ChangesPanel } from "../../src/components/ChangesPanel";
+import { LocaleProvider } from "../../src/i18n";
 import type { ChangeView } from "../../src/api/changes";
 import type { ChangesController } from "../../src/state/useChanges";
 import type { TopologyEnvironment } from "../../src/api/topology";
@@ -50,11 +51,12 @@ const accepted: ChangeView = {
   brief: {
     artifact_type: "change_decision_brief", schema_version: "change-decision-brief/v2", lineage, audience: "people", state: "ACCEPTED",
     owner_summary: "Reviewers can attach files to an order exception.", owner_summary_missing: false, objective: "POST /api/orders/{id}/attachments",
-    selected: { id: "minimal_reversible_slice", title: "Minimal reversible slice", summary: "s" },
-    route: { source_environment_id: "testing", target_environment_id: "staging", target_type: "staging", target_ref: "cloud-run/x-staging", transition: "testing-to-staging", production_action: "forbidden" },
-    risk_level: "low", unknowns: ["project context is STALE"], in_scope: ["attach up to three files"], out_of_scope: ["payment"],
+    selected: { id: "minimal_reversible_slice", title: "Minimal reversible slice", summary: "s", code: "minimal_reversible_slice" },
+    route: { source_environment_id: "testing", target_environment_id: "staging", target_type: "staging", target_ref: "cloud-run/x-staging", transition: "testing-to-staging", production_action: "forbidden",
+      path: ["development", "testing", "staging", "production"].map((id) => ({ id, type: id, status: "ACTIVE" })) },
+    risk_level: "low", unknowns: [{ text: "project context is STALE; some architecture facts may be outdated", code: "project_context_not_current", value: "STALE" }, { text: "retention period is not stated" }], in_scope: ["attach up to three files"], out_of_scope: ["payment"],
     required_evidence: ["build", "custom-check"], decided_by: { actor: "founder-001", role: "founder", at: "2026-09-21T02:42:18Z", rationale: "smallest reversible slice" },
-    alternatives: [{ id: "defer", title: "Defer / keep current process", summary: "wait" }], rendered_at: "t",
+    alternatives: [{ id: "defer", title: "Defer / keep current process", summary: "wait", code: "defer" }], rendered_at: "t",
   },
   agent_context_pack: {
     artifact_type: "agent_context_pack", schema_version: "agent-context-pack/v1", lineage, status: "ISSUED_FOR_DEVELOPMENT_CANDIDATE", objective: "Upload",
@@ -130,6 +132,35 @@ describe("ChangesPanel", () => {
     expect(trace).toHaveTextContent("POST /api/orders/{id}/attachments");
     expect(trace.hasAttribute("open")).toBe(false);
     expect(brief.textContent?.indexOf("sha256:abcdef1234567890")).toBeGreaterThan(brief.textContent!.indexOf("Who decided"));
+  });
+
+  it("draws the recorded promotion path and marks where the approval ends", () => {
+    render(<ChangesPanel controller={controller({ changes: [accepted], selectedID: "CHG-001", selected: accepted })} environments={environments} />);
+    const places = ["development", "testing", "staging", "production"].map((id) => screen.getByTestId(`route-step-${id}`).getAttribute("data-place"));
+    expect(places).toEqual(["before", "before", "target", "beyond"]);
+    expect(screen.getByTestId("route-step-testing")).toHaveTextContent("Comes from here");
+    expect(screen.getByTestId("route-step-staging")).toHaveTextContent("Approved up to here");
+    expect(screen.getByTestId("route-step-production")).toHaveTextContent("Production — not authorized");
+  });
+
+  it("shows only source and target for a decision that recorded no path, and says so", () => {
+    const legacy: ChangeView = { ...accepted, brief: { ...accepted.brief!, route: { ...accepted.brief!.route, path: [] } } };
+    render(<ChangesPanel controller={controller({ changes: [legacy], selectedID: "CHG-001", selected: legacy })} environments={environments} />);
+    const diagram = screen.getByTestId("brief-route-diagram");
+    expect(diagram.querySelectorAll(".route-step")).toHaveLength(2);
+    expect(screen.queryByTestId("route-step-production")).not.toBeInTheDocument();
+    expect(diagram).toHaveTextContent("later environments are not shown");
+  });
+
+  it("shows rule-advisor wording in zh-TW by code and leaves recorded human or model text as written", () => {
+    render(<LocaleProvider initial="zh-TW"><ChangesPanel controller={controller({ changes: [accepted], selectedID: "CHG-001", selected: accepted })} environments={environments} /></LocaleProvider>);
+    expect(screen.getByTestId("brief-route")).toHaveTextContent("最小、可退回的一步");
+    expect(screen.getByTestId("brief-route")).toHaveTextContent("正式環境");
+    const risk = screen.getByTestId("brief-risk");
+    expect(risk).toHaveTextContent("專案情境為 STALE");
+    expect(risk).toHaveTextContent("retention period is not stated");
+    expect(screen.getByTestId("brief-alternatives")).toHaveTextContent("暫緩／維持現行流程");
+    expect(screen.getByTestId("brief-summary")).toHaveTextContent("Reviewers can attach files to an order exception.");
   });
 
   it("says the owner summary is missing on an older decision instead of substituting it", () => {
