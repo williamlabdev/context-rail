@@ -225,6 +225,11 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .release-outcome-detail { color: #b6c1cf; font-size: 0.8rem; margin: 6px 0 0; }
 .gate-passed { margin-top: 6px; }
 .gate-passed > summary { color: #8290a3; cursor: pointer; font-size: 0.77rem; }
+/* Role-specific release detail: decision-maker summary vs. technical report toggle. */
+.release-view-switch { display: inline-flex; gap: 6px; margin: 4px 0 2px; }
+.release-view-switch button { background: #182230; border: 1px solid #2c3a4e; color: #8290a3; }
+.release-view-switch button.release-view-active { background: #1f2d40; border-color: #4fb286; color: #9ee0b4; }
+.receipt-summary { border-left: 4px solid #4fb286; }
 /* Narrow cards: a long badge breaks between its label and its code, never inside either. */
 .project-card-meta .status-badge { max-width: 100%; white-space: normal; }
 .project-card-meta .status-badge .status-label, .project-card-meta .status-badge .status-code { display: inline-block; white-space: nowrap; }

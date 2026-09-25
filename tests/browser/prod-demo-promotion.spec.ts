@@ -90,7 +90,15 @@ test.describe("Prod-demo promotion (VS-007)", () => {
     await page.getByTestId(`release-card-${staging.releaseID}`).click();
     const detail = page.getByTestId("release-detail");
     await expect(detail).toContainText("PROMOTED");
+    // Role-specific detail (readability review item 5): default view is the decision-maker
+    // summary — a short human-readable receipt summary, no full technical record.
+    await expect(page.getByTestId("release-view-summary")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("release-receipt-summary")).toContainText(staging.receiptID);
+    await expect(page.getByTestId("release-receipt")).toHaveCount(0);
+    await expect(page.getByTestId("release-manifest")).toHaveCount(0);
+    await page.getByTestId("release-view-technical").click();
     await expect(page.getByTestId("release-receipt")).toContainText(staging.receiptID);
+    await expect(page.getByTestId("release-receipt")).toContainText(DIGEST);
 
     // Promote: the same digest goes to the next environment; no build form, delta shown.
     const promote = page.getByTestId("release-promote-form");
@@ -100,6 +108,9 @@ test.describe("Prod-demo promotion (VS-007)", () => {
     await promote.getByRole("button", { name: "Open promotion release" }).click();
 
     await expect(detail).toContainText("READY_FOR_APPROVAL");
+    // The new release remounts the detail back to the summary view; switch to the
+    // technical report to see the transition, the promotion/delta card and the full gate table.
+    await page.getByTestId("release-view-technical").click();
     await expect(detail).toContainText("staging-to-prod-demo");
     const promotionID = (await detail.locator("code").first().innerText()).trim();
     expect(promotionID).not.toBe(staging.releaseID);
@@ -146,6 +157,8 @@ test.describe("Prod-demo promotion (VS-007)", () => {
     await deploy.locator("input[name=smoke_ref]").fill("https://oop-prod-demo.a.run.app/healthz");
     await deploy.locator("input[name=reason]").fill("promoted via scripts/record-promotion.sh");
     await deploy.getByRole("button", { name: "Record deployment and verify" }).click();
+    // The successful deployment remounts the detail back to the summary view again.
+    await page.getByTestId("release-view-technical").click();
     const receipt = page.getByTestId("release-receipt");
     await expect(receipt).toContainText("PROMOTED");
     await expect(receipt).toContainText("staging-to-prod-demo");

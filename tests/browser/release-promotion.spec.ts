@@ -47,6 +47,12 @@ test.describe("Staging promotion (VS-006)", () => {
     await form.getByRole("button", { name: "Open release and run promotion gate" }).click();
     const detail = page.getByTestId("release-detail");
     await expect(detail).toContainText("GATE_BLOCKED");
+    // Role-specific detail (readability review item 5): the default summary view surfaces the
+    // blocking gate but not the passing one; switch to the technical report to see every row.
+    await expect(page.getByTestId("release-view-summary")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId(`release-gates-change-${half}`)).toContainText("BLOCKED");
+    await expect(page.getByTestId(`release-gates-change-${half}`)).toContainText("no candidate accepted");
+    await page.getByTestId("release-view-technical").click();
     await expect(page.getByTestId(`release-gates-change-${good}`)).toContainText("PASS");
     await expect(page.getByTestId(`release-gates-change-${half}`)).toContainText("BLOCKED");
     await expect(page.getByTestId(`release-gates-change-${half}`)).toContainText("no candidate accepted");
@@ -89,6 +95,14 @@ test.describe("Staging promotion (VS-006)", () => {
     await deployForm.locator("input[name=smoke_ref]").fill("https://oop-staging.a.run.app/healthz");
     await deployForm.locator("input[name=reason]").fill("deployed via script");
     await deployForm.getByRole("button", { name: "Record deployment and verify" }).click();
+    // Default view: a short, human-readable receipt summary — no full sha256 digest.
+    await expect(page.getByTestId("release-view-summary")).toHaveAttribute("aria-pressed", "true");
+    const receiptSummary = page.getByTestId("release-receipt-summary");
+    await expect(receiptSummary).toContainText("oop-staging-00007-abc");
+    await expect(receiptSummary).toContainText("approver-1");
+    await expect(page.getByTestId("release-receipt")).toHaveCount(0);
+    // Technical report: the full receipt, with the full digest and every field.
+    await page.getByTestId("release-view-technical").click();
     const receipt = page.getByTestId("release-receipt");
     await expect(receipt).toContainText("PROMOTED");
     await expect(receipt).toContainText("oop-staging-00007-abc");
