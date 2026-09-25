@@ -55,7 +55,7 @@ const accepted: ChangeView = {
     route: { source_environment_id: "testing", target_environment_id: "staging", target_type: "staging", target_ref: "cloud-run/x-staging", transition: "testing-to-staging", production_action: "forbidden",
       path: ["development", "testing", "staging", "production"].map((id) => ({ id, type: id, status: "ACTIVE" })) },
     risk_level: "low", unknowns: [{ text: "project context is STALE; some architecture facts may be outdated", code: "project_context_not_current", value: "STALE" }, { text: "retention period is not stated" }], in_scope: ["attach up to three files"], out_of_scope: ["payment"],
-    required_evidence: ["build", "custom-check"], decided_by: { actor: "founder-001", role: "founder", at: "2026-09-21T02:42:18Z", rationale: "smallest reversible slice" },
+    required_evidence: ["build", "single-operator-controls", "custom-check"], decided_by: { actor: "founder-001", role: "founder", at: "2026-09-21T02:42:18Z", rationale: "smallest reversible slice" },
     alternatives: [{ id: "defer", title: "Defer / keep current process", summary: "wait", code: "defer" }], rendered_at: "t",
   },
   agent_context_pack: {
@@ -132,6 +132,42 @@ describe("ChangesPanel", () => {
     expect(trace).toHaveTextContent("POST /api/orders/{id}/attachments");
     expect(trace.hasAttribute("open")).toBe(false);
     expect(brief.textContent?.indexOf("sha256:abcdef1234567890")).toBeGreaterThan(brief.textContent!.indexOf("Who decided"));
+  });
+
+  it("shows only the human label for a known evidence code, keeping the raw code as a tooltip, but shows an unknown code as-is (item 2)", () => {
+    render(<ChangesPanel controller={controller({ changes: [accepted], selectedID: "CHG-001", selected: accepted })} environments={environments} />);
+    const gate = screen.getByTestId("brief-next-gate");
+    const items = Array.from(gate.querySelectorAll("li"));
+    const controlsItem = items.find((li) => li.title === "single-operator-controls")!;
+    expect(controlsItem).toBeTruthy();
+    expect(controlsItem.textContent).toBe("Single-operator safeguards were applied");
+    const unknownItem = items.find((li) => li.textContent === "custom-check")!;
+    expect(unknownItem).toBeTruthy();
+    expect(unknownItem.title).toBe("");
+  });
+
+  it("merges the two scope boxes into one line when neither an included nor excluded list was recorded (item 1)", () => {
+    const empty: ChangeView = { ...accepted, brief: { ...accepted.brief!, in_scope: [], out_of_scope: [] } };
+    render(<ChangesPanel controller={controller({ changes: [empty], selectedID: "CHG-001", selected: empty })} environments={environments} />);
+    expect(screen.queryByTestId("brief-in-scope")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("brief-out-of-scope")).not.toBeInTheDocument();
+    const merged = screen.getByTestId("brief-scope-empty");
+    expect(merged).toHaveTextContent("No explicit included or excluded list was recorded");
+    expect(merged).toHaveTextContent("forbidden actions");
+  });
+
+  it("keeps the two scope boxes when at least one list was recorded", () => {
+    render(<ChangesPanel controller={controller({ changes: [accepted], selectedID: "CHG-001", selected: accepted })} environments={environments} />);
+    expect(screen.queryByTestId("brief-scope-empty")).not.toBeInTheDocument();
+    expect(screen.getByTestId("brief-in-scope")).toBeInTheDocument();
+    expect(screen.getByTestId("brief-out-of-scope")).toHaveTextContent("payment");
+  });
+
+  it("labels each considered-and-rejected alternative as not chosen (item 3)", () => {
+    render(<ChangesPanel controller={controller({ changes: [accepted], selectedID: "CHG-001", selected: accepted })} environments={environments} />);
+    const alternatives = screen.getByTestId("brief-alternatives");
+    expect(alternatives).toHaveTextContent("Not chosen:");
+    expect(alternatives.querySelector("li")?.textContent).toMatch(/^Not chosen:/);
   });
 
   it("draws the recorded promotion path and marks where the approval ends", () => {

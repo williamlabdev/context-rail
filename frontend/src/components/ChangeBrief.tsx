@@ -124,22 +124,34 @@ export function ChangeBrief({ brief }: { brief: ChangeDecisionBrief }) {
         )}
       </div>
 
-      <div className="brief-scope">
-        <div className="brief-section" data-testid="brief-in-scope">
-          <h4>{t("Included")}</h4>
-          {brief.in_scope.length > 0 ? <ul>{brief.in_scope.map((line) => <li key={line}>{line}</li>)}</ul> : <p className="muted">{t("No explicit list; the objective and acceptance criteria bound the work.")}</p>}
+      {brief.in_scope.length === 0 && brief.out_of_scope.length === 0 ? (
+        <div className="brief-section" data-testid="brief-scope-empty">
+          <h4>{t("Scope")}</h4>
+          <p className="muted">{t("No explicit included or excluded list was recorded. The objective and acceptance criteria bound the work; the agent pack's forbidden actions still apply.")}</p>
         </div>
-        <div className="brief-section" data-testid="brief-out-of-scope">
-          <h4>{t("Not included")}</h4>
-          {brief.out_of_scope.length > 0 ? <ul>{brief.out_of_scope.map((line) => <li key={line}>{line}</li>)}</ul> : <p className="muted">{t("No explicit list; the forbidden actions in the agent pack still apply.")}</p>}
+      ) : (
+        <div className="brief-scope" data-testid="brief-scope">
+          <div className="brief-section" data-testid="brief-in-scope">
+            <h4>{t("Included")}</h4>
+            {brief.in_scope.length > 0 ? <ul>{brief.in_scope.map((line) => <li key={line}>{line}</li>)}</ul> : <p className="muted">{t("No explicit list; the objective and acceptance criteria bound the work.")}</p>}
+          </div>
+          <div className="brief-section" data-testid="brief-out-of-scope">
+            <h4>{t("Not included")}</h4>
+            {brief.out_of_scope.length > 0 ? <ul>{brief.out_of_scope.map((line) => <li key={line}>{line}</li>)}</ul> : <p className="muted">{t("No explicit list; the forbidden actions in the agent pack still apply.")}</p>}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="brief-section" data-testid="brief-next-gate">
         <h4>{t("Before it can reach {environment}", { environment: route.target_environment_id })}</h4>
         <ul>
           {brief.required_evidence.map((code) => (
-            <li key={code}>{evidenceLabels[code] ? t(evidenceLabels[code]) : code} <code className="muted">{code}</code></li>
+            // The human label is what a reader needs here; the raw evidence
+            // code stays discoverable as a title tooltip (and in the
+            // collapsed traceability block) for anyone auditing the record.
+            // An unlabeled code has no human wording to show, so it is shown
+            // as-is rather than hidden.
+            <li key={code} title={evidenceLabels[code] ? code : undefined}>{evidenceLabels[code] ? t(evidenceLabels[code]) : code}</li>
           ))}
           <li>{t("Someone other than the agent reviewed its change, and it only touched the files this decision allows.")}</li>
         </ul>
@@ -154,11 +166,15 @@ export function ChangeBrief({ brief }: { brief: ChangeDecisionBrief }) {
       </div>
 
       {brief.alternatives.length > 0 && (
-        <div className="brief-section" data-testid="brief-alternatives">
+        // Separated with its own border from the section above (the decided-by
+        // rationale) so a "not chosen" alternative is never mistaken for a
+        // trait of the selected, approved approach — see RouteDiagram's
+        // "Approach:" line and the decided-by rationale for what was chosen.
+        <div className="brief-section brief-alternatives" data-testid="brief-alternatives">
           <h4>{t("Considered, not chosen")}</h4>
           <ul>{brief.alternatives.map((option) => {
             const wording = optionWording(option, option.code, locale);
-            return <li key={option.id}><strong>{wording.title}</strong> — {wording.summary}</li>;
+            return <li key={option.id}><span className="brief-not-chosen">{t("Not chosen:")}</span> <strong>{wording.title}</strong> — {wording.summary}</li>;
           })}</ul>
         </div>
       )}
