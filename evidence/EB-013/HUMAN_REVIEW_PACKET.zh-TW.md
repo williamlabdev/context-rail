@@ -6,7 +6,7 @@
 
 | 欄位 | 結果 |
 | --- | --- |
-| Reviewed commit | `59b3197`（feat/brief-readability） |
+| Reviewed commit | `9f5b3ff`（feat/brief-readability） |
 | Decision | `DR-012 / ACCEPTED_FOR_DEVELOPMENT` |
 | Human reviewer | （待填） |
 | Reviewed at | （待填） |
@@ -15,7 +15,7 @@
 
 ## 一句話結論
 
-Brief 改成照讀者的問題排序、開頭是人寫的白話摘要（缺少時 NEEDS_INPUT，不代寫）、標題與標籤跟著語系走、hash 與 ID 收進折疊的追溯區；是否「讀得懂」尚未經讀者驗證。
+Brief 改成照讀者的問題排序、開頭是人寫的白話摘要（缺少時 NEEDS_INPUT，不代寫）、多了一張路徑圖標出核准到哪一站、系統產生的方案與未知問題在中文版會顯示中文、hash 與 ID 收進折疊的追溯區；是否「讀得懂」尚未經讀者驗證。
 
 ## 請審的事
 
@@ -29,6 +29,8 @@ Brief 改成照讀者的問題排序、開頭是人寫的白話摘要（缺少�
 | 白話摘要置頂、machine identity 只在追溯區 | 已驗（unit test 檢查 DOM 順序） | `frontend-quality-output.txt` |
 | 舊決策顯示「未提供摘要」並原樣列出技術目標 | 已驗（Go + unit test） | 同上 |
 | zh-TW 標題翻譯、資料值不變 | 已驗（字典覆蓋測試 + 截圖） | 同上、截圖 |
+| 路徑圖依決策當時的 topology 畫出、標出核准終點；舊決策只畫兩站並註明 | 已驗（Go + unit test） | 同上 |
+| zh-TW 下 advisor 方案／未知問題顯示中文，人寫的內容不變 | 已驗（unit test + 截圖） | 同上、截圖 |
 | 全部 13 條 browser journey、fixture 未被改動 | 已驗 | `browser-output.txt`、`mutation-check.txt` |
 | 讀者讀得懂（三問測試，G5） | **未驗** | — |
 
@@ -38,6 +40,8 @@ Brief 改成照讀者的問題排序、開頭是人寫的白話摘要（缺少�
 - Receipt 結論優先與 Technical Report（review 第 4、5 點）不在本 slice
 - EB-012 的 CHG-001 決策會顯示「未提供白話摘要」，不回頭補寫
 - Brief JSON 從 v1 改為 v2
+- 其他伺服器產生的文字（缺少輸入的原因、觀察、gate 細節）在中文版仍是英文
+- 截圖中的白話摘要與決策理由是英文，因為示範資料用英文寫；路徑中的 `uat-…` 是前面測試新增的環境
 
 ## 邊界
 

@@ -1,18 +1,18 @@
-# commit 59b3197 — npm run typecheck && npm run build && npm test
+# commit 9f5b3ff — npm run typecheck && npm run build && npm test
 
 > context-rail-workspace@0.1.0 typecheck
 > tsc --noEmit
 
 dist/index.html                   0.41 kB │ gzip:   0.28 kB
-dist/assets/index-D4SqIfPV.css   13.39 kB │ gzip:   3.49 kB
-dist/assets/index-C4d30eVa.js   348.84 kB │ gzip: 100.50 kB
+dist/assets/index-D8Y-Emy0.css   14.62 kB │ gzip:   3.81 kB
+dist/assets/index-CkuKVZyR.js   353.04 kB │ gzip: 102.47 kB
 
-✓ built in 95ms
+✓ built in 96ms
  RUN  v4.1.11 /Users/william/dev/source/projects/context-rail/frontend
 
 
  Test Files  8 passed (8)
-      Tests  27 passed (27)
-   Start at  16:50:36
-   Duration  1.17s (transform 546ms, setup 704ms, import 795ms, tests 339ms, environment 5.42s)
+      Tests  30 passed (30)
+   Start at  17:22:45
+   Duration  822ms (transform 660ms, setup 812ms, import 849ms, tests 356ms, environment 2.81s)
 

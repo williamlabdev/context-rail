@@ -31,6 +31,7 @@
   "scope": {
     "allowed_paths": [
       "internal/change/",
+      "internal/change/advisor.go",
       "frontend/src/",
       "frontend/tests/",
       "tests/change/",
@@ -53,7 +54,9 @@
     "Request and DecisionRecord gain owner_summary; evaluate() reports owner_summary missing (owner: requester) so a Change cannot be decided without it; the decision copies it verbatim.",
     "RenderBrief(decision, staleness) returns change-decision-brief/v2: state (ACCEPTED/STALE + stale_reason), owner_summary / owner_summary_missing, objective, selected option (id, title, summary) resolved from the recorded alternatives, route (source, target, transition, target_ref, production_action), risk_level, unknowns, in_scope, out_of_scope, required_evidence (sorted), decided_by, remaining alternatives, lineage. Headline and prose sections are removed; the renderer only selects and orders recorded values.",
     "frontend/src/components/ChangeBrief.tsx renders the Brief in reader-question order — summary, route, accepted risk (warning when unknowns exist), scope, next gate, who decided, alternatives — with ids, hashes, transition and policy in a collapsed traceability block; headings, evidence-code labels and risk labels go through t(), data values do not.",
-    "Agent Context Pack is unchanged; Brief and Pack keep identical lineage."
+    "Agent Context Pack is unchanged; Brief and Pack keep identical lineage.",
+    "Evaluation and DecisionRecord record promotion_path: the active environments of the bound topology version in sequence order. The Brief route carries it and the workspace draws it, marking where the approval ends; decisions without a recorded path show only source and target with a note.",
+    "RuleAdvisor sentences come from one coded table (advisor.go ruleNotes / ruleOptionIDs). The Brief sends unknowns as {text, code, value} and rule options with a code; frontend/src/i18n/advisor.ts shows coded wording in zh-TW. Human or model text has no code and is shown as recorded; the English text remains the recorded value."
   ],
   "cost_assumptions": [
     "No cloud resources; backend render + frontend only."
@@ -61,7 +64,8 @@
   "unknowns": [
     "Readability is asserted by structure and screenshots only; no role reader has answered the three questions yet (G5).",
     "Evidence-code labels cover the codes the current topologies declare; unknown codes render as the code itself.",
-    "The EB-012 CHG-001 decision predates owner_summary and renders with the missing-summary notice."
+    "The EB-012 CHG-001 decision predates owner_summary and renders with the missing-summary notice.",
+    "Other server-generated text (missing-input reasons, observations, gate details) is still English in zh-TW; only rule-advisor options and unknowns are coded."
   ],
   "acceptance_criteria": [
     "A Change without owner_summary is NEEDS_INPUT with owner_summary owned by the requester.",
@@ -69,10 +73,12 @@
     "The selected option is shown by title and is not repeated among the alternatives; production_action forbidden is stated in plain words.",
     "A decision without owner_summary says so and shows the technical objective unedited instead of substituting text.",
     "Switching to zh-TW translates Brief headings and labels; summary, objective, scope lines, unknowns and rationale read back unchanged.",
-    "Brief and Agent Context Pack lineage stay identical; STALE still shows with its reason."
+    "Brief and Agent Context Pack lineage stay identical; STALE still shows with its reason.",
+    "The Brief shows the recorded promotion path and marks the target as the end of the approval; later environments read as needing another decision, production as not authorized.",
+    "In zh-TW, rule-advisor options and unknowns read in Chinese; owner summary, rationale and any uncoded text read back unchanged."
   ],
   "source_snapshot_hash": null,
-  "source_commit": "59b3197",
+  "source_commit": "9f5b3ff",
   "source_refs": [
     "docs/reviews/CONTEXT_RAIL_BRIEF_READABILITY_REVIEW_2026-09-25.zh-TW.md",
     "roadmap.md#7-definition-of-done-for-the-prototype",
@@ -87,7 +93,7 @@
     "role": "founder_and_solution_architect",
     "at": "2026-09-25T00:00:00+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
-    "reason": "Owner accepted the readability review and asked for items 1–3 to be built on a branch (\"好\"); readability is treated as P0 (DoD #5, G5)."
+    "reason": "Owner accepted the readability review and asked for items 1–3 to be built on a branch (\"好\"); readability is treated as P0 (DoD #5, G5). Follow-ups asked by the owner on the same branch: a flow diagram for the route (\"可以 你先做看看\") and removing English system text from the zh-TW Brief (\"可以\")."
   },
   "human_review": null
 }
