@@ -12,6 +12,49 @@ import (
 	"time"
 )
 
+// Rule-advisor notes are fixed sentences with at most one value. Each has a
+// code so the workspace can show it in the reader's language; the English
+// text stays the recorded value. The generator and NoteCode share this table,
+// so a sentence cannot change without its code.
+var ruleNotes = []struct{ code, prefix, suffix string }{
+	{"constraint_not_declared", "", " not declared; cost status UNKNOWN"},
+	{"project_context_not_current", "project context is ", "; some architecture facts may be outdated"},
+	{"repository_unverified", "repository URL is a fixture placeholder; real remote and branch protection unverified", ""},
+	{"no_out_of_scope_list", "no explicit out-of-scope list; the agent boundary relies on allowed_paths and forbidden_actions only", ""},
+}
+
+func ruleNote(code, value string) string {
+	for _, note := range ruleNotes {
+		if note.code == code {
+			return note.prefix + value + note.suffix
+		}
+	}
+	panic("unknown rule note " + code)
+}
+
+// NoteCode returns the code and value of a rule-advisor sentence, or "" for
+// any other text (a model's unknown, a human's words).
+func NoteCode(text string) (code, value string) {
+	for _, note := range ruleNotes {
+		if note.suffix == "" {
+			if text == note.prefix {
+				return note.code, ""
+			}
+			continue
+		}
+		if strings.HasPrefix(text, note.prefix) && strings.HasSuffix(text, note.suffix) && len(text) > len(note.prefix)+len(note.suffix) {
+			return note.code, text[len(note.prefix) : len(text)-len(note.suffix)]
+		}
+	}
+	return "", ""
+}
+
+// ruleOptionIDs are the options RuleAdvisor proposes with fixed wording.
+var ruleOptionIDs = map[string]bool{
+	"minimal_reversible_slice": true, "defer": true,
+	"managed_storage_with_signed_urls": true, "expanded_scope_new_infrastructure": true,
+}
+
 // RuleAdvisor is the deterministic default. It proposes the same candidates
 // for the same request and never claims facts the request did not state.
 type RuleAdvisor struct{}
@@ -22,17 +65,17 @@ func (RuleAdvisor) Propose(request Request, facts *ProjectFacts) ([]Option, []st
 	unknowns := []string{}
 	for _, constraint := range requiredConstraints {
 		if strings.TrimSpace(request.BusinessConstraints[constraint.key]) == "" {
-			unknowns = append(unknowns, constraint.key+" not declared; cost status UNKNOWN")
+			unknowns = append(unknowns, ruleNote("constraint_not_declared", constraint.key))
 		}
 	}
 	if facts != nil && facts.ContextStatus != "" && facts.ContextStatus != "CURRENT" && facts.ContextStatus != "DERIVED" {
-		unknowns = append(unknowns, "project context is "+facts.ContextStatus+"; some architecture facts may be outdated")
+		unknowns = append(unknowns, ruleNote("project_context_not_current", facts.ContextStatus))
 	}
 	if facts != nil && strings.Contains(facts.RepositoryURL, "example") {
-		unknowns = append(unknowns, "repository URL is a fixture placeholder; real remote and branch protection unverified")
+		unknowns = append(unknowns, ruleNote("repository_unverified", ""))
 	}
 	if len(request.ScopeExcluded) == 0 {
-		unknowns = append(unknowns, "no explicit out-of-scope list; the agent boundary relies on allowed_paths and forbidden_actions only")
+		unknowns = append(unknowns, ruleNote("no_out_of_scope_list", ""))
 	}
 	text := strings.ToLower(strings.Join(append([]string{request.Objective}, request.ScopeIncluded...), " "))
 	storageLike := strings.Contains(text, "attach") || strings.Contains(text, "upload") || strings.Contains(text, "file") || strings.Contains(text, "storage")

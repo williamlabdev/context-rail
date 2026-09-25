@@ -66,7 +66,7 @@ func TestDocumentBaselineAndContextPackOverHTTP(t *testing.T) {
 
 	// A new Change now needs input: the missing document is reported, never filled in.
 	response, payload = call(t, mux, http.MethodPost, "/v1/projects/order-operations-portal/changes", map[string]any{"reason": "open", "request": map[string]any{
-		"title": "attachments", "objective": "add attachments", "acceptance_criteria": []map[string]string{{"text": "works"}}, "allowed_paths": []string{"main.go"},
+		"title": "attachments", "objective": "add attachments", "owner_summary": "Reviewers can attach files to an order exception.", "acceptance_criteria": []map[string]string{{"text": "works"}}, "allowed_paths": []string{"main.go"},
 		"target_environment_id": "staging", "business_constraints": map[string]string{"data_classification": "internal", "expected_monthly_volume": "100"},
 	}})
 	if response.Code != http.StatusOK {

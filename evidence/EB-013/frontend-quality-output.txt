@@ -1,0 +1,18 @@
+# commit 9f5b3ff — npm run typecheck && npm run build && npm test
+
+> context-rail-workspace@0.1.0 typecheck
+> tsc --noEmit
+
+dist/index.html                   0.41 kB │ gzip:   0.28 kB
+dist/assets/index-D8Y-Emy0.css   14.62 kB │ gzip:   3.81 kB
+dist/assets/index-CkuKVZyR.js   353.04 kB │ gzip: 102.47 kB
+
+✓ built in 96ms
+ RUN  v4.1.11 /Users/william/dev/source/projects/context-rail/frontend
+
+
+ Test Files  8 passed (8)
+      Tests  30 passed (30)
+   Start at  17:22:45
+   Duration  822ms (transform 660ms, setup 812ms, import 849ms, tests 356ms, environment 2.81s)
+

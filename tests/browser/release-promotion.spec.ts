@@ -7,7 +7,7 @@ const DIGEST = "sha256:555555555555555555555555555555555555555555555555555555555
 async function seedChange(api: APIRequestContext, base: string, title: string, commit: string, acceptCandidate: boolean): Promise<string> {
   const changes = `${base}/v1/projects/${PROJECT}/changes`;
   let response = await api.post(changes, { data: { reason: "seed", request: {
-    title, objective: "seeded change", acceptance_criteria: [{ text: "works" }], allowed_paths: ["main.go", "web/index.html", "main_test.go"],
+    title, objective: "seeded change", owner_summary: "seeded owner summary", acceptance_criteria: [{ text: "works" }], allowed_paths: ["main.go", "web/index.html", "main_test.go"],
     target_environment_id: "staging", business_constraints: { data_classification: "internal", expected_monthly_volume: "100" },
   } } });
   expect(response.ok()).toBeTruthy();

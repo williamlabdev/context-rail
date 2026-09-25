@@ -1,58 +1,55 @@
 package change
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 )
 
 // RenderBrief renders the human Change Decision Brief from a DecisionRecord.
-// It adds no facts: every line maps to a field of the record or to the live
-// staleness verdict.
-func RenderBrief(decision *DecisionRecord, facts *ProjectFacts, staleness Staleness) ChangeDecisionBrief {
-	lineage := lineageOf(decision)
-	headline := fmt.Sprintf("Proceed with %q in %s; verify in %s before anything further.", decision.SelectedOption, decision.TargetEnvironment.ID, decision.TargetEnvironment.ID)
+// It adds no facts: every field is copied from the record, the option list
+// it was decided against, or the live staleness verdict.
+func RenderBrief(decision *DecisionRecord, staleness Staleness) ChangeDecisionBrief {
+	state := "ACCEPTED"
 	if staleness.Stale {
-		headline = "This decision is STALE and must be re-made: " + staleness.Reason
+		state = StatusStale
 	}
-	projectName := decision.ProjectID
-	if facts != nil && facts.ProjectName != "" {
-		projectName = facts.ProjectName
-	}
-	sections := []BriefSection{
-		{Heading: "Decision identity", Lines: []string{
-			"Project: " + projectName + " (" + decision.ProjectID + ")",
-			fmt.Sprintf("Change: %s · decision %s v%d", decision.ChangeID, decision.DecisionID, decision.Version),
-			"Status: " + decision.Status + " · risk " + decision.RiskLevel,
-			"Source snapshot: " + decision.SourceSnapshotHash,
-			fmt.Sprintf("Environment topology: v%d (%s) · policy %s", decision.TopologyVersion, decision.TopologyConfigHash, decision.PolicyVersion),
-		}},
-		{Heading: "Where this change sits", Lines: []string{
-			transitionLine(decision),
-			"Production: " + decision.ProductionAction + " — this decision does not authorize any production change.",
-		}},
-		{Heading: "One-line conclusion", Lines: []string{headline}},
-		{Heading: "Why", Lines: []string{decision.Rationale}},
-		{Heading: "Objective", Lines: []string{decision.Objective}},
-		{Heading: "Approved this time", Lines: orDefault(decision.AcceptedScope, "No explicit scope lines; the objective and acceptance criteria bound the work.")},
-		{Heading: "Not approved / out of scope", Lines: orDefault(decision.OutOfScope, "No explicit out-of-scope lines; the forbidden actions below still apply.")},
-		{Heading: "What must be true before the next gate", Lines: nextGateLines(decision)},
-		{Heading: "Unknowns you accepted knowingly", Lines: orDefault(decision.Unknowns, "None recorded.")},
-		{Heading: "Who decided", Lines: []string{fmt.Sprintf("%s (%s) %s at %s", decision.HumanDecision.Actor, decision.HumanDecision.Role, decision.HumanDecision.Decision, decision.HumanDecision.At)}},
-	}
-	if len(decision.Alternatives) > 1 {
-		lines := []string{}
-		for _, option := range decision.Alternatives {
-			if option.ID == decision.SelectedOption {
-				continue
-			}
-			lines = append(lines, option.Title+" — "+option.Summary)
+	selected := BriefOption{ID: decision.SelectedOption, Title: decision.SelectedOption}
+	alternatives := []BriefOption{}
+	for _, option := range decision.Alternatives {
+		entry := BriefOption{ID: option.ID, Title: option.Title, Summary: option.Summary}
+		if option.AdvisorSource == "rule-advisor" && ruleOptionIDs[option.ID] {
+			entry.Code = option.ID
 		}
-		sections = append(sections, BriefSection{Heading: "Alternatives considered, not selected", Lines: lines})
+		if option.ID == decision.SelectedOption {
+			selected = entry
+			continue
+		}
+		alternatives = append(alternatives, entry)
 	}
+	route := BriefRoute{
+		TargetEnvironmentID: decision.TargetEnvironment.ID, TargetType: decision.TargetEnvironment.Type,
+		TargetRef: decision.TargetEnvironment.TargetRef, Transition: decision.AllowedTransition, ProductionAction: decision.ProductionAction,
+		Path: append([]PathStep{}, decision.PromotionPath...),
+	}
+	if decision.SourceEnvironment != nil {
+		route.SourceEnvironmentID = decision.SourceEnvironment.ID
+	}
+	unknowns := []BriefNote{}
+	for _, text := range decision.Unknowns {
+		code, value := NoteCode(text)
+		unknowns = append(unknowns, BriefNote{Text: text, Code: code, Value: value})
+	}
+	evidence := append([]string{}, decision.TargetEnvironment.RequiredEvidence...)
+	sort.Strings(evidence)
 	return ChangeDecisionBrief{
-		ArtifactType: "change_decision_brief", Lineage: lineage,
-		Audience: "business owner, engineering manager, PM", Headline: headline, Sections: sections, RenderedAt: decision.CreatedAt,
+		ArtifactType: "change_decision_brief", SchemaVersion: "change-decision-brief/v2", Lineage: lineageOf(decision),
+		Audience: "business owner, engineering manager, PM", State: state, StaleReason: staleness.Reason,
+		OwnerSummary: decision.OwnerSummary, OwnerSummaryMissing: strings.TrimSpace(decision.OwnerSummary) == "",
+		Objective: decision.Objective, Selected: selected, Route: route, RiskLevel: decision.RiskLevel,
+		Unknowns: unknowns, InScope: nonNil(decision.AcceptedScope), OutOfScope: nonNil(decision.OutOfScope),
+		RequiredEvidence: evidence,
+		DecidedBy:        BriefDecider{Actor: decision.HumanDecision.Actor, Role: decision.HumanDecision.Role, At: decision.HumanDecision.At, Rationale: decision.Rationale},
+		Alternatives:     alternatives, RenderedAt: decision.CreatedAt,
 	}
 }
 
@@ -90,32 +87,6 @@ func RenderAgentContextPack(decision *DecisionRecord, staleness Staleness) Agent
 		AcceptanceTests: tests, RequiredChecks: requiredChecks(decision), Unknowns: nonNil(decision.Unknowns),
 		EvidenceRefs: nonNil(decision.EvidenceRefs), RenderedAt: decision.CreatedAt,
 	}
-}
-
-func transitionLine(decision *DecisionRecord) string {
-	if decision.SourceEnvironment != nil {
-		return fmt.Sprintf("Next transition: %s → %s (%s); target %s", decision.SourceEnvironment.ID, decision.TargetEnvironment.ID, decision.AllowedTransition, decision.TargetEnvironment.TargetRef)
-	}
-	return fmt.Sprintf("Next transition: entry → %s; target %s", decision.TargetEnvironment.ID, decision.TargetEnvironment.TargetRef)
-}
-
-func nextGateLines(decision *DecisionRecord) []string {
-	lines := []string{}
-	evidence := append([]string{}, decision.TargetEnvironment.RequiredEvidence...)
-	sort.Strings(evidence)
-	if len(evidence) > 0 {
-		lines = append(lines, "Required evidence for "+decision.TargetEnvironment.ID+": "+strings.Join(evidence, ", "))
-	}
-	lines = append(lines, "An independent review and an allowed-paths diff check of the agent candidate.")
-	lines = append(lines, "The same decision_id, version and source snapshot on the candidate; any input, topology or source change makes this decision STALE.")
-	return lines
-}
-
-func orDefault(values []string, fallback string) []string {
-	if len(values) == 0 {
-		return []string{fallback}
-	}
-	return values
 }
 
 func nonNil(values []string) []string {

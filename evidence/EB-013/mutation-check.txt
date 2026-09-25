@@ -1,0 +1,3 @@
+# consumer fixture trees before/after the browser run (commit 9f5b3ff)
+demo/order-operations-portal before=f6d893a85b273ae2f73395f8186cf2d0bc58c1fceada1e8764bee2d509e3fb52 after=f6d893a85b273ae2f73395f8186cf2d0bc58c1fceada1e8764bee2d509e3fb52 IDENTICAL
+examples/support-insights before=4a150f3aaebf78ef9cdad567590c524c56c914e8d48a2295f132e5082a1933e8 after=4a150f3aaebf78ef9cdad567590c524c56c914e8d48a2295f132e5082a1933e8 IDENTICAL

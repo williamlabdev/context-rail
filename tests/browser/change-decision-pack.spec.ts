@@ -16,6 +16,7 @@ test.describe("Change decision pack (VS-004)", () => {
     const title = `Manual order review ${Date.now().toString(36).slice(-4)}`;
     await create.locator("input[name=title]").fill(title);
     await create.locator("textarea[name=objective]").fill("Let operations approve or reject an order exception with a note.");
+    await create.locator("textarea[name=owner_summary]").fill("Operations staff can settle an order exception with a written note.");
     await create.locator("select[name=target_environment_id]").selectOption("staging");
     await create.locator("input[name=reason]").fill("ops request");
     await create.getByRole("button", { name: "Open Change and evaluate" }).click();

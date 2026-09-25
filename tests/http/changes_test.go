@@ -70,6 +70,7 @@ func TestChangeJourneyOverHTTP(t *testing.T) {
 	// UI-08: supply inputs → v2 DECISION_READY.
 	response, payload = call(t, mux, http.MethodPost, base+"/CHG-001/inputs", map[string]any{
 		"reason":               "requester and business owner supplied inputs",
+		"owner_summary":        "Operations can approve or reject an order exception with a note.",
 		"acceptance_criteria":  []map[string]string{{"text": "approve and reject require a note"}, {"text": "unknown order returns 404"}},
 		"allowed_paths":        []string{"main.go", "web/index.html", "main_test.go"},
 		"business_constraints": map[string]string{"data_classification": "internal", "expected_monthly_volume": "500 reviews"},
@@ -208,7 +209,7 @@ func issueWorkOrderOverHTTP(t *testing.T, mux *http.ServeMux) map[string]any {
 	base := "/v1/projects/order-operations-portal/changes"
 	response, _ := call(t, mux, http.MethodPost, base, map[string]any{
 		"reason": "open", "request": map[string]any{
-			"title": "Manual order review", "objective": "Approve or reject order exceptions", "target_environment_id": "staging",
+			"title": "Manual order review", "objective": "Approve or reject order exceptions", "owner_summary": "Operations can approve or reject an order exception with a note.", "target_environment_id": "staging",
 			"acceptance_criteria": []map[string]string{{"text": "note required"}}, "allowed_paths": []string{"main.go", "web/index.html", "main_test.go"},
 			"business_constraints": map[string]string{"data_classification": "internal", "expected_monthly_volume": "500"},
 		},

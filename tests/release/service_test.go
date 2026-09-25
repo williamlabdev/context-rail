@@ -67,7 +67,7 @@ func newHarness(t *testing.T, singleOperator bool) *harness {
 func (h *harness) acceptedChange(t *testing.T, title, headCommit string, reviewer string) string {
 	t.Helper()
 	view, err := h.changes.Create("demo", change.CreateRequest{Mutation: change.Mutation{Actor: "requester", Reason: "open"}, Request: change.Request{
-		Title: title, Objective: "do " + title, AcceptanceCriteria: []change.AcceptanceCriterion{{Text: "works"}},
+		Title: title, Objective: "do " + title, OwnerSummary: "owner view of " + title, AcceptanceCriteria: []change.AcceptanceCriterion{{Text: "works"}},
 		AllowedPaths: []string{"main.go", "web/"}, TargetEnvironmentID: "staging",
 		BusinessConstraints: map[string]string{"data_classification": "internal", "expected_monthly_volume": "100"},
 	}})
@@ -226,7 +226,7 @@ func TestBundleWithOneFailingChangeIsBlockedAsAWhole(t *testing.T) {
 	good := h.acceptedChange(t, "good change", "aaa111", "reviewer-2")
 	// Second change: decided and issued but candidate NOT accepted.
 	view, _ := h.changes.Create("demo", change.CreateRequest{Mutation: change.Mutation{Actor: "requester", Reason: "open"}, Request: change.Request{
-		Title: "half done", Objective: "x", AcceptanceCriteria: []change.AcceptanceCriterion{{Text: "works"}}, AllowedPaths: []string{"main.go"}, TargetEnvironmentID: "staging",
+		Title: "half done", Objective: "x", OwnerSummary: "x", AcceptanceCriteria: []change.AcceptanceCriterion{{Text: "works"}}, AllowedPaths: []string{"main.go"}, TargetEnvironmentID: "staging",
 		BusinessConstraints: map[string]string{"data_classification": "internal", "expected_monthly_volume": "1"},
 	}})
 	halfDone := view.Change.ChangeID

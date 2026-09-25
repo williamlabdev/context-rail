@@ -5,6 +5,7 @@ export interface AcceptanceCriterion { id: string; text: string }
 export interface ChangeRequest {
   title: string;
   objective: string;
+  owner_summary?: string;
   scope_included: string[];
   scope_excluded: string[];
   acceptance_criteria: AcceptanceCriterion[];
@@ -61,9 +62,28 @@ export interface DecisionRecord {
   human_decision: HumanDecision; created_at: string;
 }
 
-export interface BriefSection { heading: string; lines: string[] }
+// code is set when RuleAdvisor wrote the wording; the UI may localise it.
+export interface BriefOption { id: string; title: string; summary: string; code?: string }
+export interface BriefNote { text: string; code?: string; value?: string }
 
-export interface ChangeDecisionBrief { artifact_type: string; lineage: Lineage; audience: string; headline: string; sections: BriefSection[]; rendered_at: string }
+export interface PathStep { id: string; display_name?: string; type: string; status: string }
+export interface BriefRoute {
+  source_environment_id?: string; target_environment_id: string; target_type: string; target_ref: string; transition: string; production_action: string;
+  // Promotion path recorded with the decision; empty for older decisions.
+  path: PathStep[];
+}
+
+// change-decision-brief/v2: structured values copied from the DecisionRecord;
+// reader-facing order, labels and language are applied by the UI.
+export interface ChangeDecisionBrief {
+  artifact_type: string; schema_version: string; lineage: Lineage; audience: string;
+  state: "ACCEPTED" | "STALE" | string; stale_reason?: string;
+  owner_summary: string; owner_summary_missing: boolean; objective: string;
+  selected: BriefOption; route: BriefRoute; risk_level: string; unknowns: BriefNote[];
+  in_scope: string[]; out_of_scope: string[]; required_evidence: string[];
+  decided_by: { actor: string; role: string; at: string; rationale: string };
+  alternatives: BriefOption[]; rendered_at: string;
+}
 
 export interface AgentContextPack {
   artifact_type: string; schema_version: string; lineage: Lineage; status: string; objective: string;
@@ -128,7 +148,7 @@ export class ChangeRequestError extends Error {
 export interface CreateChangeInput { reason: string; actor?: string; request: Partial<ChangeRequest> & { title: string } }
 export interface InputsPatch {
   reason: string; actor?: string;
-  objective?: string; scope_included?: string[]; scope_excluded?: string[]; acceptance_criteria?: AcceptanceCriterion[];
+  objective?: string; owner_summary?: string; scope_included?: string[]; scope_excluded?: string[]; acceptance_criteria?: AcceptanceCriterion[];
   allowed_paths?: string[]; forbidden_actions?: string[]; target_environment_id?: string; business_constraints?: Record<string, string>;
 }
 export interface DecideInput { actor: string; role?: string; decision: "ACCEPT" | "REJECT"; selected_option?: string; rationale: string; risk_level?: string; reason?: string }

@@ -1,0 +1,14 @@
+# commit 9f5b3ff — go vet ./... && go test ./...
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/change	[no test files]
+?   	context-rail/internal/document	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+?   	context-rail/internal/release	[no test files]
+?   	context-rail/internal/topology	[no test files]
+ok  	context-rail/tests/change	0.322s
+ok  	context-rail/tests/document	1.662s
+ok  	context-rail/tests/http	1.653s
+ok  	context-rail/tests/registry	1.488s
+ok  	context-rail/tests/release	0.527s
+ok  	context-rail/tests/topology	0.995s
