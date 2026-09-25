@@ -32,7 +32,7 @@
 - Readability is shown by structure and screenshots, not by readers. The three-question role test (review item 6, G5) is still open and is the real acceptance for "human-readable".
 - Receipt conclusion-first layout and a reviewer Technical Report (review items 4–5) are not in this slice.
 - Other server-generated text — missing-input reasons, observations, gate details — is still English in zh-TW; only rule-advisor options and unknowns are coded.
-- The screenshots' owner summary and rationale are English because the seeded demo data was written in English; they are shown as recorded. `uat-…` in the path is an environment an earlier browser journey adds.
+- Screenshot data: `brief-zh-TW.png` is seeded in Chinese on a fresh state dir (the fixture's own path); `brief-en.png` is seeded in English after the full browser run, so its path includes a `uat-…` environment an earlier journey adds. Owner summary and rationale are shown as recorded in both.
 - Evidence-code labels cover the nine codes current topologies use; others render as the code.
 - The EB-012 CHG-001 decision predates `owner_summary` and shows the missing-summary notice.
 - Brief JSON changed from v1 (`headline`, `sections`) to v2; no other consumer in the repo reads v1.
