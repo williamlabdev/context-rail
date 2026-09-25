@@ -60,7 +60,16 @@ export function useChanges(projectID: string | null, refreshKey: unknown = null)
     setStatus("LOADING");
     setError(null);
     fetchChanges(projectID)
-      .then((list) => { setChanges(list.changes); setStatus("READY"); })
+      .then((list) => {
+        setChanges(list.changes);
+        setStatus("READY");
+        // Default to the first Change in list order when nothing is selected
+        // yet, so the detail pane never opens on an empty "Select a Change"
+        // placeholder while Changes exist. The functional update reads the
+        // current selection at dispatch time, so an explicit selection (a
+        // card click, or one just created/decided) is never overridden.
+        setSelectedID((current) => current ?? list.changes[0]?.change.change_id ?? null);
+      })
       .catch((cause: unknown) => { setChanges([]); setError(describe(cause)); setStatus("ERROR"); });
   }, [projectID]);
 

@@ -80,6 +80,7 @@ function statusLabelsEN(): Record<string, string> {
     CONFLICT: "Conflict", UNKNOWN: "Unknown", UNDECLARED: "Undeclared", PARTIAL: "Partial", PASS: "Pass", FAIL: "Fail", WAIVED: "Waived",
     ACTIVE: "Active", DRAFT: "Draft", PAUSED: "Paused", RETIRED: "Retired", MATERIAL: "Material", INFORMATIONAL: "Informational",
     DECISION_READY: "Ready to decide", ACCEPTED_FOR_DEVELOPMENT: "Accepted for development", REJECTED: "Rejected", ISSUED: "Issued",
+    ACCEPTED: "Accepted", ACCEPTED_FOR_STAGING: "Accepted for staging", CANDIDATE_REQUIRES_HUMAN_ACCEPTANCE: "Candidate requires human acceptance",
     CANDIDATE_ACCEPTABLE: "Candidate acceptable", NEEDS_EVIDENCE: "Needs evidence", NEEDS_REVIEW: "Needs review", ACCEPTED_FOR_PROMOTION: "Accepted for promotion",
     CANDIDATE_ACCEPTED: "Candidate accepted", CANDIDATE_SUBMITTED: "Candidate submitted", EVALUATED: "Evaluated", DEFERRED_TO_PROMOTION: "Deferred to promotion",
     GATE_BLOCKED: "Gate blocked", AWAITING_BUILD: "Awaiting build", READY_FOR_APPROVAL: "Ready for approval", APPROVED: "Approved", PROMOTED: "Promoted",

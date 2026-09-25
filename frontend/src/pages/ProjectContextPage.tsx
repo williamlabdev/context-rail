@@ -34,17 +34,52 @@ function RelationshipList({ title, values, empty }: { title: string; values: str
   );
 }
 
+interface DecisionEntry {
+  id: string;
+  status: string;
+  invalidation?: { topology_version: number };
+}
+
+// UI-18: a decision's status is a machine code (e.g. CANDIDATE_REQUIRES_HUMAN_ACCEPTANCE)
+// that breaks mid-word in a narrow column; show it the same way StatusBadge
+// does elsewhere — a human label with the code kept small and secondary —
+// instead of a raw string.
+function DecisionRelationshipList({ title, entries, empty }: { title: string; entries: DecisionEntry[]; empty: string }) {
+  const { t } = useLocale();
+  return (
+    <section className="relationship-block">
+      <h3>{title}</h3>
+      {entries.length === 0 ? (
+        <p className="muted">{empty}</p>
+      ) : (
+        <ul>
+          {entries.map((entry, index) => (
+            <li key={`${entry.id}-${entry.status}-${index}`} className="relationship-decision">
+              <strong>{entry.id}</strong> <StatusBadge status={entry.status} />
+              {entry.invalidation && (
+                <>
+                  {" "}<span className="muted">→</span>{" "}
+                  <StatusBadge status="STALE" />{" "}
+                  <span className="muted">({t("topology v{version}", { version: entry.invalidation.topology_version })})</span>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function ProjectContextPage({ entry, topology, changes, releases, documents }: ProjectContextPageProps) {
   const { t } = useLocale();
   const { project } = entry;
   const topologyEnvironments = topology?.state ? currentTopologyVersion(topology.state)?.environments ?? [] : [];
   const stale = staleDecisions(topology?.state ?? null);
-  const decisionLabels = (entry.decisions ?? []).map((value) => {
+  const decisionEntries: DecisionEntry[] = (entry.decisions ?? []).map((value) => {
     const id = value.decision_id ?? "UNDECLARED";
     const invalidation = stale.get(id);
-    return invalidation
-      ? `${id} · ${value.status ?? "UNKNOWN"} → STALE (${t("topology v{version}", { version: invalidation.topology_version })})`
-      : `${id} · ${value.status ?? "UNKNOWN"}`;
+    return { id, status: value.status ?? "UNKNOWN", ...(invalidation ? { invalidation: { topology_version: invalidation.topology_version } } : {}) };
   });
   return (
     <main className="context-column" data-testid="project-context-page">
@@ -73,7 +108,7 @@ export function ProjectContextPage({ entry, topology, changes, releases, documen
           <RelationshipList title={t("Repositories")} values={(entry.repositories ?? []).map((value) => value.url ?? value.provider ?? "UNDECLARED")} empty={t("No repositories declared.")} />
           <RelationshipList title={t("Services")} values={(entry.services ?? []).map((value) => `${value.id} · ${value.runtime ?? "UNDECLARED"}`)} empty={t("No services declared.")} />
           <RelationshipList title={t("Environments")} values={(entry.environments ?? []).map((value) => `${value.sequence ?? "?"}. ${value.id} · ${value.type ?? "UNDECLARED"}`)} empty={t("No environments declared.")} />
-          <RelationshipList title={t("Decisions")} values={decisionLabels} empty={t("No decisions observed.")} />
+          <DecisionRelationshipList title={t("Decisions")} entries={decisionEntries} empty={t("No decisions observed.")} />
         </div>
       </section>
 

@@ -118,7 +118,11 @@ const messages: Record<string, string> = {
   // ---- changes
   "CHANGE DECISION PACK": "變更決策包",
   "Changes": "變更",
-  "Request → evaluation → human decision → Brief + Agent Context Pack → Work Order": "需求 → 評估 → 人工決策 → Brief + Agent Context Pack → Work Order",
+  // "Brief" follows "CHANGE DECISION BRIEF" → 變更決策簡報 below (translated);
+  // "Agent Context Pack" and "Work Order" stay in English, same as every
+  // other occurrence in this dictionary (see the file header: these are the
+  // machine artifact names kept in their original form).
+  "Request → evaluation → human decision → Brief + Agent Context Pack → Work Order": "需求 → 評估 → 人工決策 → 簡報 + Agent Context Pack → Work Order",
   "Loading changes…": "正在載入變更…",
   "Reload changes": "重新載入變更",
   "No Change opened yet for this Project.": "此專案尚未開啟任何變更。",
@@ -428,6 +432,7 @@ const statuses: Record<string, string> = {
   CONFLICT: "衝突", UNKNOWN: "未知", UNDECLARED: "未宣告", PARTIAL: "部分", PASS: "通過", FAIL: "失敗", WAIVED: "已豁免",
   ACTIVE: "啟用", DRAFT: "草稿", PAUSED: "暫停", RETIRED: "已退役", MATERIAL: "實質", INFORMATIONAL: "資訊性",
   DECISION_READY: "可決策", ACCEPTED_FOR_DEVELOPMENT: "已接受開發", REJECTED: "已拒絕", ISSUED: "已簽發",
+  ACCEPTED: "已接受", ACCEPTED_FOR_STAGING: "已接受進入 staging", CANDIDATE_REQUIRES_HUMAN_ACCEPTANCE: "候選項需人工接受",
   CANDIDATE_ACCEPTABLE: "候選可接受", NEEDS_EVIDENCE: "需要證據", NEEDS_REVIEW: "需要審查", ACCEPTED_FOR_PROMOTION: "已接受晉升",
   CANDIDATE_ACCEPTED: "候選已接受", CANDIDATE_SUBMITTED: "候選已提交", EVALUATED: "已評估", DEFERRED_TO_PROMOTION: "延至晉升",
   GATE_BLOCKED: "閘門阻擋", AWAITING_BUILD: "等待建置", READY_FOR_APPROVAL: "可核准", APPROVED: "已核准", PROMOTED: "已晉升",
