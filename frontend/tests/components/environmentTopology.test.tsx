@@ -116,7 +116,15 @@ describe("ProjectContextPage with topology", () => {
 
   it("overlays STALE on decisions invalidated by the topology without touching others", () => {
     render(<ProjectContextPage entry={entry} topology={controller()} />);
-    expect(screen.getByText("DR-001 · ACCEPTED_FOR_STAGING → STALE (topology v2)")).toBeInTheDocument();
-    expect(screen.getByText("DR-009 · DRAFT")).toBeInTheDocument();
+    // UI-18: the decision shows a human label with the machine code kept
+    // secondary, same as StatusBadge elsewhere — not a raw concatenated string.
+    expect(screen.getAllByText("DR-001").length).toBeGreaterThan(0);
+    expect(screen.getByText("Accepted for staging")).toBeInTheDocument();
+    expect(screen.getByText("ACCEPTED_FOR_STAGING")).toBeInTheDocument();
+    expect(screen.getAllByText("Stale").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("STALE").length).toBeGreaterThan(0);
+    expect(screen.getByText("(topology v2)")).toBeInTheDocument();
+    expect(screen.getByText("DR-009")).toBeInTheDocument();
+    expect(screen.getByText("DRAFT")).toBeInTheDocument();
   });
 });

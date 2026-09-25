@@ -37,7 +37,13 @@ test.describe("Environment topology (VS-003)", () => {
     await expectVersion(start + 1);
     await expect(page.getByTestId("topology-last-change")).toContainText(`ADD · ${id}`);
     await expect(page.getByTestId("topology-invalidations")).toContainText("DR-001");
-    await expect(page.getByTestId("project-context-page")).toContainText("→ STALE");
+    // UI-18: the Project map shows a human label with the STALE code kept
+    // secondary (StatusBadge), not a raw "→ STALE" string. The fixture data
+    // declares DR-001 twice (two decision records share that id), so scope
+    // to the first match.
+    const decisionEntry = page.locator(".relationship-decision", { hasText: "DR-001" }).first();
+    await expect(decisionEntry).toContainText("→");
+    await expect(decisionEntry).toContainText("STALE");
 
     // edit (display-only)
     const row = page.getByTestId(`environment-row-${id}`);
