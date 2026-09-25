@@ -45,7 +45,7 @@ h3 { color: #d7e2f1; font-size: 0.83rem; margin-bottom: 9px; }
 .status-blocked, .status-revoked { border-color: #b05b68; color: #f3a2ad; }
 
 .relationship-grid { display: grid; gap: 18px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.relationship-block { min-width: 0; }
+.relationship-block { min-width: 0; overflow-wrap: anywhere; }
 ul { color: #acb9c9; line-height: 1.55; margin: 0; padding-left: 18px; }
 .document-list { display: grid; gap: 2px; }
 .document-row { align-items: flex-start; border-top: 1px solid #253143; display: flex; gap: 14px; justify-content: space-between; padding: 14px 0; }
@@ -123,7 +123,8 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 /* --- Change decision pack (VS-004) --- */
 .chip-ledger { border-color: #3f8a5f; color: #9ee0b4; }
 .changes-layout { display: grid; gap: 18px; grid-template-columns: minmax(200px, 0.6fr) minmax(0, 2fr); }
-.changes-list { display: grid; gap: 9px; align-content: start; }
+.changes-list { display: grid; gap: 9px; align-content: start; min-width: 0; }
+.changes-list .project-card { min-width: 0; overflow-wrap: anywhere; width: 100%; }
 .changes-detail { min-width: 0; }
 .project-card-selected { border-color: #4a7fb3; background: #1c2a3c; }
 .change-detail { display: grid; gap: 14px; }
@@ -215,3 +216,15 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .locale-switch { display: inline-flex; gap: 4px; margin-left: 8px; }
 .locale-switch button { background: transparent; border: 1px solid #3a4a60; border-radius: 999px; color: #a9b8cc; cursor: pointer; font-size: 0.68rem; font-weight: 700; padding: 3px 9px; }
 .locale-switch button[aria-pressed="true"] { background: #1f2d40; border-color: #6b8fb8; color: #e5eefc; }
+
+/* Release outcome: the one sentence a reader needs, before any table. */
+.release-outcome { background: #182230; border: 1px solid #2c3a4e; border-left: 4px solid #8290a3; border-radius: 10px; padding: 12px 14px; }
+.release-outcome-done { background: #173226; border-left-color: #4fb286; }
+.release-outcome-stopped { background: #2a1a22; border-left-color: #f1c4cf; }
+.release-outcome-sentence { font-weight: 700; margin: 0; }
+.release-outcome-detail { color: #b6c1cf; font-size: 0.8rem; margin: 6px 0 0; }
+.gate-passed { margin-top: 6px; }
+.gate-passed > summary { color: #8290a3; cursor: pointer; font-size: 0.77rem; }
+/* Narrow cards: a long badge breaks between its label and its code, never inside either. */
+.project-card-meta .status-badge { max-width: 100%; white-space: normal; }
+.project-card-meta .status-badge .status-label, .project-card-meta .status-badge .status-code { display: inline-block; white-space: nowrap; }
