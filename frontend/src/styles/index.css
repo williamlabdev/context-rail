@@ -233,4 +233,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
    line in a narrow column, but never breaks mid-word inside the label or code. */
 .relationship-decision { overflow-wrap: normal; }
 .relationship-decision .status-badge { max-width: 100%; white-space: normal; }
-.relationship-decision .status-badge .status-label, .relationship-decision .status-badge .status-code { display: inline-block; white-space: nowrap; }
+.relationship-decision .status-badge { border-radius: 10px; }
+.relationship-decision .status-badge .status-label { display: inline-block; white-space: nowrap; }
+/* The code is the secondary line; when even it is wider than the column it may break, the label never does. */
+.relationship-decision .status-badge .status-code { display: block; margin-left: 0; overflow-wrap: anywhere; white-space: normal; }
