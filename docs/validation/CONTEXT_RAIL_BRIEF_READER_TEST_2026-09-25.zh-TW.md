@@ -1,7 +1,7 @@
 # Change Decision Brief 讀者測試（三問測試）
 
 - 對應：可讀性 review 第 6 點（[review](../reviews/CONTEXT_RAIL_BRIEF_READABILITY_REVIEW_2026-09-25.zh-TW.md)）、roadmap G5 usability、DoD #5「human-readable Change Decision Brief」
-- 受測版本：`fix/brief-reader-preview` @ `PENDING_COMMIT`（Brief v2 + 第 9 節 AI 預演後的三項顯示修正：範圍兩欄皆空時合併成一行、「進入 staging 之前必須做到」只顯示人類標籤、「考慮過但未採用」加上分隔線與「未採用：」標籤）。EB-013（`develop` @ `7b51de4`）是 AI 預演當時看的舊版，不再用於真人施測。
+- 受測版本：`fix/brief-reader-preview` @ `cf9de5c`（Brief v2 + 第 9 節 AI 預演後的三項顯示修正：範圍兩欄皆空時合併成一行、「進入 staging 之前必須做到」只顯示人類標籤、「考慮過但未採用」加上分隔線與「未採用：」標籤）。EB-013（`develop` @ `7b51de4`）是 AI 預演當時看的舊版，不再用於真人施測。
 - 狀態：**題目已備妥，尚未施測**
 - 目的：確認沒看過 ContextRail 的人，只讀 Brief 就能說出核准了什麼、沒核准什麼、最大的風險是什麼。現有的截圖和測試只能證明畫面正確，不能證明讀得懂。
 
