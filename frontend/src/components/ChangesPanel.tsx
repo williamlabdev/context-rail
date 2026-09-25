@@ -3,6 +3,7 @@ import { currentVersion, type ChangeView, type MissingInput, type Option } from 
 import type { ChangesController } from "../state/useChanges";
 import type { TopologyEnvironment } from "../api/topology";
 import { CandidateReview } from "./CandidateReview";
+import { ChangeBrief, LineageStrip } from "./ChangeBrief";
 import { StatusBadge } from "./StatusBadge";
 import { useLocale } from "../i18n";
 
@@ -22,15 +23,6 @@ const constraintsFrom = (value: string): Record<string, string> => {
   return out;
 };
 
-function LineageStrip({ lineage }: { lineage: { decision_id: string; decision_version: number; source_snapshot_hash: string; topology_version: number; policy_version: string } }) {
-  const { t } = useLocale();
-  return (
-    <p className="lineage-strip" data-testid="lineage-strip">
-      <code>{lineage.decision_id} v{lineage.decision_version}</code> · {t("snapshot")} <code title={lineage.source_snapshot_hash}>{lineage.source_snapshot_hash.slice(7, 19)}</code> · {t("topology v{version}", { version: lineage.topology_version })} · {t("policy")} {lineage.policy_version}
-    </p>
-  );
-}
-
 // ---------------------------------------------------------------- create form
 
 interface CreateFormProps {
@@ -43,7 +35,7 @@ interface CreateFormProps {
 function CreateChangeForm({ environments, busy, onCancel, onSubmit }: CreateFormProps) {
   const { t } = useLocale();
   const [values, setValues] = useState({
-    title: "", objective: "", scope_included: "", scope_excluded: "", acceptance_criteria: "", allowed_paths: "",
+    title: "", objective: "", owner_summary: "", scope_included: "", scope_excluded: "", acceptance_criteria: "", allowed_paths: "",
     forbidden_actions: "", target_environment_id: "", data_classification: "", expected_monthly_volume: "", extra_constraints: "", reason: "",
   });
   const update = (field: keyof typeof values) => (event: { target: { value: string } }) => setValues((previous) => ({ ...previous, [field]: event.target.value }));
@@ -55,7 +47,7 @@ function CreateChangeForm({ environments, busy, onCancel, onSubmit }: CreateForm
     const ok = await onSubmit({
       reason: values.reason.trim(),
       request: {
-        title: values.title.trim(), objective: values.objective.trim(),
+        title: values.title.trim(), objective: values.objective.trim(), owner_summary: values.owner_summary.trim(),
         scope_included: lines(values.scope_included), scope_excluded: lines(values.scope_excluded),
         acceptance_criteria: criteriaFrom(values.acceptance_criteria), allowed_paths: lines(values.allowed_paths),
         forbidden_actions: lines(values.forbidden_actions), target_environment_id: values.target_environment_id,
@@ -78,6 +70,7 @@ function CreateChangeForm({ environments, busy, onCancel, onSubmit }: CreateForm
             ))}
           </select>
         </label>
+        <label className="span-2">{t("Owner summary (plain language, for the business owner)")}<textarea name="owner_summary" rows={2} value={values.owner_summary} onChange={update("owner_summary")} placeholder={t("What changes for the people who use it, in one or two sentences")} /></label>
         <label className="span-2">{t("Objective")}<textarea name="objective" rows={2} value={values.objective} onChange={update("objective")} placeholder={t("What must be true for the requester afterwards")} /></label>
         <label>{t("Scope included (one per line)")}<textarea name="scope_included" rows={3} value={values.scope_included} onChange={update("scope_included")} /></label>
         <label>{t("Scope excluded (one per line)")}<textarea name="scope_excluded" rows={3} value={values.scope_excluded} onChange={update("scope_excluded")} /></label>
@@ -111,7 +104,7 @@ function SupplyInputsForm({ view, environments, busy, onSubmit }: InputsFormProp
   const version = currentVersion(view.change);
   const missing = new Set(version.evaluation.missing_inputs.map((input) => input.field));
   const [values, setValues] = useState({
-    objective: version.request.objective, acceptance_criteria: "", allowed_paths: version.request.allowed_paths.join("\n"),
+    objective: version.request.objective, owner_summary: version.request.owner_summary ?? "", acceptance_criteria: "", allowed_paths: version.request.allowed_paths.join("\n"),
     target_environment_id: version.request.target_environment_id, data_classification: version.request.business_constraints.data_classification ?? "",
     expected_monthly_volume: version.request.business_constraints.expected_monthly_volume ?? "", extra_constraints: "", reason: "",
   });
@@ -124,6 +117,7 @@ function SupplyInputsForm({ view, environments, busy, onSubmit }: InputsFormProp
     await onSubmit(view.change.change_id, {
       reason: values.reason.trim(),
       ...(values.objective.trim() !== version.request.objective ? { objective: values.objective.trim() } : {}),
+      ...(values.owner_summary.trim() !== (version.request.owner_summary ?? "") ? { owner_summary: values.owner_summary.trim() } : {}),
       ...(values.acceptance_criteria.trim() ? { acceptance_criteria: criteriaFrom(values.acceptance_criteria) } : {}),
       ...(values.allowed_paths.trim() !== version.request.allowed_paths.join("\n") ? { allowed_paths: lines(values.allowed_paths) } : {}),
       ...(values.target_environment_id !== version.request.target_environment_id ? { target_environment_id: values.target_environment_id } : {}),
@@ -135,6 +129,7 @@ function SupplyInputsForm({ view, environments, busy, onSubmit }: InputsFormProp
     <form className="topology-form" data-testid="change-inputs-form" onSubmit={(event) => void submit(event)}>
       <p className="eyebrow">{t("SUPPLY INPUTS · creates change v{version} and re-evaluates; earlier versions stay readable", { version: version.version + 1 })}</p>
       <div className="topology-form-grid">
+        {missing.has("owner_summary") && <label className="span-2">{t("Owner summary (plain language, for the business owner)")}<textarea name="owner_summary" rows={2} value={values.owner_summary} onChange={update("owner_summary")} /></label>}
         {missing.has("objective") && <label className="span-2">{t("Objective")}<textarea name="objective" rows={2} value={values.objective} onChange={update("objective")} /></label>}
         {missing.has("acceptance_criteria") && <label>{t("Acceptance criteria (one per line)")}<textarea name="acceptance_criteria" rows={3} value={values.acceptance_criteria} onChange={update("acceptance_criteria")} /></label>}
         {missing.has("allowed_paths") && <label>{t("Allowed paths (one per line)")}<textarea name="allowed_paths" rows={3} value={values.allowed_paths} onChange={update("allowed_paths")} /></label>}
@@ -283,23 +278,13 @@ function ChangeDetail({ view, controller, environments }: { view: ChangeView; co
             <StatusBadge status={staleness.stale && decision.status !== "REJECTED" ? "STALE" : decision.status} />
             <span className="muted">{decision.human_decision.actor} ({decision.human_decision.role}) {decision.human_decision.decision} {t("at")} {decision.human_decision.at}</span>
           </div>
-          <p className="topology-reason"><span className="muted">{t("Selected:")}</span> {decision.selected_option} · <span className="muted">{t("rationale:")}</span> {decision.rationale}</p>
+          <p className="topology-reason"><span className="muted">{t("Selected:")}</span> {decision.alternatives.find((option) => option.id === decision.selected_option)?.title ?? decision.selected_option} <code className="muted">{decision.selected_option}</code> · <span className="muted">{t("rationale:")}</span> {decision.rationale}</p>
         </div>
       )}
 
       {brief && pack && (
         <div className="dual-view">
-          <section className="dual-pane" data-testid="change-brief">
-            <p className="eyebrow">{t("CHANGE DECISION BRIEF · for people")}</p>
-            <LineageStrip lineage={brief.lineage} />
-            <h3>{brief.headline}</h3>
-            {brief.sections.map((section) => (
-              <div key={section.heading} className="brief-section">
-                <h4>{section.heading}</h4>
-                <ul>{section.lines.map((line, index) => <li key={`${section.heading}-${index}`}>{line}</li>)}</ul>
-              </div>
-            ))}
-          </section>
+          <ChangeBrief brief={brief} />
           <section className="dual-pane" data-testid="change-pack">
             <p className="eyebrow">{t("AGENT CONTEXT PACK · for the coding agent")}</p>
             <LineageStrip lineage={pack.lineage} />

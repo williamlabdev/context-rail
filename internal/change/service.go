@@ -105,6 +105,7 @@ type CreateRequest struct {
 type InputsRequest struct {
 	Mutation
 	Objective           *string                `json:"objective"`
+	OwnerSummary        *string                `json:"owner_summary"`
 	ScopeIncluded       *[]string              `json:"scope_included"`
 	ScopeExcluded       *[]string              `json:"scope_excluded"`
 	AcceptanceCriteria  *[]AcceptanceCriterion `json:"acceptance_criteria"`
@@ -245,6 +246,10 @@ func (service *Service) SupplyInputs(projectID, changeID string, request InputsR
 		next.Objective = strings.TrimSpace(*request.Objective)
 		changed = true
 	}
+	if request.OwnerSummary != nil && strings.TrimSpace(*request.OwnerSummary) != next.OwnerSummary {
+		next.OwnerSummary = strings.TrimSpace(*request.OwnerSummary)
+		changed = true
+	}
 	if request.ScopeIncluded != nil {
 		next.ScopeIncluded = cleanList(*request.ScopeIncluded)
 		changed = true
@@ -346,7 +351,7 @@ func (service *Service) Decide(projectID, changeID string, request DecideRequest
 		ChangeVersion: current.Version, Version: len(change.Decisions) + 1,
 		RiskLevel:    firstNonEmpty(strings.ToLower(strings.TrimSpace(request.RiskLevel)), "low"),
 		Alternatives: current.Options, Rationale: rationale,
-		Objective: current.Request.Objective, AcceptedScope: current.Request.ScopeIncluded, OutOfScope: current.Request.ScopeExcluded,
+		Objective: current.Request.Objective, OwnerSummary: current.Request.OwnerSummary, AcceptedScope: current.Request.ScopeIncluded, OutOfScope: current.Request.ScopeExcluded,
 		AllowedPaths:       current.Request.AllowedPaths,
 		ForbiddenActions:   mergeUnique(defaultForbiddenActions, current.Request.ForbiddenActions),
 		AcceptanceCriteria: current.Request.AcceptanceCriteria, BusinessConstraints: current.Request.BusinessConstraints,
@@ -482,6 +487,9 @@ func evaluate(request Request, facts *ProjectFacts, at string) Evaluation {
 	if strings.TrimSpace(request.Objective) == "" {
 		missing("objective", "requester", "the change has no stated objective; the decision cannot judge intent")
 	}
+	if strings.TrimSpace(request.OwnerSummary) == "" {
+		missing("owner_summary", "requester", "the business owner needs a plain-language summary of what this change does; ContextRail will not write one on the requester's behalf")
+	}
 	if len(request.AcceptanceCriteria) == 0 {
 		missing("acceptance_criteria", "requester", "at least one acceptance criterion is needed; an agent cannot be handed a change with no testable expectation")
 	}
@@ -589,7 +597,7 @@ func (service *Service) view(change *Change, facts *ProjectFacts) View {
 	view.Decision = decision
 	if decision.Status == "ACCEPTED_FOR_DEVELOPMENT" {
 		view.Staleness = service.staleness(change, decision, facts)
-		brief := RenderBrief(decision, facts, view.Staleness)
+		brief := RenderBrief(decision, view.Staleness)
 		pack := RenderAgentContextPack(decision, view.Staleness)
 		view.Brief = &brief
 		view.Pack = &pack
@@ -719,6 +727,7 @@ func refOf(environment topology.Environment) *EnvironmentRef {
 func normalizeRequest(request Request) Request {
 	request.Title = strings.TrimSpace(request.Title)
 	request.Objective = strings.TrimSpace(request.Objective)
+	request.OwnerSummary = strings.TrimSpace(request.OwnerSummary)
 	request.ScopeIncluded = cleanList(request.ScopeIncluded)
 	request.ScopeExcluded = cleanList(request.ScopeExcluded)
 	request.AcceptanceCriteria = cleanCriteria(request.AcceptanceCriteria)

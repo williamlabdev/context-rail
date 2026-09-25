@@ -94,6 +94,7 @@ test.describe("Workspace persistence and locale (UI-15 … UI-19)", () => {
     const title = `Locale check ${Date.now().toString(36).slice(-4)}`;
     await create.locator("input[name=title]").fill(title);
     await create.locator("textarea[name=objective]").fill("Keep data values intact across locales.");
+    await create.locator("textarea[name=owner_summary]").fill("Operations staff can settle an order exception with a written note.");
     await create.locator("select[name=target_environment_id]").selectOption("staging");
     await create.locator("input[name=reason]").fill("locale check");
     await create.getByRole("button", { name: "開啟變更並評估" }).click();

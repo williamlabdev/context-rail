@@ -38,7 +38,7 @@ async function ensureProdDemo(api: APIRequestContext, base: string): Promise<Env
 async function seedAcceptedChange(api: APIRequestContext, base: string, title: string, commit: string): Promise<string> {
   const changes = `${base}/v1/projects/${PROJECT}/changes`;
   let response = await api.post(changes, { data: { reason: "seed", request: {
-    title, objective: "seeded change for prod-demo promotion", acceptance_criteria: [{ text: "works" }], allowed_paths: ["main.go", "web/index.html", "main_test.go"],
+    title, objective: "seeded change for prod-demo promotion", owner_summary: "seeded owner summary", acceptance_criteria: [{ text: "works" }], allowed_paths: ["main.go", "web/index.html", "main_test.go"],
     target_environment_id: "staging", business_constraints: { data_classification: "internal", expected_monthly_volume: "100" },
   } } });
   expect(response.ok(), await response.text()).toBeTruthy();

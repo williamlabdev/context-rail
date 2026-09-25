@@ -63,6 +63,7 @@ func newHarness(t *testing.T) *harness {
 func completeRequest() change.Request {
 	return change.Request{
 		Title: "Manual order review", Objective: "Let operations staff approve or reject an order exception with a note.",
+		OwnerSummary: "Operations can approve or reject an order exception, and must leave a note either way.",
 		ScopeIncluded: []string{"review action", "required note"}, ScopeExcluded: []string{"payment", "fulfillment"},
 		AcceptanceCriteria: []change.AcceptanceCriterion{{Text: "approve and reject require a note"}, {ID: "AC-404", Text: "unknown order returns 404"}},
 		AllowedPaths:       []string{"main.go", "web/index.html", "main_test.go"}, ForbiddenActions: []string{"authentication"},
@@ -98,7 +99,7 @@ func TestIncompleteRequestIsNeedsInputWithOwners(t *testing.T) {
 	for _, missing := range evaluation.MissingInputs {
 		fields[missing.Field] = missing.OwnerRole
 	}
-	for field, owner := range map[string]string{"acceptance_criteria": "requester", "allowed_paths": "tech_lead", "target_environment_id": "tech_lead", "business_constraints.data_classification": "business_owner", "business_constraints.expected_monthly_volume": "business_owner"} {
+	for field, owner := range map[string]string{"owner_summary": "requester", "acceptance_criteria": "requester", "allowed_paths": "tech_lead", "target_environment_id": "tech_lead", "business_constraints.data_classification": "business_owner", "business_constraints.expected_monthly_volume": "business_owner"} {
 		if fields[field] != owner {
 			t.Fatalf("missing input %s must be owned by %s: %v", field, owner, fields)
 		}
@@ -126,7 +127,7 @@ func TestSupplyingInputsCreatesNewVersionAndBecomesReady(t *testing.T) {
 	paths := []string{"internal/attachments/"}
 	view, err := h.changes.SupplyInputs("demo", "CHG-001", change.InputsRequest{
 		Mutation:           mutation("business owner supplied volume and classification"),
-		AcceptanceCriteria: &criteria, AllowedPaths: &paths,
+		AcceptanceCriteria: &criteria, AllowedPaths: &paths, OwnerSummary: strPtr("Reviewers can attach files to an order exception."),
 		BusinessConstraints: map[string]string{"data_classification": "internal-confidential", "expected_monthly_volume": "10000 uploads"},
 	})
 	if err != nil {
@@ -183,14 +184,29 @@ func TestAcceptRendersBriefAndPackFromTheSameRecord(t *testing.T) {
 	if view.Pack.EnvironmentTopology["target_environment_id"] != "staging" || view.Pack.EnvironmentTopology["production_action"] != "forbidden" {
 		t.Fatalf("pack topology block wrong: %v", view.Pack.EnvironmentTopology)
 	}
-	briefText := ""
-	for _, section := range view.Brief.Sections {
-		briefText += section.Heading + " " + strings.Join(section.Lines, " ") + " "
+	brief := view.Brief
+	if brief.SchemaVersion != "change-decision-brief/v2" || brief.State != "ACCEPTED" || brief.OwnerSummaryMissing {
+		t.Fatalf("brief must be v2, accepted and carry the owner summary: %+v", brief)
 	}
-	for _, expected := range []string{"DEC-001", view.Decision.SourceSnapshotHash, "testing → staging", "founder-001", "payment"} {
-		if !strings.Contains(briefText, expected) {
-			t.Fatalf("brief must carry %q", expected)
+	if brief.OwnerSummary != completeRequest().OwnerSummary || brief.Objective != completeRequest().Objective {
+		t.Fatalf("brief must copy the requester's words verbatim: %q / %q", brief.OwnerSummary, brief.Objective)
+	}
+	if brief.Selected.ID != "minimal_reversible_slice" || brief.Selected.Title == "" || brief.Selected.Title == brief.Selected.ID {
+		t.Fatalf("selected option must be shown by its human title: %+v", brief.Selected)
+	}
+	for _, alternative := range brief.Alternatives {
+		if alternative.ID == brief.Selected.ID {
+			t.Fatalf("the selected option must not reappear as an alternative: %+v", brief.Alternatives)
 		}
+	}
+	if brief.Route.SourceEnvironmentID != "testing" || brief.Route.TargetEnvironmentID != "staging" || brief.Route.ProductionAction != "forbidden" {
+		t.Fatalf("brief route wrong: %+v", brief.Route)
+	}
+	if brief.Lineage != view.Pack.Lineage || brief.DecidedBy.Actor != "founder-001" || !strings.Contains(strings.Join(brief.OutOfScope, " "), "payment") {
+		t.Fatalf("brief must share lineage with the pack and name who decided and what is out of scope: %+v", brief)
+	}
+	if len(brief.RequiredEvidence) == 0 || len(brief.Unknowns) == 0 {
+		t.Fatalf("brief must state required evidence and accepted unknowns: %+v", brief)
 	}
 	// A second acceptance of the same version is refused.
 	_, err = h.changes.Decide("demo", "CHG-001", change.DecideRequest{Mutation: change.Mutation{Actor: "founder-001"}, Decision: "ACCEPT", SelectedOption: "defer", Rationale: "again"})
@@ -292,8 +308,8 @@ func TestWorkOrderCompilesWithHashAndGoesStaleOnTopologyChange(t *testing.T) {
 	if !view.Staleness.Stale || !strings.Contains(view.Staleness.Reason, "topology v3") {
 		t.Fatalf("material topology change must invalidate: %+v", view.Staleness)
 	}
-	if view.Change.Status != change.StatusStale || view.Pack.Status != "STALE" || view.WorkOrder.Status != "STALE" || !strings.Contains(view.Brief.Headline, "STALE") {
-		t.Fatalf("stale must be visible on every artifact: change=%s pack=%s awo=%s brief=%s", view.Change.Status, view.Pack.Status, view.WorkOrder.Status, view.Brief.Headline)
+	if view.Change.Status != change.StatusStale || view.Pack.Status != "STALE" || view.WorkOrder.Status != "STALE" || view.Brief.State != change.StatusStale || !strings.Contains(view.Brief.StaleReason, "topology v3") {
+		t.Fatalf("stale must be visible on every artifact: change=%s pack=%s awo=%s brief=%s", view.Change.Status, view.Pack.Status, view.WorkOrder.Status, view.Brief.State)
 	}
 	if _, err := h.changes.CompileWorkOrder("demo", "CHG-001", change.WorkOrderRequest{Mutation: mutation("reissue")}); codeOf(t, err) != change.CodeDecisionStale {
 		t.Fatalf("stale decision cannot issue a work order: %v", err)
@@ -344,3 +360,22 @@ func TestUnknownProject(t *testing.T) {
 }
 
 func strPtr(value string) *string { return &value }
+
+func TestBriefOfARecordWithoutOwnerSummaryFlagsItInsteadOfSubstituting(t *testing.T) {
+	record := &change.DecisionRecord{
+		DecisionID: "DEC-009", ChangeID: "CHG-009", Version: 1, Objective: "POST /api/orders/{id}/evidence",
+		SelectedOption: "minimal_reversible_slice",
+		Alternatives:   []change.Option{{ID: "minimal_reversible_slice", Title: "Minimal reversible slice"}, {ID: "defer", Title: "Defer"}},
+		TargetEnvironment: change.EnvironmentRef{ID: "staging"}, ProductionAction: "forbidden",
+	}
+	brief := change.RenderBrief(record, change.Staleness{})
+	if !brief.OwnerSummaryMissing || brief.OwnerSummary != "" {
+		t.Fatalf("a missing owner summary must be flagged, never filled from another field: %+v", brief)
+	}
+	if brief.Selected.Title != "Minimal reversible slice" || len(brief.Alternatives) != 1 || brief.Alternatives[0].ID != "defer" {
+		t.Fatalf("options must be resolved from the record's alternatives: %+v", brief)
+	}
+	if brief.Unknowns == nil || brief.InScope == nil || brief.OutOfScope == nil || brief.RequiredEvidence == nil {
+		t.Fatal("empty lists must serialize as [], not null")
+	}
+}

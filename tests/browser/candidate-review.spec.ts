@@ -15,6 +15,7 @@ test.describe("Candidate review (VS-005a)", () => {
     const create = page.getByTestId("change-form-create");
     await create.locator("input[name=title]").fill(`Candidate gate ${Date.now().toString(36).slice(-4)}`);
     await create.locator("textarea[name=objective]").fill("Add manual review with a note.");
+    await create.locator("textarea[name=owner_summary]").fill("Operations staff can settle an order exception with a written note.");
     await create.locator("select[name=target_environment_id]").selectOption("staging");
     await create.locator("textarea[name=acceptance_criteria]").fill("approve and reject require a note");
     await create.locator("textarea[name=allowed_paths]").fill("main.go\nweb/index.html\nmain_test.go");

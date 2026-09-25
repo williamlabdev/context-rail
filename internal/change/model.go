@@ -43,8 +43,12 @@ type AcceptanceCriterion struct {
 // Request is the requester-supplied input of a Change. Everything the
 // decision needs must be declared here or arrive later through Inputs.
 type Request struct {
-	Title               string                `json:"title"`
-	Objective           string                `json:"objective"`
+	Title     string `json:"title"`
+	Objective string `json:"objective"`
+	// OwnerSummary is the requester's plain-language statement of what the
+	// change does, written for the business owner. The Brief leads with it;
+	// nothing downstream may synthesize it.
+	OwnerSummary        string                `json:"owner_summary,omitempty"`
 	ScopeIncluded       []string              `json:"scope_included"`
 	ScopeExcluded       []string              `json:"scope_excluded"`
 	AcceptanceCriteria  []AcceptanceCriterion `json:"acceptance_criteria"`
@@ -135,6 +139,7 @@ type DecisionRecord struct {
 	Alternatives        []Option              `json:"alternatives"`
 	Rationale           string                `json:"rationale"`
 	Objective           string                `json:"objective"`
+	OwnerSummary        string                `json:"owner_summary,omitempty"`
 	AcceptedScope       []string              `json:"accepted_scope"`
 	OutOfScope          []string              `json:"out_of_scope"`
 	AllowedPaths        []string              `json:"allowed_paths"`
@@ -167,20 +172,58 @@ type Lineage struct {
 	PolicyVersion      string `json:"policy_version"`
 }
 
-// BriefSection is one plain-language block of the Change Decision Brief.
-type BriefSection struct {
-	Heading string   `json:"heading"`
-	Lines   []string `json:"lines"`
+// BriefOption names a decision option by its human title; the ID stays for
+// traceability but is never the thing a reader is asked to parse.
+type BriefOption struct {
+	ID      string `json:"id"`
+	Title   string `json:"title"`
+	Summary string `json:"summary"`
+}
+
+// BriefRoute is where the decision lets the change go next.
+type BriefRoute struct {
+	SourceEnvironmentID string `json:"source_environment_id,omitempty"`
+	TargetEnvironmentID string `json:"target_environment_id"`
+	TargetType          string `json:"target_type"`
+	TargetRef           string `json:"target_ref"`
+	Transition          string `json:"transition"`
+	ProductionAction    string `json:"production_action"`
+}
+
+// BriefDecider is the recorded human act, as the reader sees it.
+type BriefDecider struct {
+	Actor     string `json:"actor"`
+	Role      string `json:"role"`
+	At        string `json:"at"`
+	Rationale string `json:"rationale"`
 }
 
 // ChangeDecisionBrief is the human-facing rendering of a DecisionRecord.
+// It is structured, not prose: the reader-facing order, labels and language
+// are presentation, applied by the client; every value here is copied from
+// the record or the live staleness verdict and none is synthesized.
 type ChangeDecisionBrief struct {
-	ArtifactType string         `json:"artifact_type"`
-	Lineage      Lineage        `json:"lineage"`
-	Audience     string         `json:"audience"`
-	Headline     string         `json:"headline"`
-	Sections     []BriefSection `json:"sections"`
-	RenderedAt   string         `json:"rendered_at"`
+	ArtifactType  string  `json:"artifact_type"`
+	SchemaVersion string  `json:"schema_version"`
+	Lineage       Lineage `json:"lineage"`
+	Audience      string  `json:"audience"`
+	State         string  `json:"state"` // ACCEPTED or STALE
+	StaleReason   string  `json:"stale_reason,omitempty"`
+	OwnerSummary  string  `json:"owner_summary"`
+	// OwnerSummaryMissing marks a record decided before owner_summary was
+	// required; the reader is told so instead of being shown a stand-in.
+	OwnerSummaryMissing bool          `json:"owner_summary_missing"`
+	Objective           string        `json:"objective"`
+	Selected            BriefOption   `json:"selected"`
+	Route               BriefRoute    `json:"route"`
+	RiskLevel           string        `json:"risk_level"`
+	Unknowns            []string      `json:"unknowns"`
+	InScope             []string      `json:"in_scope"`
+	OutOfScope          []string      `json:"out_of_scope"`
+	RequiredEvidence    []string      `json:"required_evidence"`
+	DecidedBy           BriefDecider  `json:"decided_by"`
+	Alternatives        []BriefOption `json:"alternatives"`
+	RenderedAt          string        `json:"rendered_at"`
 }
 
 // AcceptanceTest is the agent-facing form of an acceptance criterion.
