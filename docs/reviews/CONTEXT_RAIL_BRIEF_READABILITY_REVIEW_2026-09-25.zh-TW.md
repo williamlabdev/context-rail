@@ -48,7 +48,7 @@
 | 1 | Brief 依讀者的問題排序：白話摘要 → 路線 → 風險與接受的未知（有未知時以警示框呈現）→ 範圍內／外 → 下一關需要什麼 → 誰決定 → 未採用的方案；hash 與 lineage 收進「追溯資訊」折疊區 | `feat/brief-readability` 已實作 |
 | 2 | 白話摘要由人撰寫：request 新增 `owner_summary`，缺少時回傳 `NEEDS_INPUT`（owner：requester），renderer 不自動產生。舊決策沒有這個欄位時，明確顯示「未提供」，並原封不動列出技術目標，不拿其他內容代替 | `feat/brief-readability` 已實作 |
 | 3 | Renderer 只輸出結構化資料（`change-decision-brief/v2`）；前端負責翻譯標題和標籤，資料值不翻譯 | `feat/brief-readability` 已實作 |
-| 4 | Receipt 結論優先：開頭一句話說明結果；下方只列非 PASS 的項目，PASS 合併成一行 | 未做 |
+| 4 | Receipt 結論優先：開頭一句話說明結果；下方只列非 PASS 的項目，PASS 合併成一行 | `feat/receipt-conclusion-first` 已實作（見第 7 節） |
 | 5 | 完整 gate 表與 hash 移到給審查者看的 Technical Report，讓「role-specific」真正成立 | 未做 |
 | 6 | 驗收：找 2–3 位不同角色的人讀完後回答三個問題（核准了什麼？沒核准什麼？最大的風險是什麼？），結果記入 G5 | 未做；是第 1～3 點能否算完成的依據 |
 
@@ -57,3 +57,14 @@
 - EB-012 的 CHG-001 決策早於 `owner_summary`，因此 Brief 會顯示「未提供白話摘要」。這是刻意的設計：不回頭補寫歷史決策，要補應該由 requester 提出新版本。
 - 「下一關」的證據標籤只涵蓋目前 topology 用到的 9 個代碼；未知代碼會直接顯示代碼本身。
 - Brief v2 的 schema 已改變（`Headline`／`Sections` 已移除）。如果有外部消費者讀 v1 JSON，需要跟著調整；repo 內沒有其他消費者。
+
+## 7. 第 4 點實作（Receipt 結論優先）
+
+- 發布詳情最上方新增一句結論（`release-outcome`），依發布狀態顯示：已發布、已拒絕、部署失敗、被擋下、等待建置／核准／部署。句子只用已記錄的欄位組成，不新增事實。
+- 如果先前有失敗的部署，結論下方列出**第一個未通過的 gate 和它的細節**，例如 D01 `new_revision` BLOCKED。這原本是 Receipt 頁上最重要、卻埋在中間的訊息。
+- Release Receipt 卡片移到結論下方，不再放在頁面最底。
+- 每張 gate 表只展開未通過的項目，PASS 收合成「N 項閘門中有 M 項通過」，點開後可以看到完整的列。原本的 row testid 保留在 DOM 中，稽核時仍能取得。
+- 「發布 Receipt」改為「發布收據」。
+- 高度參考：改版前 EB-009 的整頁截圖約 3200px；改版後，同一個 prod-demo 流程的發布詳情區塊約 1780px。兩者量的範圍不同，這個數字只能當大略參考。
+
+仍有的限制：gate 的 detail、轉換名稱等由 server 產生的文字在 zh-TW 仍是英文；manifest、delta 等技術區塊仍和決策者的資訊放在同一頁，這部分屬於第 5 點。

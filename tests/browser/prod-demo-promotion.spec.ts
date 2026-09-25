@@ -131,6 +131,12 @@ test.describe("Prod-demo promotion (VS-007)", () => {
     await deploy.getByRole("button", { name: "Record deployment and verify" }).click();
     await expect(detail).toContainText("PROMOTION_FAILED");
     await expect(page.getByTestId(`attempt-gates-${promotionID}-D01-new_revision`)).toContainText("BLOCKED");
+    // Conclusion first: the failure and its first failing gate are the opening line, passing gates are folded.
+    await expect(page.getByTestId("release-outcome")).toHaveAttribute("data-tone", "stopped");
+    await expect(page.getByTestId("release-outcome")).toContainText(`Deployment ${promotionID}-D01`);
+    await expect(page.getByTestId("release-outcome-failures")).toContainText("new_revision");
+    await expect(page.getByTestId(`attempt-gates-${promotionID}-D01-new_revision`)).toBeVisible();
+    await expect(page.getByTestId(`attempt-gates-${promotionID}-D01-passed`)).not.toHaveAttribute("open", "");
     await expect(page.getByTestId("release-approval")).toContainText("APPROVED");
 
     // Right: a new revision on the prod-demo service with the same digest and a passing smoke.
@@ -148,6 +154,10 @@ test.describe("Prod-demo promotion (VS-007)", () => {
     await expect(receipt).toContainText(prodDemo.target_ref);
     await expect(page.getByTestId("receipt-chain")).toContainText(`Promoted from receipt ${staging.receiptID}`);
     await expect(page.getByTestId("receipt-chain")).toContainText(stagingRevision);
+    await expect(page.getByTestId("release-outcome")).toHaveAttribute("data-tone", "done");
+    await expect(page.getByTestId("release-outcome")).toContainText(`Promoted to prod-demo: revision oop-prod-demo-00001-${suffix}`);
+    await expect(page.getByTestId("release-outcome-failures")).toContainText("1 earlier attempt(s) failed first");
+    await expect(page.getByTestId("release-outcome-failures")).toContainText("new_revision");
     await expect(page.getByTestId("release-deployment-form")).toHaveCount(0);
     // Production stays blocked: no further promotion is offered after prod-demo.
     await expect(page.getByTestId("release-promote-form")).toHaveCount(0);

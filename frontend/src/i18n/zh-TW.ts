@@ -303,7 +303,7 @@ const messages: Record<string, string> = {
   "Record deployment and verify": "記錄部署並驗證",
   "no revision": "無 revision",
   "key": "鍵",
-  "Release Receipt": "發布 Receipt",
+  "Release Receipt": "發布收據",
   "issued": "簽發於",
   "Transition": "轉換",
   "commit": "commit",
@@ -410,6 +410,16 @@ const messages: Record<string, string> = {
   "Production — not authorized": "正式環境：未授權",
   "Needs another decision": "需要另一個決定",
   "This decision recorded only where the change comes from and where it may go; later environments are not shown and still need their own decision.": "這項決策只記錄了出發點和可到達的環境；之後的環境沒有列出，仍需各自的決定。",
+  "{count} of {total} gates passed": "{total} 項閘門中有 {count} 項通過",
+  "Promoted to {env}: revision {revision} runs the approved image. Receipt {receipt}.": "已發布到 {env}：revision {revision} 執行的是核准的映像檔。收據 {receipt}。",
+  "Rejected by {actor}: {reason}": "{actor} 拒絕了這次發布：{reason}",
+  "Deployment {attempt} to {env} did not verify; nothing is promoted.": "部署 {attempt} 到 {env} 驗證未通過；沒有任何東西被發布。",
+  "Blocked: {count} gate(s) do not pass, so nothing goes to {env}.": "已擋下：有 {count} 項閘門未通過，所以不會發布到 {env}。",
+  "Waiting for build evidence before {env}.": "等待建置證據，之後才能往 {env}。",
+  "Gates pass; waiting for a release approval before {env}.": "閘門都已通過；等待發布核准，之後才能往 {env}。",
+  "Approved; waiting for the deployment record from {env}.": "已核准；等待 {env} 的部署紀錄。",
+  "{count} earlier attempt(s) failed first:": "在這之前有 {count} 次嘗試失敗：",
+  "Why:": "原因：",
 };
 
 // UI-18：機器狀態碼的人類標籤；狀態碼本身仍保留在標籤旁。

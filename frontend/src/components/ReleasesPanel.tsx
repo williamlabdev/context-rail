@@ -14,10 +14,10 @@ interface ReleasesPanelProps {
 
 const lines = (value: string): string[] => value.split("\n").map((line) => line.trim()).filter(Boolean);
 
-function GateTable({ gates, testid }: { gates: GateResult[]; testid: string }) {
+function GateRows({ gates, testid }: { gates: GateResult[]; testid: string }) {
   const { t } = useLocale();
   return (
-    <table className="topology-table gate-table" data-testid={testid}>
+    <table className="topology-table gate-table">
       <thead><tr><th>{t("Gate")}</th><th>{t("Change")}</th><th>{t("Result")}</th><th>{t("Detail")}</th></tr></thead>
       <tbody>
         {gates.map((gate, index) => (
@@ -30,6 +30,72 @@ function GateTable({ gates, testid }: { gates: GateResult[]; testid: string }) {
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** Gates that did not pass are listed; passing gates fold into one line. */
+function GateTable({ gates, testid }: { gates: GateResult[]; testid: string }) {
+  const { t } = useLocale();
+  const open = gates.filter((gate) => gate.status !== "PASS");
+  const passed = gates.filter((gate) => gate.status === "PASS");
+  return (
+    <div data-testid={testid}>
+      {open.length > 0 && <GateRows gates={open} testid={testid} />}
+      {passed.length > 0 && (
+        <details className="gate-passed" data-testid={`${testid}-passed`}>
+          <summary>{t("{count} of {total} gates passed", { count: passed.length, total: gates.length })}</summary>
+          <GateRows gates={passed} testid={testid} />
+        </details>
+      )}
+    </div>
+  );
+}
+
+const notPassing = (gates: GateResult[]) => gates.filter((gate) => gate.status !== "PASS");
+
+/** One sentence answering "what happened", taken only from recorded fields. */
+function ReleaseOutcome({ view }: { view: ReleaseView }) {
+  const { t } = useLocale();
+  const { release, live_gates: liveGates } = view;
+  const target = release.manifest.environment.environment_id;
+  const failed = release.deployments.filter((attempt) => attempt.outcome !== "PROMOTED");
+  const lastFailed = failed[failed.length - 1];
+  const firstGate = lastFailed ? notPassing(lastFailed.gates)[0] : undefined;
+  let tone = "pending";
+  let sentence: string;
+  if (release.status === "PROMOTED" && release.receipt) {
+    tone = "done";
+    sentence = t("Promoted to {env}: revision {revision} runs the approved image. Receipt {receipt}.", { env: target, revision: release.receipt.deployment.revision || "∅", receipt: release.receipt.receipt_id });
+  } else if (release.status === "REJECTED") {
+    tone = "stopped";
+    sentence = t("Rejected by {actor}: {reason}", { actor: release.approval?.actor ?? "∅", reason: release.approval?.reason ?? release.reason });
+  } else if (release.status === "PROMOTION_FAILED" && lastFailed) {
+    tone = "stopped";
+    sentence = t("Deployment {attempt} to {env} did not verify; nothing is promoted.", { attempt: lastFailed.attempt_id, env: target });
+  } else if (notPassing(liveGates).some((gate) => gate.status === "BLOCKED" || gate.status === "STALE")) {
+    tone = "stopped";
+    sentence = t("Blocked: {count} gate(s) do not pass, so nothing goes to {env}.", { count: notPassing(liveGates).length, env: target });
+  } else if (release.status === "AWAITING_BUILD") {
+    sentence = t("Waiting for build evidence before {env}.", { env: target });
+  } else if (release.status === "READY_FOR_APPROVAL") {
+    sentence = t("Gates pass; waiting for a release approval before {env}.", { env: target });
+  } else if (release.status === "APPROVED") {
+    sentence = t("Approved; waiting for the deployment record from {env}.", { env: target });
+  } else {
+    sentence = release.status;
+  }
+  return (
+    <div className={`release-outcome release-outcome-${tone}`} data-testid="release-outcome" data-tone={tone}>
+      <p className="release-outcome-sentence">{sentence}</p>
+      {failed.length > 0 && (
+        <p className="release-outcome-detail" data-testid="release-outcome-failures">
+          {release.status === "PROMOTED"
+            ? t("{count} earlier attempt(s) failed first:", { count: failed.length })
+            : t("Why:")}{" "}
+          {firstGate ? <><code>{lastFailed.attempt_id}</code> <code>{firstGate.gate}</code> <StatusBadge status={firstGate.status} /> {firstGate.detail}</> : <code>{lastFailed.attempt_id}</code>}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -166,6 +232,26 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
       </div>
       {staleness.stale && <div className="topology-inline-error" data-testid="release-stale" role="alert"><strong>STALE</strong> — {staleness.reason}</div>}
 
+      <ReleaseOutcome view={view} />
+      {release.receipt && (
+        <div className="decision-card receipt-card" data-testid="release-receipt">
+          <div className="topology-change-heading">
+            <strong>{t("Release Receipt")}</strong>
+            <code>{release.receipt.receipt_id}</code>
+            <StatusBadge status={release.receipt.status} />
+            <span className="muted">{t("issued")} {release.receipt.issued_at} · {t("hash")} <code>{release.receipt.receipt_hash.slice(0, 26)}</code></span>
+          </div>
+          <ul className="reason-list">
+            <li>{t("Transition")} {release.receipt.transition} → <code>{release.receipt.environment.target_ref}</code> ({t("topology v{version}", { version: release.receipt.environment.topology_version })}, {t("config")} {release.receipt.environment.config_hash.slice(7, 19)})</li>
+            {release.receipt.changes.map((entry) => <li key={entry.change_id}>{entry.change_id} · {entry.decision_id} v{entry.decision_version} · {entry.work_order_id} · {entry.candidate_id} · {t("commit")} <code>{entry.head_commit}</code> · {t("review")} {entry.review_gate}</li>)}
+            <li>{t("Image")} <code>{release.receipt.build.image_digest}</code> {t("built from")} <code>{release.receipt.build.source_commit}</code></li>
+            <li>{t("Approved by")} {release.receipt.approval.actor} ({release.receipt.approval.role}) {t("at")} {release.receipt.approval.at}</li>
+            <li>{t("Revision")} <code>{release.receipt.deployment.revision}</code> · {release.receipt.deployment.service_url || t("no url")} · {t("smoke")} {release.receipt.deployment.smoke?.status ?? "∅"} · {t("operation")} {release.receipt.deployment.operation_id || "∅"}</li>
+            {release.receipt.previous_receipt_id && <li data-testid="receipt-chain">{t("Promoted from receipt")} <code>{release.receipt.previous_receipt_id}</code> ({release.receipt.promotion?.source_environment.environment_id} {t("revision")} <code>{release.receipt.promotion?.source_revision || "∅"}</code>) · {t("{count} configuration field(s) differed and were bound by the approval", { count: (release.receipt.environment_delta ?? []).length })}</li>}
+          </ul>
+        </div>
+      )}
+
       {promotion && (
         <div className="decision-card" data-testid="release-promotion">
           <p className="eyebrow">{t("PROMOTION · same digest, new environment — digest equality is necessary, not sufficient")}</p>
@@ -278,24 +364,6 @@ function ReleaseDetail({ view, controller, environments }: { view: ReleaseView; 
         </div>
       ))}
 
-      {release.receipt && (
-        <div className="decision-card receipt-card" data-testid="release-receipt">
-          <div className="topology-change-heading">
-            <strong>{t("Release Receipt")}</strong>
-            <code>{release.receipt.receipt_id}</code>
-            <StatusBadge status={release.receipt.status} />
-            <span className="muted">{t("issued")} {release.receipt.issued_at} · {t("hash")} <code>{release.receipt.receipt_hash.slice(0, 26)}</code></span>
-          </div>
-          <ul className="reason-list">
-            <li>{t("Transition")} {release.receipt.transition} → <code>{release.receipt.environment.target_ref}</code> ({t("topology v{version}", { version: release.receipt.environment.topology_version })}, {t("config")} {release.receipt.environment.config_hash.slice(7, 19)})</li>
-            {release.receipt.changes.map((entry) => <li key={entry.change_id}>{entry.change_id} · {entry.decision_id} v{entry.decision_version} · {entry.work_order_id} · {entry.candidate_id} · {t("commit")} <code>{entry.head_commit}</code> · {t("review")} {entry.review_gate}</li>)}
-            <li>{t("Image")} <code>{release.receipt.build.image_digest}</code> {t("built from")} <code>{release.receipt.build.source_commit}</code></li>
-            <li>{t("Approved by")} {release.receipt.approval.actor} ({release.receipt.approval.role}) {t("at")} {release.receipt.approval.at}</li>
-            <li>{t("Revision")} <code>{release.receipt.deployment.revision}</code> · {release.receipt.deployment.service_url || t("no url")} · {t("smoke")} {release.receipt.deployment.smoke?.status ?? "∅"} · {t("operation")} {release.receipt.deployment.operation_id || "∅"}</li>
-            {release.receipt.previous_receipt_id && <li data-testid="receipt-chain">{t("Promoted from receipt")} <code>{release.receipt.previous_receipt_id}</code> ({release.receipt.promotion?.source_environment.environment_id} {t("revision")} <code>{release.receipt.promotion?.source_revision || "∅"}</code>) · {t("{count} configuration field(s) differed and were bound by the approval", { count: (release.receipt.environment_delta ?? []).length })}</li>}
-          </ul>
-        </div>
-      )}
 
       {release.status === "PROMOTED" && <PromoteForm view={view} environments={environments} busy={controller.busy} onSubmit={controller.create} />}
     </div>
