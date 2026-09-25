@@ -6,12 +6,13 @@
 
 | 欄位 | 結果 |
 | --- | --- |
-| Reviewed commit | `9f5b3ff`（feat/brief-readability） |
+| Reviewed commit | `b5e6b83`（feat/brief-readability） |
 | Decision | `DR-012 / ACCEPTED_FOR_DEVELOPMENT` |
-| Human reviewer | （待填） |
-| Reviewed at | （待填） |
-| Human result | **待審** |
-| Review mode | （待填）；CI 未跑，證據為本地 go test／vitest／Playwright 13 條 |
+| Human reviewer | `founder-001` |
+| Role | `Founder + Solution Architect` |
+| Reviewed at | `2026-09-25T09:25:16Z` |
+| Human result | `ACCEPTED_FOR_LOCAL_DEVELOPMENT` |
+| Review mode | 單一操作者 review（在 Claude Code session 中看截圖、逐項確認，由人裁決）；reviewer 未重跑測試；CI 未跑，證據為本地 go test／vitest／Playwright 13 條；不宣稱獨立 reviewer separation |
 
 ## 一句話結論
 
@@ -19,7 +20,7 @@ Brief 改成照讀者的問題排序、開頭是人寫的白話摘要（缺少�
 
 ## 請審的事
 
-1. **方案與範圍**：DR-012 的 selected_option 與 scope 是否為 owner 要的？
+1. **方案與範圍**：DR-012 的 selected_option 與 scope 是否為 owner 要的？→ 是。
 2. **看截圖**：`brief-zh-TW.png`、`brief-en.png`。只看畫面，能不能回答：核准了什麼？沒核准什麼？最大的風險是什麼？
 3. **證據對驗收標準**：
 
@@ -34,7 +35,7 @@ Brief 改成照讀者的問題排序、開頭是人寫的白話摘要（缺少�
 | 全部 13 條 browser journey、fixture 未被改動 | 已驗 | `browser-output.txt`、`mutation-check.txt` |
 | 讀者讀得懂（三問測試，G5） | **未驗** | — |
 
-4. **unknowns／邊界**：是否接受以下邊界，不阻擋本機 development/testing：
+4. **unknowns／邊界**：接受以下邊界，不阻擋本機 development/testing：
 
 - 可讀性只有結構與截圖證據，讀者測試（review 第 6 點）未做
 - Receipt 結論優先與 Technical Report（review 第 4、5 點）不在本 slice

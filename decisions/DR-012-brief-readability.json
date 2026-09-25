@@ -95,5 +95,21 @@
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
     "reason": "Owner accepted the readability review and asked for items 1–3 to be built on a branch (\"好\"); readability is treated as P0 (DoD #5, G5). Follow-ups asked by the owner on the same branch: a flow diagram for the route (\"可以 你先做看看\") and removing English system text from the zh-TW Brief (\"可以\")."
   },
-  "human_review": null
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-25T09:25:16Z",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "b5e6b83",
+    "mode": "single-operator review in a Claude Code session (screenshots and packet checked, owner decided); tests not re-run by the reviewer; CI not run — evidence is local; no independent reviewer separation claimed",
+    "packet": "evidence/EB-013/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "可讀性只有結構與截圖證據，讀者測試（review 第 6 點）未做",
+      "Receipt 結論優先與 Technical Report（review 第 4、5 點）不在本 slice",
+      "EB-012 的 CHG-001 決策會顯示「未提供白話摘要」，不回頭補寫",
+      "Brief JSON 從 v1 改為 v2",
+      "其他伺服器產生的文字（缺少輸入的原因、觀察、gate 細節）在中文版仍是英文",
+      "截圖資料：`brief-zh-TW.png` 用中文示範資料、在乾淨狀態下拍攝；`brief-en.png` 用英文示範資料，路徑中的 `uat-…` 是前面測試新增的環境。白話摘要與決策理由在兩張圖中都是原文照登"
+    ]
+  }
 }

@@ -4,7 +4,7 @@
 - Source commit: `9f5b3ff` (feat/brief-readability; builds on `59b3197`)
 - Decision: `decisions/DR-012-brief-readability.json` — `ACCEPTED_FOR_DEVELOPMENT`
 - Origin: [readability review of the CHG-001 Brief and Receipt](../../docs/reviews/CONTEXT_RAIL_BRIEF_READABILITY_REVIEW_2026-09-25.zh-TW.md), items 1–3
-- Review: AI-assisted implementation with automated evidence; **human review pending** (see [HUMAN_REVIEW_PACKET.zh-TW.md](HUMAN_REVIEW_PACKET.zh-TW.md))
+- Review: AI-assisted implementation with automated evidence; **human review `ACCEPTED_FOR_LOCAL_DEVELOPMENT`** by `founder-001` on 2026-09-25 at `b5e6b83` (single-operator; see [HUMAN_REVIEW_PACKET.zh-TW.md](HUMAN_REVIEW_PACKET.zh-TW.md))
 - CI: not run for this commit; all evidence below is local
 
 ## What the slice shows
