@@ -156,6 +156,7 @@ const messages: Record<string, string> = {
   "cost:": "成本：",
   "risks:": "風險：",
   "est. {low} / {base} / {high} {currency} per month (low/base/high)": "預估每月 {low} / {base} / {high} {currency}（低／基準／高）",
+  "covers: {covered} · excludes (UNKNOWN): {excluded} · {region} pricing": "涵蓋：{covered} · 不含（未知）：{excluded} · 定價依據 {region}",
   "cost estimate: UNKNOWN — {reason}": "成本估算：未知 — {reason}",
   "Deciding actor": "決策者",
   "Role": "角色",

@@ -85,9 +85,24 @@ func EstimateOptionCost(optionID string, businessConstraints map[string]string) 
 		estimate.Status = CostEstimated
 		estimate.Currency = egress.Currency
 		estimate.MonthlyLow, estimate.MonthlyBase, estimate.MonthlyHigh = low, base, high
+		estimate.Region = egress.OriginRegion
 	} else {
 		estimate.Status = CostUnknown
 		estimate.Reason = egressItem.Reason
+	}
+	// CoveredDrivers/UnpricedDrivers are read straight off Breakdown's own
+	// Status field, never decided independently of it, so the two views of
+	// "what did the calculator price" can never disagree. Only populated when
+	// the estimate itself is ESTIMATED: when it is UNKNOWN there is no partial
+	// coverage to disclose, only the one Reason.
+	if estimate.Status == CostEstimated {
+		for _, item := range estimate.Breakdown {
+			if item.Status == CostEstimated {
+				estimate.CoveredDrivers = append(estimate.CoveredDrivers, item.Driver)
+			} else {
+				estimate.UnpricedDrivers = append(estimate.UnpricedDrivers, item.Driver)
+			}
+		}
 	}
 	return estimate
 }

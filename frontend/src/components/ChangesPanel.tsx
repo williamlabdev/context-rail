@@ -161,19 +161,31 @@ const formatMoney = (value: number | undefined): string => (typeof value === "nu
 
 // CostEstimateLine renders the deterministic calculator's result for one
 // option (VS-004 / P0-C): three amounts when ESTIMATED, or the reason when
-// UNKNOWN. It adds no fact of its own — every value is copied from the
-// CostEstimate the backend calculator produced.
+// UNKNOWN. It adds no fact of its own — every value, including which cost
+// drivers are covered vs. left UNKNOWN and which region the price came from,
+// is copied from the CostEstimate the backend calculator produced.
 function CostEstimateLine({ estimate }: { estimate: CostEstimate | undefined }) {
   const { t } = useLocale();
   if (!estimate || !estimate.status) return null;
   if (estimate.status === "ESTIMATED") {
+    const covered = (estimate.covered_drivers ?? []).join("; ");
+    const excluded = (estimate.unpriced_drivers ?? []).join("; ");
     return (
-      <span className="muted cost-estimate" data-testid="cost-estimate-known">
-        {t("est. {low} / {base} / {high} {currency} per month (low/base/high)", {
-          low: formatMoney(estimate.monthly_low), base: formatMoney(estimate.monthly_base), high: formatMoney(estimate.monthly_high),
-          currency: estimate.currency ?? "",
-        })}
-      </span>
+      <>
+        <span className="muted cost-estimate" data-testid="cost-estimate-known">
+          {t("est. {low} / {base} / {high} {currency} per month (low/base/high)", {
+            low: formatMoney(estimate.monthly_low), base: formatMoney(estimate.monthly_base), high: formatMoney(estimate.monthly_high),
+            currency: estimate.currency ?? "",
+          })}
+        </span>
+        {/* Sits right under the amount line so it cannot be read as a total
+            for every named cost driver: only covered_drivers is priced. */}
+        <span className="muted cost-estimate-scope" data-testid="cost-estimate-scope">
+          {t("covers: {covered} · excludes (UNKNOWN): {excluded} · {region} pricing", {
+            covered: covered || "—", excluded: excluded || "—", region: estimate.region ?? "?",
+          })}
+        </span>
+      </>
     );
   }
   return (

@@ -153,12 +153,24 @@ type CostLineItem struct {
 // priced SKU in this build's price table; estimating and actual billing stay
 // separate concepts, and nothing here is measured spend.
 type CostEstimate struct {
-	Status            string         `json:"status"` // ESTIMATED or UNKNOWN
-	Reason            string         `json:"reason,omitempty"`
-	Currency          string         `json:"currency,omitempty"`
-	MonthlyLow        float64        `json:"monthly_low,omitempty"`
-	MonthlyBase       float64        `json:"monthly_base,omitempty"`
-	MonthlyHigh       float64        `json:"monthly_high,omitempty"`
+	Status      string  `json:"status"` // ESTIMATED or UNKNOWN
+	Reason      string  `json:"reason,omitempty"`
+	Currency    string  `json:"currency,omitempty"`
+	MonthlyLow  float64 `json:"monthly_low,omitempty"`
+	MonthlyBase float64 `json:"monthly_base,omitempty"`
+	MonthlyHigh float64 `json:"monthly_high,omitempty"`
+	// Region is the short GCP region the priced line items were queried
+	// against (e.g. "us-central1") — the deployment region can differ (see
+	// DR-014 cost_assumptions); shown so a reader does not assume the two match.
+	Region string `json:"region,omitempty"`
+	// CoveredDrivers / UnpricedDrivers are derived from Breakdown (the driver
+	// names whose Status is ESTIMATED vs UNKNOWN, respectively), computed
+	// once here rather than by the renderer, so the workspace never has to
+	// infer which cost drivers the monthly_* amounts actually total. Neither
+	// field is populated when Status itself is UNKNOWN — there is nothing to
+	// partially cover.
+	CoveredDrivers    []string       `json:"covered_drivers,omitempty"`
+	UnpricedDrivers   []string       `json:"unpriced_drivers,omitempty"`
 	Breakdown         []CostLineItem `json:"breakdown,omitempty"`
 	Assumptions       []string       `json:"assumptions,omitempty"`
 	PriceTableVersion string         `json:"price_table_version,omitempty"`

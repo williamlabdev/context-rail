@@ -115,6 +115,62 @@ func TestEstimateOptionCostTraceability(t *testing.T) {
 	}
 }
 
+// TestEstimateOptionCostDisclosesPartialCoverage guards against the estimate
+// being misread as a total for the whole option: an ESTIMATED status must
+// still say, in structured form, which of the option's cost drivers the
+// monthly_* amounts cover and which stay UNKNOWN, plus which GCP region the
+// price was queried against.
+func TestEstimateOptionCostDisclosesPartialCoverage(t *testing.T) {
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", storageConstraints("500 GB"))
+	if estimate.Status != change.CostEstimated {
+		t.Fatalf("expected ESTIMATED, got %+v", estimate)
+	}
+	if estimate.Region == "" {
+		t.Fatal("an ESTIMATED estimate must disclose the region its price was queried against")
+	}
+	if len(estimate.CoveredDrivers) != 1 || estimate.CoveredDrivers[0] != "download egress" {
+		t.Fatalf("expected exactly one covered driver (download egress), got %+v", estimate.CoveredDrivers)
+	}
+	wantUnpriced := map[string]bool{"stored bytes over retention": true, "metadata reads/writes": true}
+	if len(estimate.UnpricedDrivers) != len(wantUnpriced) {
+		t.Fatalf("expected %d unpriced drivers, got %+v", len(wantUnpriced), estimate.UnpricedDrivers)
+	}
+	for _, driver := range estimate.UnpricedDrivers {
+		if !wantUnpriced[driver] {
+			t.Fatalf("unexpected unpriced driver %q, got %+v", driver, estimate.UnpricedDrivers)
+		}
+	}
+	// CoveredDrivers/UnpricedDrivers must always match Breakdown's own Status
+	// field — they are read off it, not decided separately.
+	var breakdownCovered, breakdownUnpriced int
+	for _, item := range estimate.Breakdown {
+		if item.Status == change.CostEstimated {
+			breakdownCovered++
+		} else {
+			breakdownUnpriced++
+		}
+	}
+	if breakdownCovered != len(estimate.CoveredDrivers) || breakdownUnpriced != len(estimate.UnpricedDrivers) {
+		t.Fatalf("CoveredDrivers/UnpricedDrivers disagree with Breakdown: estimate=%+v", estimate)
+	}
+}
+
+// TestEstimateOptionCostUnknownHasNoCoverageLists confirms a fully-UNKNOWN
+// estimate never carries CoveredDrivers/UnpricedDrivers — there is nothing
+// partial to disclose when the whole result is UNKNOWN.
+func TestEstimateOptionCostUnknownHasNoCoverageLists(t *testing.T) {
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", storageConstraints("500 reviews"))
+	if estimate.Status != change.CostUnknown {
+		t.Fatalf("expected UNKNOWN, got %+v", estimate)
+	}
+	if len(estimate.CoveredDrivers) != 0 || len(estimate.UnpricedDrivers) != 0 {
+		t.Fatalf("a fully-UNKNOWN estimate must not carry coverage lists: %+v", estimate)
+	}
+	if estimate.Region != "" {
+		t.Fatalf("a fully-UNKNOWN estimate must not disclose a region: %+v", estimate)
+	}
+}
+
 func TestEstimateOptionCostUnknownPriceProducesUnknownLine(t *testing.T) {
 	original := change.PriceTable["gcs-network-egress-worldwide-tier1"]
 	defer func() { change.PriceTable["gcs-network-egress-worldwide-tier1"] = original }()
