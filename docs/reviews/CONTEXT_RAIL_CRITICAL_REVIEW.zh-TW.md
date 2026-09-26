@@ -30,7 +30,7 @@ P0 保留受限 AINE assurance slice：Gemini、tenant-ready 資料契約、Proj
 - 本機 develop 尚無 commit、無 remote；現有交付以規劃文件為主。
 - 歷史 v2 的工時表正確合計為 150 人時，其中 16 人時緩衝；本次查核沒有發現加總錯誤。v4.2 將核心工作維持為 190 人時、風險緩衝維持 60 人時；Agent evidence 工作包仍為 24 人時，Project CRUD、EnvironmentTopology／PromotionPolicy 與 2–3 Change Release Bundle 的最小 gate 併入 P0，窄版 P1 不得消耗至少 40 人時的風險緩衝。
 - 官方資料支持競品已有重疊功能。ADC 有可程式化 REST 資源與 assessment 路徑；Cloud Assist MCP 目前需要 private preview 存取。兩者尚未在本專案做 API、IAM 或同條件 hands-on comparison。
-- AI Builder Cup 首頁目前列 prototype 截止 10/18；FAQ 的部分組隊日期仍為 10/4，與首頁 10/11 不一致。日期狀態維持 UNKNOWN；G0 必須以實際提交入口或主辦方確認，確認前以最早可能日期作保守準備。
+- AI Builder Cup 原型提交截止已確認為 2026-10-18（核實於 2026-09-26）；報名截止為 2026-10-11；評估階段為 2026-10-19 至 2026-11-06。前置 FAQ 中的 10/4 日期為舊信息，已由官網新日期取代。
 - 尚無實際 GCP project inventory、billing、模型 quota、可驗證的 coding-agent run、使用者訪談或部署測試結果。
 
 ## 03 高優先發現
@@ -47,7 +47,7 @@ P0 保留受限 AINE assurance slice：Gemini、tenant-ready 資料契約、Proj
 
 使用者沒有確認每週投入時數。若兩人各只有每週 15 小時，五週總容量仍然是 150 人時，低於 190 人時核心基線；其中一人不具備預期技術能力也會造成另一人超載。
 
-已修正於計畫 19 節：列出 150／200／250／300 人時情境、A／B 工時與 G1 至 G5 出口。基準每人 125 人時，含 30 人時風險緩衝。實際開發開始後每週以工時和通過里程碑重估，不依靠「有 AI 所以一定更快」作估算。比賽日期另設 G0 確認 gate；10/18 目前只是工程窗口假設，不能覆蓋尚未解除的 10/4／10/11 日期衝突。
+已修正於計畫 19 節：列出 150／200／250／300 人時情境、A／B 工時與 G1 至 G5 出口。基準每人 125 人時，含 30 人時風險緩衝。實際開發開始後每週以工時和通過里程碑重估，不依靠「有 AI 所以一定更快」作估算。比賽日期已於 2026-09-26 確認：原型提交截止 2026-10-18；報名截止 2026-10-11；評估階段 2026-10-19 至 2026-11-06。
 
 開放條件：容量與角色在 Week 1 核實；G3 未過就取消全部 stretch 與 P1。若 G4 未完成 prod-demo，交件改成 staging-only 並明示缺失，不用示意影片代替部署證據。
 
@@ -266,7 +266,7 @@ Project 的建立、查詢、修改與刪除在工程上容易完成，但若只
 
 ### 已確認並已納入 v3.2／v4.2／v2.3
 
-- **日期衝突：CONFIRMED／🔴**。Project Plan 仍記錄 prototype 10/18、首頁組隊 10/11、FAQ 10/4，且時區未明示。文件現在把日期狀態標為 UNKNOWN，新增 G0 確認 gate，並要求確認前採最早可能日期作保守準備。
+- **日期確認：✓**。原型提交截止已確認為 2026-10-18；報名截止為 2026-10-11；前置 FAQ 中的 10/4 日期為舊信息。時區未在官方頁面明示。
 - **AINE 宣稱條件：CONFIRMED／🟠**。Outcome／Evolution Proposal 是 Evolution Engine 的必要條件，但不是受限 AINE assurance slice 的 P0 必要條件。文件現在分開這兩個宣稱，避免用 P0 沒有 outcome proposal 就否定整條 assurance path，或反過來宣稱完整 AINE evolution。
 - **Environment-aware wedge：DOCUMENTED／🟠**。文件現在把 Project EnvironmentTopology、PromotionPolicy、target environment 與 promotion evidence 寫成一級契約；但尚無實作或使用者證據，不能把「可自訂環境」說成已驗證差異化。
 - **Startup/SMB-first market order：DOCUMENTED／🟠**。文件現在明確把新創／中小企業的 5 至 30 人工程團隊列為 P0 驗證對象，並把大型企業列為後續 enterprise-ready extension；尚無 setup、重複使用或付費意願證據，不能宣稱市場順序已被驗證。

@@ -3,7 +3,7 @@
 Status: working product and engineering baseline
 Version: 1.2
 Updated: 2026-09-13
-Team: 2 people, 5-week prototype window (dates remain provisional until G0 confirms the official submission deadline)
+Team: 2 people, 5-week prototype window (official submission deadline confirmed as 2026-10-18 per the official site, checked 2026-09-26; time zone still unconfirmed)
 
 ## 1. Roadmap decision
 
@@ -172,7 +172,7 @@ Completion does not mean multi-tenant operations, production readiness, full pri
 
 These are the remaining decisions that can materially change the five-week plan:
 
-- Official prototype/submission deadline and time zone.
+- Time zone for the official submission deadline (the deadline date itself, 2026-10-18, is confirmed per the official site, checked 2026-09-26; no time zone is stated on that site or its FAQ).
 - Actual weekly capacity for both people, not only the five-week calendar window.
 - The first design-partner cohort: startup/SMB teams with the stated operating characteristics; enterprise validation is a later extension, not a P0 dependency.
 - The demo source provider: GitHub, GitLab Cloud, self-hosted GitLab or a checked-in fixture.
