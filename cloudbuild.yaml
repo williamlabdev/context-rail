@@ -6,13 +6,26 @@
 #
 # Run manually:
 #   gcloud builds submit --config cloudbuild.yaml \
-#     --substitutions=_REGION=asia-east1,_SERVICE=context-rail-staging
+#     --substitutions=_REGION=asia-east1,_SERVICE=context-rail-staging,\
+#_RUN_SERVICE_ACCOUNT=context-rail-run,_GEMINI_SECRET=gemini-api-key
+#
+# _RUN_SERVICE_ACCOUNT is required (no default) — the deploy-staging step
+# fails fast with a clear error if it is empty. It is the short account id,
+# not the full email: the step resolves it to
+# <name>@<PROJECT_ID>.iam.gserviceaccount.com.
+#
+# _GEMINI_SECRET defaults to "gemini-api-key" (Secret Manager secret name,
+# latest version). Set it to an empty string to skip --set-secrets entirely
+# and deploy with the rule-advisor fallback (e.g. before the secret exists):
+#   --substitutions=...,_GEMINI_SECRET=
 #
 substitutions:
   _REGION: asia-east1
   _AR_REPO: context-rail
   _SERVICE: context-rail-staging
   _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/context-rail
+  _GEMINI_SECRET: gemini-api-key
+  _RUN_SERVICE_ACCOUNT: ""
 
 steps:
   - id: build
@@ -44,15 +57,36 @@ steps:
     args:
       - -ceu
       - |
-        gcloud run deploy "${_SERVICE}" \
-          --image="$$(cat /workspace/image_ref.txt)" \
-          --region="${_REGION}" \
-          --platform=managed \
-          --port=8080 \
-          --allow-unauthenticated \
-          --min-instances=0 --max-instances=2 \
-          --memory=256Mi --cpu=1 \
+        if [ -z "${_RUN_SERVICE_ACCOUNT}" ]; then
+          echo "ERROR: _RUN_SERVICE_ACCOUNT substitution is required (Cloud Run runtime identity)." >&2
+          echo "Pass --substitutions=...,_RUN_SERVICE_ACCOUNT=<sa-short-name>, e.g. context-rail-run" >&2
+          echo "It resolves to <sa-short-name>@${PROJECT_ID}.iam.gserviceaccount.com; no default is assumed." >&2
+          exit 1
+        fi
+        SA_EMAIL="${_RUN_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+        # shellcheck disable=SC2054  # the --labels value's comma is a gcloud
+        # key=value separator, not an (incorrect) array-element separator.
+        DEPLOY_ARGS=(
+          run deploy "${_SERVICE}"
+          --image="$$(cat /workspace/image_ref.txt)"
+          --region="${_REGION}"
+          --platform=managed
+          --port=8080
+          --allow-unauthenticated
+          --min-instances=0 --max-instances=2
+          --memory=256Mi --cpu=1
+          --service-account="$${SA_EMAIL}"
           --labels=context-rail-environment=staging,context-rail-commit=${SHORT_SHA}
+        )
+
+        if [ -n "${_GEMINI_SECRET}" ]; then
+          DEPLOY_ARGS+=(--set-secrets="GEMINI_API_KEY=${_GEMINI_SECRET}:latest")
+        else
+          echo "NOTE: _GEMINI_SECRET is empty; deploying without GEMINI_API_KEY (rule-advisor fallback)." >&2
+        fi
+
+        gcloud "$${DEPLOY_ARGS[@]}"
         gcloud run services describe "${_SERVICE}" --region="${_REGION}" \
           --format='value(status.url,status.latestReadyRevisionName)'
 

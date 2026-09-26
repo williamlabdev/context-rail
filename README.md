@@ -68,7 +68,7 @@ PORT=8080 CONTEXT_RAIL_FIXTURE_ROOTS=demo/order-operations-portal,examples/suppo
 
 Tests: `go test ./...`, `cd frontend && npm test`, and the browser journeys `cd frontend && npm run test:e2e` against a running server (`BASE_URL`, `PLAYWRIGHT_EXECUTABLE_PATH`). Every journey re-hashes the consumer fixtures afterwards: the governed Projects are read, never written.
 
-Cloud Run: `scripts/deploy-cloud-run.sh <gcp-project-id>` — see [docs/operations/CLOUD_RUN_BASELINE.md](docs/operations/CLOUD_RUN_BASELINE.md) for the container contract, environment variables and the smoke check.
+Cloud Run: `RUN_SERVICE_ACCOUNT=<sa-name> scripts/deploy-cloud-run.sh <gcp-project-id>` (`RUN_SERVICE_ACCOUNT` is required; `GEMINI_SECRET` / `SKIP_GEMINI_SECRET` control the optional `GEMINI_API_KEY` secret) — see [docs/operations/CLOUD_RUN_BASELINE.md](docs/operations/CLOUD_RUN_BASELINE.md) for the container contract, environment variables and the smoke check.
 
 ## Repository layout
 
