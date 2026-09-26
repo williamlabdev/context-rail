@@ -138,17 +138,52 @@ commit:   <short-sha>
 
 ### 步驟 6 — 驗證 Gemini 真的被呼叫到（腳本沒有的驗證，需手動跑）
 
-`scripts/deploy-cloud-run.sh` 的 smoke check **不驗證 Gemini**，只驗證基本 API。程式碼裡有沒有走 Gemini 只能從實際回應內容看：
+`scripts/deploy-cloud-run.sh` 的 smoke check **不驗證 Gemini**，只驗證基本 API。程式碼裡有沒有走 Gemini 只能從實際回應內容看。
+
+**這裡的 body 格式很容易寫錯，本節第一版手冊寫錯過**：`POST /v1/projects/{project}/changes` 是走 `internal/http/changes.go:43,77-83`（`create` handler），body decoder 開了 `DisallowUnknownFields()`（`internal/http/changes.go:167`），對應的 Go 型別是 `change.CreateRequest`（`internal/change/service.go:98-101`）：
+
+```go
+type Mutation struct {
+    Actor  string `json:"actor"`
+    Reason string `json:"reason"`
+}
+type CreateRequest struct {
+    Mutation          // 展平：actor / reason 在頂層
+    Request Request `json:"request"`  // 巢狀在 "request" 底下
+}
+```
+
+`Request` 本身的欄位定義在 `internal/change/model.go:45-60`：是 `target_environment_id`（不是 `target_environment`），沒有頂層 `data_classification`——分類值要放進 `business_constraints`（`map[string]string`，`model.go:57`）。`actor` 可以放 body 頂層，也可以省略改用 `X-ContextRail-Actor` header 帶入（`internal/http/changes.go:171-173`：body 沒給就退回讀 header）。`reason` 是必填（`internal/change/service.go:189-191`：空字串會被 `CodeReasonRequired` 擋掉，回 422 不是 400），`request.title` 也必填。
+
+正確的 body：
 
 ```sh
 BASE="https://context-rail-staging-<hash>-<region>.a.run.app"
-curl -fsS -X POST "${BASE}/v1/projects/order-operations-portal/changes" \
-  -H 'Content-Type: application/json' -H 'X-ContextRail-Actor: william' \
-  -d '{"title":"smoke test change","objective":"verify gemini advisor wiring","target_environment":"staging","data_classification":"internal"}' \
-  | python3 -m json.tool
+curl -fsS -i -X POST "${BASE}/v1/projects/order-operations-portal/changes" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "actor": "william",
+    "reason": "cloud-run runbook rehearsal smoke test",
+    "request": {
+      "title": "smoke test change",
+      "objective": "verify gemini advisor wiring",
+      "scope_included": ["advisor smoke test"],
+      "scope_excluded": ["production changes"],
+      "acceptance_criteria": [{"id": "AC-001", "text": "advisor_source is present in the response"}],
+      "allowed_paths": ["docs/operations/CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md"],
+      "forbidden_actions": ["deploy to production"],
+      "target_environment_id": "staging",
+      "business_constraints": {"data_classification": "internal"},
+      "requested_by": "william"
+    }
+  }'
 ```
 
-**預期**：若 `GEMINI_API_KEY` 真的生效，回應裡每個 option 的 `"advisor_source"` 欄位（對應 `internal/change/model.go:115`）應該是 `"gemini:gemini-2.0-flash"`（或所設定的 model，見 `internal/change/advisor.go:140`），不是 `"rule-advisor"`。若 Gemini 呼叫失敗（key 錯、網路不通、額度用盡），會**靜默 fallback**，`evaluation.observations` 裡會多一條 `"advisor gemini:<model> unavailable (<err>); rule-based candidates used"`（`internal/change/service.go:467-471`）——這條訊息就是唯一能分辨「fallback 了」與「本來就沒設 key」的地方，10/6 當天務必檢查這個欄位，不要只看 HTTP 200 就當作 Gemini 有生效。
+**這個 body 已經在本機用 `docker run` 起容器實測過**（沒有設定任何 `GEMINI_API_KEY`）：回應是 **HTTP 200**，`change.status` 為 `NEEDS_INPUT`（缺 `owner_summary` 與 `business_constraints.expected_monthly_volume`——這是預期中的行為，不影響 advisor 有沒有跑，`evaluateVersion` 在 `internal/change/service.go:465-472` 一定會呼叫 advisor，不管最後 readiness 是不是 `NEEDS_INPUT`），每個 option 的 `"advisor_source"` 都是 `"rule-advisor"`。
+
+**預期**：10/6 部署後、`GEMINI_API_KEY` 真的透過 Secret Manager 掛進容器時，同一個 body 打下去，回應裡每個 option 的 `"advisor_source"` 欄位（型別定義在 `internal/change/model.go:115`）應該變成 **`"gemini:gemini-2.0-flash"`**——這個字串是 `Name()` 方法回傳的 `"gemini:" + advisor.Model`（`internal/change/advisor.go:140`），而 `Model` 沒有另外設定 `CONTEXT_RAIL_GEMINI_MODEL` 時預設就是 `"gemini-2.0-flash"`（`internal/change/advisor.go:134-136`，`NewGeminiAdvisor` 的預設值邏輯）。若設了 `CONTEXT_RAIL_GEMINI_MODEL=<其他 model>`，這裡就會是 `"gemini:<其他 model>"`，不是固定字串，看 10/6 當天實際設的環境變數而定。
+
+若 Gemini 呼叫失敗（key 錯、網路不通、額度用盡），會**靜默 fallback**，`evaluation.observations` 裡會多一條 `"advisor gemini:<model> unavailable (<err>); rule-based candidates used"`（`internal/change/service.go:467-471`）——這條訊息是唯一能分辨「fallback 了」與「本來就沒設 key」的地方，10/6 當天務必檢查這個欄位，不要只看 HTTP 200 就當作 Gemini 有生效。
 **失敗處置**：如果一直 fallback，先確認 secret 掛載進容器的環境變數真的叫 `GEMINI_API_KEY`（`gcloud run services describe ... --format=yaml` 看 `env` 區塊），再確認 key 本身在 Google AI Studio 是 active 且沒有地區限制。
 
 ### 步驟 7 — 重跑 smoke（單獨驗證，不必重新部署）
@@ -203,6 +238,7 @@ docker build --platform=linux/amd64 -t context-rail-local:rehearsal -f Dockerfil
 
 - **結果：成功**，總耗時約 45 秒（多為 npm ci 與 go mod download 的網路/快取時間；`go build` 步驟本身約 22 秒）。
 - **image 大小：4.15 MB**（`docker image inspect` 回報 `size=4151887`，架構 `amd64`/`linux`）——distroless static base + 靜態連結的 Go binary（`CGO_ENABLED=0`，`-trimpath -ldflags="-s -w"`，見 `Dockerfile:23`）+ 前端 dist（一個 JS bundle 約 360KB + CSS 16KB，`frontend/dist` 總計約幾百 KB）+ 兩個 fixture 目錄（504KB + 60KB）。沒有觸發任何 Dockerfile 或 `.dockerignore` 問題。
+  **澄清：4.15 MB 是 `docker images` / `docker inspect .Size` 回報的 CONTENT SIZE——也就是每層 gzip 壓縮後、實際會被 push 到 Artifact Registry 的傳輸大小**，不是容器實際跑起來時佔用的磁碟空間。用三種方式量了解壓後的實際大小：`docker history --no-trunc` 各層未壓縮大小加總 ≈ 14.3 MB；`docker export` 匯出容器的完整 rootfs（未壓縮 tar）≈ 11.55 MB；把該 tar 解開後 `du -sh`（macOS APFS，4K 區塊）≈ 13 MB。三個數字因量測方法不同而有差異，但都落在 **11–14 MB 這個量級**，不是 4.15 MB 那麼小；10/6 部署後 Cloud Run 的 overlay 檔案系統實際佔用量請以雲端環境自己的數字為準，不會剛好等於本地任何一個數字，但量級一致。
 - 沒有跑 `docker build`（不加 `--platform`）比較 arm64/amd64 差異，因為沒有必要——Cloud Build 本來就在雲端 amd64 環境建置，本地是否用 `--platform` 只影響「這次演練的本地 tag」，不影響 10/6 實際部署路徑。
 
 ### Run + Smoke
