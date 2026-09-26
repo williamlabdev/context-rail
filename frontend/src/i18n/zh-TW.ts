@@ -155,6 +155,8 @@ const messages: Record<string, string> = {
   "Select one candidate": "選擇一個候選方案",
   "cost:": "成本：",
   "risks:": "風險：",
+  "est. {low} / {base} / {high} {currency} per month (low/base/high)": "預估每月 {low} / {base} / {high} {currency}（低／基準／高）",
+  "cost estimate: UNKNOWN — {reason}": "成本估算：未知 — {reason}",
   "Deciding actor": "決策者",
   "Role": "角色",
   "Risk level": "風險等級",

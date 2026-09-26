@@ -1,0 +1,108 @@
+{
+  "decision_id": "DR-014",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "minimal_deterministic_calculator_two_skus_egress_only",
+  "alternatives": [
+    {
+      "id": "full_tiered_billing_model",
+      "status": "rejected",
+      "reason": "Modelling all of GCS's tiered egress destinations, all storage classes, retrieval fees, operation-class pricing and free-tier thresholds is a full billing engine, not a P0 minimal slice. It also needs inputs (retention period, destination mix, storage class) the Change Request does not collect today, which would force the calculator to guess them. Deferred until a real business_constraints field exists for each input."
+    },
+    {
+      "id": "gemini_estimated_amounts",
+      "status": "rejected",
+      "reason": "vision.md's own requirement is that GeminiAdvisor names cost drivers in words while a deterministic function does the arithmetic. An LLM-produced dollar figure is not reproducible (same input can yield a different number on a different call) and cannot be traced to a source_url/as_of the way a price-table lookup can. Both RuleAdvisor and GeminiAdvisor candidates are priced by the same EstimateOptionCost function; the advisor never emits an amount."
+    },
+    {
+      "id": "price_all_three_named_cost_drivers",
+      "status": "deferred",
+      "reason": "managed_storage_with_signed_urls names three drivers in prose: stored bytes over retention, download egress, metadata reads/writes. Only download egress is priced in this slice, because expected_monthly_volume (the one business constraint the Change Request collects) most naturally reads as a transfer/traffic volume, not a retention-scoped storage size. Pricing 'stored bytes' would require a retention-period input that does not exist yet; pricing metadata ops would require a request-count input and an Class A/B operations SKU that has not been sourced. Both stay UNKNOWN line items with an explicit reason rather than being inferred from the same volume number."
+    },
+    {
+      "id": "editable_or_admin_managed_price_table",
+      "status": "deferred",
+      "reason": "The price table is a Go source map (pricing.go) with a version string, not a database row or admin UI. Changing a price requires a code change and a price_table_version bump, which keeps every past CostEstimate traceable to the exact table that produced it. An editable table is future scope once more SKUs are added."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "internal/change/model.go",
+      "internal/change/pricing.go",
+      "internal/change/calculator.go",
+      "internal/change/service.go",
+      "tests/change/calculator_test.go",
+      "tests/change/service_test.go",
+      "frontend/src/api/changes.ts",
+      "frontend/src/components/ChangesPanel.tsx",
+      "frontend/src/i18n/zh-TW.ts",
+      "frontend/tests/components/changesPanel.test.tsx",
+      "decisions/DR-014-deterministic-cost-calculator.json"
+    ],
+    "forbidden_paths": [
+      "internal/project/",
+      "internal/registry/",
+      "project-crud",
+      "invalidation",
+      "evidence/",
+      "docs/submission/",
+      "docs/operations/",
+      "cloud-deployment-execution",
+      "production-targets",
+      "secrets"
+    ]
+  },
+  "architecture_impact": [
+    "Option (internal/change/model.go) gains CostEstimate: a structured field with status ESTIMATED|UNKNOWN, monthly_low/base/high, a per-driver Breakdown ([]CostLineItem, each traceable to sku/currency/unit/region/source_url/as_of when ESTIMATED), Assumptions, PriceTableVersion and ParsedVolumeGiB. CostDrivers ([]string, the advisor's prose) is unchanged and kept alongside it.",
+    "internal/change/pricing.go adds a versioned PriceTable (PriceTableVersion = gcp-pricing-2026-09-27): two PriceRecord entries (gcs-standard-storage, gcs-network-egress-worldwide-tier1), each carrying unit_price/unit/currency/region/source_url/as_of/known. A price with known=false can never produce an amount.",
+    "internal/change/calculator.go adds EstimateOptionCost(optionID, business_constraints) — pure, deterministic, no LLM/clock/network call. It looks up expected_monthly_volume, parses it with ParseMonthlyVolumeGiB (GB/MB/TB read as the JEDEC-binary GiB/MiB/TiB GCS itself bills in; anything that does not match a leading number + GB-family unit token is UNKNOWN, never guessed), and for managed_storage_with_signed_urls prices the download-egress line item at low/base/high = parsed_gib * {0.5, 1.0, 2.0} * unit_price. LowScenarioMultiplier/BaseScenarioMultiplier/HighScenarioMultiplier are named constants documenting that the spread models input uncertainty in the one supplied volume number, not measured usage variance (P0 has no historical volume data). Every other option ID has no priced SKU mapped to it and is UNKNOWN by construction (costableOptions allow-list).",
+    "internal/change/service.go's evaluateVersion runs EstimateOptionCost over every option after the advisor (RuleAdvisor or GeminiAdvisor) returns, so CostEstimate always reflects the calculator regardless of which advisor proposed the candidate. DecisionRecord.Alternatives copies Options by value, so the estimate flows into the DecisionRecord and Brief unchanged.",
+    "frontend/src/api/changes.ts adds CostLineItem/CostEstimate types and an optional Option.cost_estimate (absent on records rendered before the calculator existed, so no fixture is invalidated).",
+    "frontend/src/components/ChangesPanel.tsx adds CostEstimateLine, rendered under each option's existing cost/risks line in DecisionForm: renders 'est. {low} / {base} / {high} {currency} per month (low/base/high)' when ESTIMATED, or 'cost estimate: UNKNOWN — {reason}' when UNKNOWN. The component only copies values already computed by the backend; it adds no fact and does not compute or round beyond formatMoney's toFixed(2) cosmetic pass. New keys added to frontend/src/i18n/zh-TW.ts messages; the amounts and reason string are data values and are not translated."
+  ],
+  "cost_assumptions": [
+    "Prices are USD, region us-central1 (storage) / origin us-central1 destination worldwide excluding Asia & Australia (egress), queried live from https://cloud.google.com/storage/pricing on 2026-09-27 — the page shows no visible last-updated date, so as_of records the query date, not a page revision date.",
+    "gcs-standard-storage: 0.02 USD per GiB-month, derived from the page's per-GiB-hour figure (0.000027397) for the Iowa (us-central1) region selector times 730 average hours/month; cross-checked against the well-known public $0.02/GiB-month figure for Standard storage in that region. This SKU is recorded in the price table but is NOT used by EstimateOptionCost in this slice (see rejected alternative: stored bytes stays UNKNOWN because retention period is not collected).",
+    "gcs-network-egress-worldwide-tier1: 0.12 USD per GiB, taken from the page's 'General network usage' table, first cumulative-volume tier (0-10 TiB/month), origin us-central1 to worldwide destinations excluding Asia & Australia and China. EstimateOptionCost always uses this single tier and does not model higher-volume tier breakpoints; a monthly volume large enough to cross into a cheaper tier will still be priced entirely at the tier-1 rate, which is a conservative (over-, not under-) estimate.",
+    "LowScenarioMultiplier = 0.5, BaseScenarioMultiplier = 1.0, HighScenarioMultiplier = 2.0 applied to parsed_volume_gib * unit_price: base is the number as declared; low/high are a +-2x band around it to represent that a single self-reported traffic estimate is uncertain, not a statistically derived confidence interval."
+  ],
+  "unknowns": [
+    "Only 2 of the 3 cost drivers vision.md and the RuleAdvisor name for managed_storage_with_signed_urls are priced: download egress is ESTIMATED, 'stored bytes over retention' and 'metadata reads/writes' are UNKNOWN line items with an explicit reason (no retention-period business constraint exists; no metadata operations SKU has been sourced). The option's CostEstimate.monthly_* therefore understates the option's true total cost and must not be read as full TCO.",
+    "Only 2 SKUs are in the price table; every option other than managed_storage_with_signed_urls (including every option a GeminiAdvisor might propose with a different id) has no priced SKU mapped to it and reports CostEstimate.status = UNKNOWN with reason 'no priced SKU is mapped to option ...'. Extending pricing to more options is future work, not a gap in this slice's own scope.",
+    "The egress tier is fixed at the first cumulative-volume tier (0-10 TiB/month); a genuinely large expected_monthly_volume would in real billing move into a cheaper per-GiB tier that this calculator does not model, so very large estimates are conservatively high, never low.",
+    "DR-013 exists on another branch and was not visible from this worktree; DR-012 was used as the sole structural template. If DR-013 introduced schema changes to the DR-NNN format, this record may need reconciling once branches merge.",
+    "The volume parser accepts a small fixed set of unit spellings (gib/gb/tib/tb/mib/mb, case-insensitive, optional thousands separators, optional trailing '/month' or 'per month'); any other phrasing (e.g. '500 requests', a bare number with no unit, or a unit token before the number) is treated as unparseable and the whole CostEstimate is UNKNOWN, per the 'never guess' requirement."
+  ],
+  "acceptance_criteria": [
+    "EstimateOptionCost is deterministic: identical optionID + business_constraints always produce a reflect.DeepEqual-identical CostEstimate (TestEstimateOptionCostIsDeterministic).",
+    "An option with no priced SKU mapped to it, a missing expected_monthly_volume constraint, or a volume string the parser cannot read all produce status UNKNOWN with a non-empty reason and zero invented amounts (TestEstimateOptionCostUnknownOptionHasNoSKU, TestEstimateOptionCostMissingBusinessConstraintIsUnknown, TestEstimateOptionCostUnparseableVolumeIsUnknown).",
+    "A parseable volume on the one priced option produces low < base < high with low/base/high = parsed_gib * {0.5,1.0,2.0} * unit_price, and every ESTIMATED line item carries sku/currency/region/source_url/as_of and at least one recorded assumption (TestEstimateOptionCostScenarioArithmetic, TestEstimateOptionCostTraceability).",
+    "If a price_table entry is marked unknown (Known=false), the estimate that depends on it falls back to UNKNOWN rather than using a stale or invented number (TestEstimateOptionCostUnknownPriceProducesUnknownLine).",
+    "Every option recorded on every ChangeVersion (both RuleAdvisor and GeminiAdvisor candidates) carries a CostEstimate produced by EstimateOptionCost, verified at the service layer, not only at the calculator's own unit-test layer (TestOptionsCarryDeterministicCostEstimates, and the extended TestSupplyingInputsCreatesNewVersionAndBecomesReady).",
+    "The workspace shows the low/base/high line for an ESTIMATED option and the reason for an UNKNOWN option, with the ESTIMATED amounts appearing unchanged (only surrounding wording translated) in both en and zh-TW locales (frontend/tests/components/changesPanel.test.tsx cost-estimate-known / cost-estimate-unknown cases)."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "c82053c",
+  "source_refs": [
+    "vision.md:126-130",
+    "vision.md:209",
+    "roadmap.md:63",
+    "roadmap.md:92-93",
+    "roadmap.md:148",
+    "architecture.md:10",
+    "architecture.md:323",
+    "decisions/DR-006-change-decision-pack.json"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-27T00:00:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "William 2026-09-27 於 session 中選擇「做最小版」"
+  }
+}

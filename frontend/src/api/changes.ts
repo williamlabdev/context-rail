@@ -37,8 +37,27 @@ export interface Evaluation {
   evaluated_at: string;
 }
 
+// One cost driver's priced (ESTIMATED) or unpriced (UNKNOWN) result, always
+// traceable to sku/region/currency/source_url/as_of when ESTIMATED.
+export interface CostLineItem {
+  driver: string; sku?: string; status: "ESTIMATED" | "UNKNOWN" | string;
+  low?: number; base?: number; high?: number; currency?: string; unit?: string; region?: string;
+  source_url?: string; as_of?: string; reason?: string;
+}
+
+// The deterministic calculator's structured output for one Option
+// (VS-004 / P0-C). cost_estimate is a data value: reason/assumptions read
+// back unchanged in every locale.
+export interface CostEstimate {
+  status: "ESTIMATED" | "UNKNOWN" | string; reason?: string; currency?: string;
+  monthly_low?: number; monthly_base?: number; monthly_high?: number;
+  breakdown?: CostLineItem[]; assumptions?: string[]; price_table_version?: string; parsed_volume_gib?: number;
+}
+
 export interface Option {
   id: string; title: string; summary: string; cost_drivers: string[]; risks: string[]; recommended: boolean; advisor_source: string;
+  // Absent on fixtures/records rendered before the calculator existed.
+  cost_estimate?: CostEstimate;
 }
 
 export interface ChangeVersion {

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { currentVersion, type ChangeView, type MissingInput, type Option } from "../api/changes";
+import { currentVersion, type ChangeView, type CostEstimate, type MissingInput, type Option } from "../api/changes";
 import type { ChangesController } from "../state/useChanges";
 import type { TopologyEnvironment } from "../api/topology";
 import { CandidateReview } from "./CandidateReview";
@@ -154,6 +154,35 @@ function SupplyInputsForm({ view, environments, busy, onSubmit }: InputsFormProp
   );
 }
 
+// formatMoney renders a calculator amount with two decimal places; the
+// calculator already rounds to cents, this only guarantees the trailing
+// zeros a reader expects from a currency figure.
+const formatMoney = (value: number | undefined): string => (typeof value === "number" ? value.toFixed(2) : "?");
+
+// CostEstimateLine renders the deterministic calculator's result for one
+// option (VS-004 / P0-C): three amounts when ESTIMATED, or the reason when
+// UNKNOWN. It adds no fact of its own — every value is copied from the
+// CostEstimate the backend calculator produced.
+function CostEstimateLine({ estimate }: { estimate: CostEstimate | undefined }) {
+  const { t } = useLocale();
+  if (!estimate || !estimate.status) return null;
+  if (estimate.status === "ESTIMATED") {
+    return (
+      <span className="muted cost-estimate" data-testid="cost-estimate-known">
+        {t("est. {low} / {base} / {high} {currency} per month (low/base/high)", {
+          low: formatMoney(estimate.monthly_low), base: formatMoney(estimate.monthly_base), high: formatMoney(estimate.monthly_high),
+          currency: estimate.currency ?? "",
+        })}
+      </span>
+    );
+  }
+  return (
+    <span className="muted cost-estimate" data-testid="cost-estimate-unknown">
+      {t("cost estimate: UNKNOWN — {reason}", { reason: estimate.reason ?? "" })}
+    </span>
+  );
+}
+
 // ---------------------------------------------------------------- decision form
 
 interface DecisionFormProps {
@@ -184,6 +213,7 @@ function DecisionForm({ view, busy, onSubmit }: DecisionFormProps) {
             <span className="option-title">{option.title}{option.recommended && <StatusBadge status="RECOMMENDED" />} <span className="muted">{option.advisor_source}</span></span>
             <span className="option-summary">{option.summary}</span>
             <span className="muted">{t("cost:")} {option.cost_drivers.join("; ")} · {t("risks:")} {option.risks.join("; ")}</span>
+            <CostEstimateLine estimate={option.cost_estimate} />
           </label>
         ))}
       </fieldset>

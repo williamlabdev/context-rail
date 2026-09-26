@@ -113,6 +113,56 @@ type Option struct {
 	Risks         []string `json:"risks"`
 	Recommended   bool     `json:"recommended"`
 	AdvisorSource string   `json:"advisor_source"` // rule-advisor or gemini
+	// CostEstimate is produced by the deterministic calculator (calculator.go),
+	// never by an advisor: RuleAdvisor and GeminiAdvisor only name CostDrivers in
+	// words, and Service.evaluateVersion overwrites CostEstimate on every option
+	// after the advisor returns. See EstimateOptionCost.
+	CostEstimate CostEstimate `json:"cost_estimate"`
+}
+
+// Cost estimate statuses. A CostEstimate or CostLineItem is UNKNOWN whenever
+// a required input could not be parsed or no priced SKU applies; it is never
+// left to guess a number.
+const (
+	CostEstimated = "ESTIMATED"
+	CostUnknown   = "UNKNOWN"
+)
+
+// CostLineItem is one cost driver's priced (or unpriced) result. Every
+// ESTIMATED item carries the full trail back to the price it used: SKU,
+// Region, Currency, SourceURL and AsOf. An UNKNOWN item carries Reason
+// instead of a number.
+type CostLineItem struct {
+	Driver    string  `json:"driver"`
+	SKU       string  `json:"sku,omitempty"`
+	Status    string  `json:"status"` // ESTIMATED or UNKNOWN
+	Low       float64 `json:"low,omitempty"`
+	Base      float64 `json:"base,omitempty"`
+	High      float64 `json:"high,omitempty"`
+	Currency  string  `json:"currency,omitempty"`
+	Unit      string  `json:"unit,omitempty"`
+	Region    string  `json:"region,omitempty"`
+	SourceURL string  `json:"source_url,omitempty"`
+	AsOf      string  `json:"as_of,omitempty"`
+	Reason    string  `json:"reason,omitempty"`
+}
+
+// CostEstimate is the calculator's structured, reproducible output for one
+// Option (VS-004 / P0-C deterministic cost calculator). Status is UNKNOWN
+// whenever expected_monthly_volume cannot be parsed or the option has no
+// priced SKU in this build's price table; estimating and actual billing stay
+// separate concepts, and nothing here is measured spend.
+type CostEstimate struct {
+	Status            string         `json:"status"` // ESTIMATED or UNKNOWN
+	Reason            string         `json:"reason,omitempty"`
+	Currency          string         `json:"currency,omitempty"`
+	MonthlyLow        float64        `json:"monthly_low,omitempty"`
+	MonthlyBase       float64        `json:"monthly_base,omitempty"`
+	MonthlyHigh       float64        `json:"monthly_high,omitempty"`
+	Breakdown         []CostLineItem `json:"breakdown,omitempty"`
+	Assumptions       []string       `json:"assumptions,omitempty"`
+	PriceTableVersion string         `json:"price_table_version,omitempty"`
+	ParsedVolumeGiB   *float64       `json:"parsed_volume_gib,omitempty"`
 }
 
 // ChangeVersion is one immutable evaluation of the request inputs.
