@@ -3,7 +3,7 @@
 Google Cloud AI Builder Cup 2026  
 主題 Future of Work and Enterprise Productivity  
 版本 4.2　更新日期 2026-09-12  
-工程窗口暫定 2026-09-15 至 2026-10-18　兩人五週；10/16 凍結開發（官方交件日期待 G0 確認）
+工程窗口 2026-09-15 至 2026-10-18　兩人五週；10/16 凍結開發；原型提交截止 2026-10-18（已確認 2026-09-26）
 
 本版將 ContextRail 的市場定位收斂為 environment-aware AI Change Assurance for AI-assisted changes to cloud-native business systems，技術上仍採 AI Native Software Engineering control layer。Prototype 明確採新創／中小企業優先：先服務 5 至 30 人、已使用 Git／CI 與 AI coding assistant、沒有專職平台團隊且有兩個以上交付環境的工程團隊；大型企業保留為 enterprise-ready extension space，不是 P0 的買方驗證前提。Cloud Run-first 只描述五週 prototype 的第一個部署切口，不限制長期市場只能是 Cloud Run 或內部系統。P0 只證明一條真實英雄流程：Project Registry 建立並管理 Project，Project 先定義可自訂的環境拓撲與 promotion policy，被接受的需求形成受限 Agent Work Order，外部 coding agent 建立候選，系統以 PR／獨立 review、Git／CI 與環境證據完成三次人工決策、prod-demo smoke 及 Release Receipt。P0 也保留 tenant-ready 的資料契約，但不宣稱完成多租戶營運或完整環境管理。每次人工接受後，系統從同一份決策資料產出給 Agent 的 Agent Context Pack 與給人的 Change Decision Brief，兩者共享 ID、版本、來源 hash、環境拓撲與證據引用。Release Bundle 可包含多個 Change，但每個 Change 仍必須保留自己的 scope、evidence 與 gate。只有 G4 PASS、總容量至少 300 人時、至少保留 40 人時風險緩衝，且契約／API／IAM／location 已驗證後，才可從固定 remote agent adapter、FDE Handoff Pack、Application Design Center REST Adapter、單一 Drive／Docs 文件唯讀來源或 Cloud Run revision rollback 中選擇至多一項窄版 P1；local folder 只作來源契約 fixture。這些不能被包裝成任意 agent、autonomous FDE、真正內網整合或完整 enterprise rollback。主要使用者先以 Solution Architect、Tech Lead 或 Delivery Architect 為起點；FDE、Implementation Engineer 與 DevOps 是待驗證的相鄰 persona。v4.2 保留 React 前端與 Go 後端，本文為目前實作範圍的真相源；v1、v2、v3 保留為歷史文件。Word 版由本 Markdown 產生。
 
@@ -620,7 +620,7 @@ RAG、Evidence Graph 和歷史資料是產品資產，只有在帶來更好檢�
 
 ## 19 五週時程與人員分工
 
-工程日曆從 9/15 起算，10/18 只是暫定工程窗口終點；10/16 凍結開發，10/17 至 10/18 只處理提交。官方交件／組隊日期在 G0 前仍是 UNKNOWN，若實際入口確認更早日期，立即重排 P0 與提交材料。每週容量 50 人時，兩人各 25 小時；總容量約 250。A 偏 Go 後端／GCP／部署，B 偏 React 前端／資料／QA；兩人都需能執行 Go 測試並維護資料契約。
+工程日曆從 9/15 起算，10/18 為確認的提交截止日期（2026-09-26 核實）；10/16 凍結開發，10/17 至 10/18 只處理提交。官方報名截止為 2026-10-11；原型提交截止為 2026-10-18；評估階段為 2026-10-19 至 2026-11-06。每週容量 50 人時，兩人各 25 小時；總容量約 250。A 偏 Go 後端／GCP／部署，B 偏 React 前端／資料／QA；兩人都需能執行 Go 測試並維護資料契約。
 
 | 週次 | 日期 | 工作重點 | 出口條件 |
 | --- | --- | --- | --- |
@@ -628,7 +628,7 @@ RAG、Evidence Graph 和歷史資料是產品資產，只有在帶來更好檢�
 | Week 2 | 9/22 至 9/28 | Project List／Workspace／Settings UI、Project 設定版本與 stale propagation、架構基線、方案比較、三類成本、環境影響與 promotion path、未知項、需求決策 UI、work-order 產生與自身案例 dogfood | G2 一個新需求有引用、可重算成本、綁定 target environment／allowed transition、人工決定與不可變 work-order hash；Project 設定修改可回查 audit 並使受影響核准失效；記錄第一次 setup 與人工修正時間 |
 | Week 3 | 9/29 至 10/5 | fixture app、外部 coding-agent run、feature PR、獨立 review、candidate decision、Cloud Build、Development／Testing evidence 與 staging，以及第二個匿名案例與外部回饋 | G3 從接受方案到目標 staging；超範圍修改、缺 provenance／review／測試／環境證據會阻擋；第二案例不需新增核心 schema |
 | Week 4 | 10/6 至 10/12 | prod-demo promotion、Release Receipt、來源更新失效、環境 policy／target drift、冪等與負向測試；以 concierge demo 試演示交付／交接；選定至多一項 P1 | G4 同 digest 依 promotion policy 受控發布；部分失敗可回讀；舊決策、work order、環境拓撲或核准失效時拒絕放行；P1 只有在核心證據已通過後才啟動 |
-| Week 5 | 10/13 至 10/16 | 五組 baseline、2 個 holdout、3 至 5 位外部角色訪談、至少兩位外部使用者操作、定位測試、費用核對、英文材料與影片；不新增功能 | G5 第二人能重現；外部使用者能把產品描述為 AI 變更核對或放行；10/16 freeze；10/17 至 10/18 只完成交件（若 G0 確認更早截止，依該日期提前） |
+| Week 5 | 10/13 至 10/16 | 五組 baseline、2 個 holdout、3 至 5 位外部角色訪談、至少兩位外部使用者操作、定位測試、費用核對、英文材料與影片；不新增功能 | G5 第二人能重現；外部使用者能把產品描述為 AI 變更核對或放行；10/16 freeze；10/17 至 10/18 只完成交件（截止日期已確認 2026-10-18） |
 
 前四週每日記錄主要未知與實際花費工時；第五週不加新功能。10/17 至 10/18 為交件外部緩衝，不預先安排新開發。若開工日期延後，不把測試和影片時間默默壓縮。
 
@@ -701,7 +701,7 @@ G1 若 Go build、所選 SDK、模型或 deployment 權限未通過，48 小時�
 
 ## 21 比賽交件與展示
 
-2026-09-10 查核官網，首頁列 prototype 截止日 10/18、評估 10/19 至 11/6；首頁的組隊截止日為 10/11，但 FAQ 某回答仍寫 10/4，時區也未在頁面明示，因此日期狀態維持 UNKNOWN。G0 必須在開發啟動時以實際 submission entry 或主辦方確認唯一有效日期；確認前以最早可能的 10/4 作保守提交準備，不能把 10/18 當成已確認的官方交件日。若更早日期適用，先縮小 P0 或改為 staging-only，不能默默壓縮測試與證據。[官網時程](https://aibuildercup.com/)、[FAQ](https://aibuildercup.com/Faqs.html)
+2026-09-26 核實官網，prototype 提交截止日確認為 2026-10-18；報名截止日為 2026-10-11；評估階段為 2026-10-19 至 2026-11-06；決選者公佈為 2026-11-07；大決賽為 2026-12-04。前置日期查核顯示 FAQ 原有 10/4 組隊日期與首頁不一致，已確認為舊信息。時區未在官方頁面明示。[官網時程](https://aibuildercup.com/)、[FAQ](https://aibuildercup.com/Faqs.html)
 
 官方要求可運作且部署的 prototype、Google AI／指定平台、公開 GitHub、影片及簡報；submission materials 需英文。Themes 頁的部分分類文字與六大主題不一致，送件時選定 Future of Work and Enterprise Productivity 並核對表單。本中文文件為團隊開發規劃，不能取代英文交件文件。[參賽要求](https://aibuildercup.com/themes.html)
 
