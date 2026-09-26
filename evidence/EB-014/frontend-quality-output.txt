@@ -1,0 +1,36 @@
+# commit 753900c — npm run typecheck && npm run build && npm test
+# NOT RUN in this session.
+#
+# Reason: this worktree (.claude/worktrees/agent-a7cbd006f715cd7df) has no
+# frontend/node_modules (git status confirms nothing untracked/ignored is
+# present under frontend/ beyond source, package.json and package-lock.json).
+# Per this bundle's instructions, a large dependency install was not
+# performed to avoid unbounded scope; no test/build numbers below are
+# claimed or fabricated.
+#
+# What IS verified instead, from the merged diffs themselves (git show),
+# not from a re-run:
+#   - PR #3 (3ae8481) added assertions to tests/browser/prod-demo-promotion.spec.ts
+#     for the folded gate table / release-outcome sentence.
+#   - PR #4 (667584f, 7ad5413) added/updated
+#     frontend/tests/components/environmentTopology.test.tsx and
+#     tests/browser/environment-topology.spec.ts for the human-label decision
+#     codes and default Change selection.
+#   - PR #5 (c96ad95, dde6953) added frontend/tests/components/releasesPanel.test.tsx
+#     (3 new cases: summary hides technical detail, technical report shows
+#     full content, summary gate table lists only non-passing rows) and
+#     updated tests/browser/release-promotion.spec.ts,
+#     tests/browser/prod-demo-promotion.spec.ts to switch views before
+#     asserting on technical detail.
+#   - PR #6 (cf9de5c) added assertions to
+#     frontend/tests/components/changesPanel.test.tsx for the merged empty
+#     scope line, the evidence-code tooltip, and the "Not chosen:" label.
+#   - Each PR's own commit message and docs/reviews/CONTEXT_RAIL_BRIEF_READABILITY_REVIEW_2026-09-25.zh-TW.md
+#     §7/§8 record that typecheck/build/vitest/Playwright were run locally by
+#     the author at the time (CI not run); this bundle does not re-verify
+#     those historical claims and does not repeat their pass counts here.
+#
+# go test ./... (this session's own run, see go-test-output.txt) confirms no
+# Go regression; internal/ and cmd/ are untouched by commits 3ae8481..753900c
+# (git diff --stat over that range against internal/ and cmd/ is empty),
+# consistent with this being a frontend/docs/tests-only slice.

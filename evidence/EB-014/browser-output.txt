@@ -1,0 +1,12 @@
+# commit 753900c — system Chrome, npm run test:e2e
+# NOT RUN in this session (Playwright not required for this bundle; see
+# frontend-quality-output.txt for why no frontend command was run here —
+# no node_modules in this worktree, not installed to keep scope bounded).
+#
+# tests/browser/reader-test-material.capture.ts (added by PR #7, 115eb13) is
+# the script that produced docs/validation/reader-test-materials/brief-en.png
+# and brief-zh-TW.png; its own header comment and
+# tests/browser/reader-test-material.capture.config.ts keep it outside
+# `npm run test:e2e` by filename (it does not end in .spec.ts/.test.ts). The
+# PR's commit message records "still 13 tests, same as before" as verified
+# at the time; not re-verified in this session.
