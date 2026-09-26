@@ -25,7 +25,7 @@
     {
       "id": "receipt_and_technical_report_in_same_slice",
       "status": "deferred",
-      "reason": "Receipt conclusion-first layout and a reviewer-facing Technical Report (review items 4–5) are separate slices; the role-reader test (item 6) is the acceptance evidence for readability and is still open."
+      "reason": "Receipt conclusion-first layout and a reviewer-facing Technical Report (review items 4–5) are separate slices; the role-reader test (item 6) is the acceptance evidence for readability and is still open. (2026-09-26 update: items 4–5 were implemented and merged as PR #3 feat/receipt-conclusion-first and PR #5 feat/release-technical-report; recorded in decisions/DR-013-receipt-technical-report-and-reader-test-prep.json and evidence/EB-014/. Item 6's role-reader test, G5, is still open — DR-013 does not close it.)"
     }
   ],
   "scope": {
@@ -105,7 +105,7 @@
     "packet": "evidence/EB-013/HUMAN_REVIEW_PACKET.zh-TW.md",
     "accepted_boundaries": [
       "可讀性只有結構與截圖證據，讀者測試（review 第 6 點）未做",
-      "Receipt 結論優先與 Technical Report（review 第 4、5 點）不在本 slice",
+      "Receipt 結論優先與 Technical Report（review 第 4、5 點）不在本 slice（2026-09-26 更新：已於 PR #3 feat/receipt-conclusion-first、PR #5 feat/release-technical-report 實作並合併，見 DR-013 與 evidence/EB-014/；review 第 6 點的真人讀者測試 G5 仍未做，DR-013 未關閉這項）",
       "EB-012 的 CHG-001 決策會顯示「未提供白話摘要」，不回頭補寫",
       "Brief JSON 從 v1 改為 v2",
       "其他伺服器產生的文字（缺少輸入的原因、觀察、gate 細節）在中文版仍是英文",

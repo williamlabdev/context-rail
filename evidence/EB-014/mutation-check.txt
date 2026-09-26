@@ -1,0 +1,7 @@
+# demo/, examples/ (consumer fixtures) across commits 3ae8481..753900c (PR #3-#7)
+git log --oneline 3ae8481~1..753900c -- demo/ examples/
+(no output — no commit in this range touched either path; fixtures untouched)
+
+# internal/, cmd/ (Go backend) across the same range
+git diff --stat 3ae8481~1 753900c -- internal/ cmd/
+(no output — no backend change in this bundle; this is a frontend/docs/tests-only slice)

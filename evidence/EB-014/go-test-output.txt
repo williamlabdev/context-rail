@@ -1,0 +1,14 @@
+# commit 753900c (develop, HEAD at branch creation; PR #3-#7 already merged) — go vet ./... && go test -count=1 ./...
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/change	[no test files]
+?   	context-rail/internal/document	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+?   	context-rail/internal/release	[no test files]
+?   	context-rail/internal/topology	[no test files]
+ok  	context-rail/tests/change	0.719s
+ok  	context-rail/tests/document	0.399s
+ok  	context-rail/tests/http	1.564s
+ok  	context-rail/tests/registry	1.236s
+ok  	context-rail/tests/release	0.944s
+ok  	context-rail/tests/topology	0.716s

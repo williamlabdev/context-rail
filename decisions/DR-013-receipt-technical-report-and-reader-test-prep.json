@@ -1,0 +1,122 @@
+{
+  "decision_id": "DR-013",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "receipt_outcome_first_plus_role_specific_release_detail_with_workspace_polish_and_reader_test_material_fix",
+  "alternatives": [
+    {
+      "id": "keep_receipt_and_full_gate_tables_at_page_bottom",
+      "status": "rejected",
+      "reason": "The pre-existing layout buried the Release Receipt at the bottom of the page and repeated an ~11-row gate table (mostly PASS) up to three times (review §4, ~3200px). Superseded by a one-sentence outcome (release-outcome) built only from recorded fields, with the Receipt moved directly under it and PASS rows folded into a collapsed 'N of M gates passed' disclosure that keeps its row testids in the DOM for audit (feat/receipt-conclusion-first, commit 3ae8481)."
+    },
+    {
+      "id": "single_release_detail_view_for_decision_makers_and_reviewers",
+      "status": "rejected",
+      "reason": "One page serving both a decision-maker and a reviewer forced full hashes, the promotion delta table and every past deployment attempt in front of the reader review item 4 was written for. Split into a Summary view (outcome, human-readable receipt summary, approval, only non-passing gates, all action forms) and a Technical report view (full heading, full receipt, promotion delta, MANIFEST table, full gate table, every attempt including already-promoted ones); the toggle (release-view-summary / release-view-technical) only selects, orders and relabels recorded fields — it adds no facts (feat/release-technical-report, commits c96ad95, dde6953)."
+    },
+    {
+      "id": "changes_list_technical_report_only",
+      "status": "superseded_same_slice",
+      "reason": "The first cut of the summary/technical split (c96ad95) left the 'what changed' list only in the Technical report, so a decision-maker had to switch views just to see which Changes were in the release. The same PR's follow-up commit (dde6953) added a plain 'Changes in this release' list (change_id + title only, release-includes) to the Summary view; the full manifest table (decision/work-order/candidate ids, commit, review gate, build digest) stays technical-only."
+    },
+    {
+      "id": "ai_reader_preview_counts_toward_g5",
+      "status": "rejected",
+      "reason": "Two independent sonnet-subagent readers (one per locale, screenshot-only, no repo access) scored the pre-fix Brief v2 5/6 each and surfaced three display bugs (docs/validation/CONTEXT_RAIL_BRIEF_READER_TEST_2026-09-25.zh-TW.md §9), which fix/brief-reader-preview (cf9de5c) resolved. The source doc is explicit that an AI reader already knows what 'staging' and 'production' mean and so cannot stand in for a non-engineer human reader; §9 is titled '不計入 G5' and the doc's own status line stays '題目已備妥，尚未施測'. This decision keeps that boundary: G5 (the real reader test) remains open, and the AI-preview scores are not cited as readability acceptance evidence."
+    },
+    {
+      "id": "reuse_the_same_english_authored_request_for_both_locale_screenshots",
+      "status": "rejected",
+      "reason": "The prior zh-TW reader-test screenshot showed zh-TW UI chrome but English free text in every data field (owner_summary, scope, decision rationale), because both screenshots were captured from the same English-authored request. A non-engineer zh-TW reader would then stumble on language, not on Brief structure — the wrong thing for the reader test to measure. Replaced with two separately-authored requests (owner_summary, objective, scope included/excluded, decision rationale each written natively once in English and once in Traditional Chinese by the requester; structure, selected option and target environment identical), captured by a committed, repeatable script (tests/browser/reader-test-material.capture.ts) kept outside npm run test:e2e by filename (docs/reader-test-zh-material, commit 115eb13)."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "frontend/src/components/",
+      "frontend/src/i18n/",
+      "frontend/src/pages/",
+      "frontend/src/state/",
+      "frontend/src/styles/",
+      "frontend/tests/",
+      "tests/browser/",
+      "docs/reviews/",
+      "docs/validation/",
+      "evidence/EB-014/"
+    ],
+    "forbidden_paths": [
+      "consumer-source-mutation",
+      "demo/",
+      "examples/",
+      "cloud-deployment-execution",
+      "production-targets",
+      "secrets"
+    ]
+  },
+  "architecture_impact": [
+    "ReleaseOutcome (frontend/src/components/ReleasesPanel.tsx) renders one sentence built only from release.status, the last failed deployment attempt and its first non-passing gate, or the receipt (data-testid=release-outcome, data-tone=done|stopped|pending for styling only, no new facts).",
+    "GateTable folds PASS rows into a <details data-testid={testid}-passed> 'N of M gates passed' disclosure while non-PASS rows (GateRows) stay listed inline; existing row testids are unchanged so prior browser assertions on gate rows still hold.",
+    "ReleaseDetail splits into a Summary view (default) and a Technical report view via release-view-summary / release-view-technical toggle buttons (aria-pressed). Summary shows ReceiptSummary (short hash only, no full sha256), a plain 'Changes in this release' list (release-includes: change_id + title), only non-passing live gates (release-gates-summary), and every action form. Technical report shows the full heading (release-heading-technical), the full receipt card, the promotion delta card, the MANIFEST table (release-manifest), the full live gate table, and every deployment attempt including already-promoted ones. The view is component state only (resets to Summary on the existing re-mount-by-key behavior after each action); nothing is persisted.",
+    "ProjectContextPage's Decisions relationship list renders through a new DecisionRelationshipList, reusing StatusBadge for a human label with the machine code kept secondary, instead of a raw 'CODE -> STALE (topology vN)' string that broke mid-word in narrow columns.",
+    "useChanges defaults the selected Change to the first one in list order via a functional state update read at dispatch time, so ChangesPanel never opens on an empty 'Select a Change' placeholder while Changes exist; an explicit or in-progress selection (e.g. the New Change form) is never overridden.",
+    "ChangeBrief (frontend/src/components/ChangeBrief.tsx): an empty in_scope and out_of_scope now merge into one 'Scope' line (brief-scope-empty) instead of two boxes that each said 'no explicit list' (circular to a reader); required_evidence codes show only the human label with the raw code moved to a title tooltip (an unknown code with no label still shows the code itself, nothing is hidden); 'Considered, not chosen' gets a top divider and a per-alternative 'Not chosen:' label so it can no longer be misread as part of the decided-by rationale directly above it.",
+    "tests/browser/reader-test-material.capture.ts plus its own config (reader-test-material.capture.config.ts) drive the real Change→decision UI flow twice against a fresh CONTEXT_RAIL_STATE_DIR (once with an English-authored request, once with a natively-Chinese one of identical structure/option/target) to produce docs/validation/reader-test-materials/brief-en.png and brief-zh-TW.png; excluded from npm run test:e2e by filename, not by config exclusion list."
+  ],
+  "cost_assumptions": [
+    "No cloud resources; frontend, docs and test files only — internal/ and cmd/ (Go backend) are untouched across this range."
+  ],
+  "unknowns": [
+    "G5 (the real, non-engineer human three-question reader test) is still not administered — docs/validation/CONTEXT_RAIL_BRIEF_READER_TEST_2026-09-25.zh-TW.md §7/§8 remain blank ('尚未施測'); blocked on finding test subjects, not on tooling or screenshots.",
+    "The AI-preview scores (5/6 each, same doc §9) are before/after evidence for the three display fixes only; the doc itself excludes them from G5, and this decision does not treat them as readability acceptance evidence.",
+    "Summary view's 'Changes in this release' shows only change_id and title; the full manifest (decision/work-order/candidate ids, commit, review gate, build digest) stays technical-report-only, the same decision-maker-visibility trade-off the readability review §8 already recorded as a known limitation.",
+    "Reader-test screenshots (docs/validation/reader-test-materials/) reflect the UI at commit cf9de5c (fix/brief-reader-preview); any later change to ChangeBrief.tsx needs a recapture with tests/browser/reader-test-material.capture.ts before the real test runs.",
+    "Other server-generated text (gate detail, transition names) is still English in the zh-TW Technical report; same boundary DR-011 and DR-012 already recorded for the rest of the workspace.",
+    "This DecisionRecord and its Evidence Bundle (EB-014) were written after PR #3–#7 were already reviewed and merged one at a time on GitHub on 2026-09-25; see human_review.mode below."
+  ],
+  "acceptance_criteria": [
+    "Release detail opens with one outcome sentence built only from recorded fields (promoted / rejected / deployment-failed / gate-blocked / awaiting-build / awaiting-approval / awaiting-deployment); a failed attempt shows its first non-passing gate underneath.",
+    "Gate tables list only non-passing rows; passing rows fold into a 'N of M gates passed' disclosure that keeps its row testids for audit.",
+    "ReleaseDetail defaults to a Summary view naming the outcome, the receipt in plain language, the Changes included, and only the gates still blocking; a Technical report view one click away adds full hashes, the promotion delta, the manifest table and every deployment attempt; switching views changes no facts, only what is shown.",
+    "Project map decisions show a human status label with the machine code kept secondary; ChangesPanel opens on the first Change instead of an empty placeholder; the Changes section flow line is fully localised in zh-TW.",
+    "An AI-preview of Brief v2 (two independent, screenshot-only readers, one per locale) is run, its three display findings are applied, and it is explicitly recorded as not counting toward G5.",
+    "Reader-test screenshots for zh-TW and en come from two separately-authored requests written natively in each language, not a translation of one shared request; the capture script stays outside npm run test:e2e.",
+    "G5 (the real reader test) stays 'not administered' in this decision's evidence — it is not claimed as passed or run."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "753900c",
+  "source_refs": [
+    "docs/reviews/CONTEXT_RAIL_BRIEF_READABILITY_REVIEW_2026-09-25.zh-TW.md",
+    "docs/validation/CONTEXT_RAIL_BRIEF_READER_TEST_2026-09-25.zh-TW.md",
+    "decisions/DR-012-brief-readability.json",
+    "roadmap.md#7-definition-of-done-for-the-prototype"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-014/README.md"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-25T00:00:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "No separate decision event: covered by DR-012's founder-001 acceptance of the full readability review (items 1–6) as P0. Items 4 and 5 here are that same review's own §5 follow-through the owner already asked for; they and the workspace polish and reader-test-material fixes that surfaced alongside them were merged the same day (PR #3–#7). Recorded as its own DecisionRecord because DR-012's scope and evidence_refs (EB-013) only covered items 1–3; this decision closes items 4–5 and the reader-test material prep for item 6 — item 6 itself (the real human test, G5) stays open and is not decided here."
+  },
+  "human_review": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-09-26T00:00:00+08:00",
+    "result": "ACCEPTED_FOR_LOCAL_DEVELOPMENT",
+    "reviewed_commit": "753900c",
+    "mode": "retrospective evidence bundling — PR #3–#7 were each already reviewed and merged individually on GitHub on 2026-09-25 (no separate synchronous review packet was written per PR beyond the merge itself); this DecisionRecord and Evidence Bundle were composed afterward, on 2026-09-26, to give the slice its own record in the same form as DR-012/EB-013. Tests were not independently re-run by a reviewer separate from the author. CI not run (GitHub Actions quota has been broken since 2026-09-05); evidence is local.",
+    "packet": "evidence/EB-014/HUMAN_REVIEW_PACKET.zh-TW.md",
+    "accepted_boundaries": [
+      "本 DR / EB 是回填：PR #3–#7 已於 2026-09-25 各自在 GitHub 上個別合併，事後（2026-09-26）才補寫這份決策紀錄與證據包，不是先有這份決策再開工",
+      "G5 三問測試（真人）仍未施測；AI 預演（兩位獨立 sonnet subagent，各 5/6）明確不計入 G5，找不到受測者（作者本人與 AI 都不能代替）",
+      "Summary 視圖看不到完整變更清單（決策／工單／候選 id、commit、review gate、build digest），需切到 Technical report",
+      "其他伺服器產生的文字（gate detail、transition 名稱）在 zh-TW 的 Technical report 仍是英文",
+      "CI 未跑（GitHub Actions 額度自 2026-09-05 起中斷）；證據為本地 go test（本次重跑）與既有截圖／PR 內容比對——前端 vitest／Playwright 本次未跑（此 worktree 無 frontend/node_modules，未安裝以維持範圍）"
+    ]
+  }
+}
