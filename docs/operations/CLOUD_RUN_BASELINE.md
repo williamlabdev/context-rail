@@ -1,8 +1,8 @@
 # Cloud Run Baseline (staging, read-only workspace)
 
 Status: baseline for roadmap G1
-Version: 1.0
-Updated: 2026-09-20
+Version: 1.2
+Updated: 2026-09-27
 
 This runbook deploys the current ContextRail read-only workspace (VS-001 importer + VS-002 registry API and React UI) to one Cloud Run **staging** service. It exists so that roadmap gate G1 ("Go build, model, Firestore, Storage, identity and Cloud Run path work for real") has a real service URL instead of a local-only claim.
 
@@ -32,7 +32,7 @@ The binary honours the [Cloud Run container contract](https://cloud.google.com/r
 | `CONTEXT_RAIL_STATIC_DIR` | Built workspace directory | `/app/static` |
 | `CONTEXT_RAIL_FIXTURE_SCENARIO` | `normal`, `empty`, `invalid`, `unavailable` — verification scenarios only | `normal` |
 | `CONTEXT_RAIL_STATE_DIR` | Governance state (topology versions, document baseline + Context Packs, change ledger, releases) as JSON files | `/tmp/context-rail-state` — instance-local, **not durable**; lost on redeploy or scale-to-zero |
-| `GEMINI_API_KEY` | Optional. Enables the Gemini decision advisor (candidates only; falls back to the rule advisor on error). Set it as a Cloud Run secret/env, never in the image | unset → rule advisor |
+| `GEMINI_API_KEY` | Optional. Enables the Gemini decision advisor (candidates only; falls back to the rule advisor on error). Injected from Secret Manager by `cloudbuild.yaml`'s `deploy-staging` step (`--set-secrets`, `_GEMINI_SECRET` substitution / `GEMINI_SECRET` env var on `scripts/deploy-cloud-run.sh`, default secret name `gemini-api-key`); never set in the image. Set `_GEMINI_SECRET`/`GEMINI_SECRET` to an empty string, or `SKIP_GEMINI_SECRET=1` on the script, to deploy without it before the secret exists | unset → rule advisor |
 | `CONTEXT_RAIL_GEMINI_MODEL` | Gemini model id for the advisor | `gemini-2.0-flash` |
 | `GITHUB_TOKEN` | Optional. Enables GitHub read-back of candidates (compare, PR reviews, check runs) when a submission carries a `read_back` block. Read-only token, set as a secret | unset → declared observations only |
 
@@ -40,13 +40,16 @@ The binary honours the [Cloud Run container contract](https://cloud.google.com/r
 
 ## Deploy
 
-Prerequisites on the operator machine: `gcloud` authenticated as an identity that can enable APIs, create an Artifact Registry repository, run Cloud Build and deploy Cloud Run in the target GCP project; billing enabled on that project.
+Prerequisites on the operator machine: `gcloud` authenticated as an identity that can enable APIs, create an Artifact Registry repository, run Cloud Build and deploy Cloud Run in the target GCP project; billing enabled on that project; the Cloud Run runtime service account already created **and** granted `roles/iam.serviceAccountUser` to whichever identity actually executes the Cloud Build steps (`gcloud builds get-default-service-account` — this is not necessarily the legacy `<PROJECT_NUMBER>@cloudbuild.gserviceaccount.com`; see [`CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md`](CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md) section 2 step 3 / 3.1 — this baseline doc does not create either). Without that binding, `gcloud run deploy` fails with `PERMISSION_DENIED` on `iam.serviceAccounts.actAs` — untested, 2026-09-27.
 
 ```sh
-scripts/deploy-cloud-run.sh <gcp-project-id> [region=asia-east1] [service=context-rail-staging]
+RUN_SERVICE_ACCOUNT=context-rail-run \
+  scripts/deploy-cloud-run.sh <gcp-project-id> [region=asia-east1] [service=context-rail-staging]
 ```
 
-The script enables `run`, `cloudbuild` and `artifactregistry`, creates the `context-rail` Artifact Registry repository if missing, submits `cloudbuild.yaml`, deploys the resolved **image digest** (never a mutable tag) to the staging service, and prints `url`, `revision`, `image@digest` and `commit`. It then runs the smoke check below.
+`RUN_SERVICE_ACCOUNT` is **required** (Cloud Run runtime identity, short account id — the script resolves it to `<name>@<project>.iam.gserviceaccount.com` and errors out with setup instructions if it is unset). `GEMINI_SECRET` (default `gemini-api-key`) and `SKIP_GEMINI_SECRET=1` control whether `GEMINI_API_KEY` is injected from Secret Manager — see the container-contract table above.
+
+The script enables `run`, `cloudbuild`, `artifactregistry` and `secretmanager`, creates the `context-rail` Artifact Registry repository if missing, submits `cloudbuild.yaml` (passing through `_RUN_SERVICE_ACCOUNT` and `_GEMINI_SECRET`), deploys the resolved **image digest** (never a mutable tag) pinned to that service account, with the Gemini secret attached unless explicitly skipped, to the staging service, and prints `url`, `revision`, `image@digest` and `commit`. It then runs the smoke check below.
 
 To re-run only the smoke check against an existing URL:
 

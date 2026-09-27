@@ -97,6 +97,14 @@ else
 fi
 
 step "deploy Cloud Run staging (${REGION})"
+# scripts/deploy-cloud-run.sh now requires RUN_SERVICE_ACCOUNT (Cloud Run
+# runtime identity) and honours GEMINI_SECRET / SKIP_GEMINI_SECRET — export
+# them before calling this script if they are not already set; it does not
+# default or silently skip RUN_SERVICE_ACCOUNT.
+if [ -z "${RUN_SERVICE_ACCOUNT:-}" ]; then
+  echo "RUN_SERVICE_ACCOUNT is not exported — deploy-cloud-run.sh will refuse to deploy without it." >&2
+  echo "export RUN_SERVICE_ACCOUNT=context-rail-run   # or your project's runtime SA short name" >&2
+fi
 scripts/deploy-cloud-run.sh "${PROJECT_ID}" "${REGION}"
 
 cat <<EOF

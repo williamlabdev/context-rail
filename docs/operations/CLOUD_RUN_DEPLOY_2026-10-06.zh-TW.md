@@ -1,8 +1,8 @@
 # Cloud Run 部署手冊 — 2026-10-06 執行版
 
 狀態：草案，供 10/6 GCP 專案／billing／`GEMINI_API_KEY` 到位當天照做
-更新：2026-09-26
-前置演練：本機 `docker build` + `docker run` + curl，見〈本次本地演練結果〉一節；**未執行任何 `gcloud` 寫入動作、未 push image、未建立任何雲端資源**
+更新：2026-09-27（補上第 2 節步驟 3.1：Cloud Build 執行身份對 runtime SA 的 `roles/iam.serviceAccountUser` 綁定，這是 verifier 抓到的缺口，之前只做到「建立 runtime SA」沒做到「授權 Cloud Build 去用它」）；2026-09-27（`cloudbuild.yaml` / `scripts/deploy-cloud-run.sh` 已補上 `--set-secrets` 與 `--service-account`，見第 2 節步驟 4、第 3 節）
+前置演練：本機 `docker build` + `docker run` + curl，見〈本次本地演練結果〉一節；**未執行任何 `gcloud` 寫入動作、未 push image、未建立任何雲端資源**。0927 這次追加的變更只做了假 `gcloud` shim dry-run（見第 3 節），**同樣未跑過真的 `gcloud`／`docker`**。
 
 > 這份手冊記錄的是「10/6 當天要做什麼」。既有的 [`CLOUD_RUN_BASELINE.md`](CLOUD_RUN_BASELINE.md) 是穩態容器契約文件（環境變數表、smoke check 定義），這份是一次性的執行清單，兩者對照著看；本手冊完成後，`CLOUD_RUN_BASELINE.md` 不需要改，但 `evidence/EB-008`、`evidence/EB-009`、`README.md:9` 的宣告值需要回填（見下方對應段落）。
 
@@ -22,8 +22,8 @@
 | Cloud Run service 名稱（預設 `context-rail-staging`） | staging 服務名稱 | `scripts/deploy-cloud-run.sh:32` | 有預設值 |
 | Artifact Registry repo 名稱（寫死 `context-rail`） | 存放 image | `scripts/deploy-cloud-run.sh:33`、`cloudbuild.yaml:13` | 腳本自動 `describe` 沒有就 `create`（`scripts/deploy-cloud-run.sh:49-51`） |
 | 部署身份（操作機器上 `gcloud auth login` 的帳號） | 需要能 enable API、建 Artifact Registry repo、跑 Cloud Build、部署 Cloud Run | `scripts/deploy-cloud-run.sh:35`（只檢查 `command -v gcloud`，**沒有檢查權限**）、`scripts/bootstrap-w1.sh:70-74` | **未定義**——目前所有腳本都假設「當前 gcloud 使用者已有夠大的權限」，沒有指定或建立專用部署用 service account。10/6 若用 William 個人帳號（Owner/Editor）最省事，但要留意這代表本地開發機持有專案級高權限憑證 |
-| Cloud Run **執行期**服務帳號（runtime SA） | 容器實際跑起來後用什麼身份呼叫 GCP API（目前程式碼完全不呼叫其他 GCP API，但要讀 Secret Manager 的 `GEMINI_API_KEY` 需要這個身份有 `roles/secretmanager.secretAccessor`） | `cloudbuild.yaml:47-55` 的 `gcloud run deploy` **沒有 `--service-account` 旗標** | **未指定** → 會落到該專案的 Compute Engine 預設服務帳號（`<PROJECT_NUMBER>-compute@developer.gserviceaccount.com`），權限通常比需要的寬。建議 10/6 建立一個最小權限的專用 SA（見第 2 節步驟 3） |
-| `GEMINI_API_KEY` 的值 | 啟用 `internal/change/advisor.go` 的 `GeminiAdvisor`；不設就 fallback 成 `RuleAdvisor` | `cmd/context-rail/main.go:34,150-152`、`internal/change/advisor.go:148-149`（`"GEMINI_API_KEY not configured"`）、`docs/operations/CLOUD_RUN_BASELINE.md:35` | William 提供；**目前沒有任何腳本把它放進 Secret Manager 或部署指令**（見第 3 節「本次演練發現的落差」） |
+| Cloud Run **執行期**服務帳號（runtime SA） | 容器實際跑起來後用什麼身份呼叫 GCP API（目前程式碼完全不呼叫其他 GCP API，但要讀 Secret Manager 的 `GEMINI_API_KEY` 需要這個身份有 `roles/secretmanager.secretAccessor`） | `cloudbuild.yaml`（`deploy-staging` step）現在**要求** `_RUN_SERVICE_ACCOUNT` substitution / `scripts/deploy-cloud-run.sh` 要求 `RUN_SERVICE_ACCOUNT` 環境變數（0927 補上，見第 3 節） | **旗標已補上，但 SA 本身仍要手動建立**——沒設就清楚報錯、不會默默落到 Compute 預設 SA（`--service-account` 一定會帶值或直接失敗）。SA 的建立與 `secretAccessor` 綁定還是第 2 節步驟 3 的手動前置作業 |
+| `GEMINI_API_KEY` 的值 | 啟用 `internal/change/advisor.go` 的 `GeminiAdvisor`；不設就 fallback 成 `RuleAdvisor` | `cmd/context-rail/main.go:34,150-152`、`internal/change/advisor.go:148-149`（`"GEMINI_API_KEY not configured"`）、`docs/operations/CLOUD_RUN_BASELINE.md:35` | William 提供；`cloudbuild.yaml` / `scripts/deploy-cloud-run.sh` 已補上 `--set-secrets`（`_GEMINI_SECRET` / `GEMINI_SECRET`，預設 secret 名稱 `gemini-api-key`，0927 補上，見第 3 節）——**secret 本身的建立與 IAM 綁定仍是第 2 節步驟 3 的手動前置作業** |
 | `CONTEXT_RAIL_GEMINI_MODEL`（可選） | 覆寫預設 model | `cmd/context-rail/main.go:35`、`internal/change/advisor.go:134-136`（預設 `gemini-2.0-flash`） | 有預設值，可不設 |
 | `GITHUB_TOKEN`（可選） | 啟用 candidate 的 GitHub read-back（compare / PR reviews / check runs） | `cmd/context-rail/main.go:36`、`docs/operations/CLOUD_RUN_BASELINE.md:37` | 本次任務範圍**不需要**——demo 用固定 fixture，不牽涉真實 repo read-back；除非 10/6 要順便展示 `REAL_RUN_PLAYBOOK.md` 的流程 |
 | Firestore／Storage | 目前**完全沒有用到** | 全 repo 搜尋 `firestore`／`storage` 只有一處註解：`internal/topology/store.go:23`（`// persistence decision (files first, Firestore later)` ——純規劃註記，非程式碼依賴） | 不需要 10/6 準備任何 Firestore/Storage 資源 |
@@ -73,9 +73,9 @@ gcloud artifacts repositories describe context-rail --location="${REGION}" \
 **預期**：`describe` 回傳 repo 詳細資訊，或 `create` 成功建立。
 **失敗處置**：權限不足（`PERMISSION_DENIED`）代表步驟 0 的帳號沒有 `roles/artifactregistry.admin` 或等效權限；換帳號或加角色。
 
-### 步驟 3 — 建立最小權限的 Cloud Run 執行身份（新步驟，原腳本沒有）
+### 步驟 3 — 建立最小權限的 Cloud Run 執行身份（手動前置作業，`cloudbuild.yaml` 不會代為建立）
 
-原本 `cloudbuild.yaml:47-55` 的 `gcloud run deploy` 沒有 `--service-account`，會用專案預設的 Compute Engine SA。若要讓 `GEMINI_API_KEY` 走 Secret Manager 而不是明文塞進環境變數，需要一個有 `secretAccessor` 權限的執行身份：
+`cloudbuild.yaml` 的 `deploy-staging` step（0927 起）已經**要求**帶 `--service-account`，不會再默默落到專案預設的 Compute Engine SA——但這個旗標只是「指定用哪個身份」，SA 本身、以及它對 Secret Manager 的存取權，仍然要在 10/6 當天手動建立：
 
 ```sh
 gcloud iam service-accounts create context-rail-run \
@@ -90,9 +90,41 @@ gcloud secrets add-iam-policy-binding gemini-api-key \
 **未實測**：以上 IAM/Secret Manager 指令是依 GCP 官方文件慣例寫的，10/6 當天第一次跑務必看清楚錯誤訊息，不要照抄後假設成功。
 **失敗處置**：`gemini-api-key` 密鑰值請勿用 shell history 留痕（用 `echo -n ... | gcloud secrets versions add` 且該行結束後 `history -d` 或直接不留在互動 shell）；若 secret 已存在，`create` 會報 `ALREADY_EXISTS`，改用 `gcloud secrets versions add` 即可。
 
-### 步驟 4 — 修改部署指令，帶入 secret（原腳本落差的實際修法）
+#### 步驟 3.1（0928 補上）— Cloud Build 的執行身份要能 `actAs` 這個 runtime SA，否則 `gcloud run deploy` 直接 `PERMISSION_DENIED`
 
-`cloudbuild.yaml:47-55` 目前的 `gcloud run deploy` 沒有任何 `--set-secrets` 或 `--service-account`。10/6 當天需要手動加這兩個旗標再跑（或先改 `cloudbuild.yaml` 再 commit）：
+上面建立的 `context-rail-run` 只是「Cloud Run 服務跑起來後」的身份。真正下 `--service-account=context-rail-run@...` 這個旗標的，是**執行 `deploy-staging` step 的那個 Cloud Build 身份**（不是你本機登入的帳號）——GCP 規定：要把服務／revision 綁到某個 SA 上，呼叫端本身要對那個目標 SA 有 `roles/iam.serviceAccountUser`（內含 `iam.serviceAccounts.actAs` 權限），且這個 binding 是綁在**目標 SA 資源本身**上，不是綁在專案層級（來源：[Cloud Run — Configure the service identity](https://cloud.google.com/run/docs/configuring/services/service-accounts)：「To get the permissions that you need to attach a service account as the service identity on the service or revision, you or your administrator must grant your deployer account the Service Account User role (`roles/iam.serviceAccountUser`) on the service account that is used as the service identity.」）。少這一步，`gcloud builds submit` 會在 `deploy-staging` step 卡住，訊息含 `PERMISSION_DENIED` 且提到 `iam.serviceAccounts.actAs`。
+
+**先確認你的專案實際用哪個身份跑 Cloud Build**——2024 年之後新建的專案，Cloud Build 預設可能不是走 legacy 的 `<PROJECT_NUMBER>@cloudbuild.gserviceaccount.com`，而是走 Compute Engine 預設 SA `<PROJECT_NUMBER>-compute@developer.gserviceaccount.com`（依專案的組織政策設定而定；來源：[Cloud Build service accounts](https://cloud.google.com/build/docs/cloud-build-service-account)：「Depending on your organization's settings, Cloud Build may use the Compute Engine default service account or the legacy Cloud Build service account to execute builds on your behalf.」），兩者要綁的 member 不一樣，不要憑記憶假設是哪一個：
+
+```sh
+gcloud builds get-default-service-account [--region=REGION]
+```
+
+**已查證**：`gcloud builds get-default-service-account` 這個指令確實存在（[官方 gcloud 參考文件](https://cloud.google.com/sdk/gcloud/reference/builds/get-default-service-account)：「Get the default service account for a project.」），回傳的就是這個專案 Cloud Build 目前實際會用的服務帳號 email——把這一步的輸出，原封不動當成下面 `--member` 的值：
+
+```sh
+BUILD_SA="$(gcloud builds get-default-service-account --format='value(serviceAccountEmail)')"
+gcloud iam service-accounts add-iam-policy-binding \
+  "context-rail-run@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --member="serviceAccount:${BUILD_SA}" \
+  --role="roles/iam.serviceAccountUser"
+```
+
+**未實測**：`get-default-service-account` 的輸出格式、以及上面這條 binding 在本專案是否真的補齊了 `PERMISSION_DENIED`，都要 10/6 當天用真的 `gcloud` 才能驗——這是本次任務新補的文件，指令本身沒有跑過。
+**失敗處置**：如果 `get-default-service-account` 回傳的是 legacy `@cloudbuild.gserviceaccount.com`，也可能代表 Cloud Build API 是舊專案較早啟用；不論是哪一個，都用它回傳的 email 當 `--member`，不要自己猜專案編號組字串。
+
+### 步驟 4 — secret 與 SA 現在已經寫進 `cloudbuild.yaml` / `scripts/deploy-cloud-run.sh`（0927 更新，不用再補手動指令）
+
+之前這裡是「手動加 `--set-secrets` / `--service-account` 再跑」；0927 已經把這兩個旗標直接寫進 `cloudbuild.yaml` 的 `deploy-staging` step 與 `scripts/deploy-cloud-run.sh`，10/6 當天**不需要**再手動組這行 `gcloud run deploy`，改成在跑步驟 5 之前設好這些環境變數：
+
+```sh
+export RUN_SERVICE_ACCOUNT=context-rail-run   # 必填，短名稱不含 @project；腳本會自動組成 <name>@<project>.iam.gserviceaccount.com
+export GEMINI_SECRET=gemini-api-key           # 選填，預設就是這個值（Secret Manager 的 secret 名稱，用 latest 版本）
+# 如果 secret 還沒建（步驟 3 還沒跑完），要先用 fallback 部署：
+# export SKIP_GEMINI_SECRET=1
+```
+
+`scripts/deploy-cloud-run.sh` 會把 `RUN_SERVICE_ACCOUNT` / `GEMINI_SECRET` 轉成 `gcloud builds submit --substitutions=...,_RUN_SERVICE_ACCOUNT=...,_GEMINI_SECRET=...`，`cloudbuild.yaml` 的 `deploy-staging` step 再組出：
 
 ```sh
 gcloud run deploy context-rail-staging \
@@ -108,18 +140,23 @@ gcloud run deploy context-rail-staging \
   --labels=context-rail-environment=staging,context-rail-commit="${SHORT_SHA}"
 ```
 
-**未實測**：`--set-secrets` 語法（`ENV_VAR=SECRET_NAME:VERSION`）依 `gcloud run deploy` 官方文件；10/6 當天第一次跑務必核對 `gcloud run services describe context-rail-staging --region="${REGION}" --format=yaml` 裡真的看得到這個環境變數是從 secret 掛載，不是空的。
-**如果懶得改 `cloudbuild.yaml`**：也可以先跑 `scripts/deploy-cloud-run.sh`（這時 Gemini 還沒生效，會 fallback 成 rule-advisor），部署完再用 `gcloud run services update context-rail-staging --region="${REGION}" --update-secrets=GEMINI_API_KEY=gemini-api-key:latest --service-account=...` 補上，效果一樣，只是多一次 revision。
+**行為細節（0927 補上，實測方式見第 3 節）**：
+- `RUN_SERVICE_ACCOUNT` 沒設會直接報錯退出（腳本層與 `cloudbuild.yaml` 的 `deploy-staging` step 都各自擋一次），訊息會提示怎麼設，不會默默落到 Compute 預設 SA。
+- `GEMINI_SECRET` 設空字串，或腳本設 `SKIP_GEMINI_SECRET=1`，就不帶 `--set-secrets`，部署 fallback 成 rule-advisor（在 secret 還沒建好的當下很有用）。
+- 這兩個旗標的**參數組裝**已經用假 `gcloud` shim 做過 dry-run 驗證（見第 3 節）；`--set-secrets` 的語法（`ENV_VAR=SECRET_NAME:VERSION`）本身、以及 Cloud Run 是否真的把它掛載成環境變數，**仍然是 10/6 當天要用真的 `gcloud` 驗的事**——10/6 第一次跑完務必核對 `gcloud run services describe context-rail-staging --region="${REGION}" --format=yaml` 裡真的看得到這個環境變數是從 secret 掛載，不是空的。
 
-### 步驟 5 — Build / Push / Deploy（照既有腳本）
+### 步驟 5 — Build / Push / Deploy（照既有腳本，0927 起多兩個必要／選填環境變數）
 
 ```sh
-scripts/deploy-cloud-run.sh "${PROJECT_ID}" "${REGION}" context-rail-staging
+RUN_SERVICE_ACCOUNT=context-rail-run \
+  scripts/deploy-cloud-run.sh "${PROJECT_ID}" "${REGION}" context-rail-staging
 ```
 
-這一行等同跑完 `scripts/deploy-cloud-run.sh:43-68` 全部內容：`gcloud config set project` → enable API → ensure AR repo → `gcloud builds submit --config cloudbuild.yaml`（雲端建置，天然是 linux/amd64，不受本機 Apple Silicon 影響）→ 讀回 `url` / `revision` / `image` → 跑 `smoke()`（`scripts/deploy-cloud-run.sh:14-23`：`/healthz` 要含 `"status":"ok"`、`/v1/projects` 要有 ≥2 個 fixture project、`/` 要 200、`POST /v1/projects` 要 405）。
+`RUN_SERVICE_ACCOUNT` 是必填（見步驟 4）；不設 `GEMINI_SECRET` 就用預設值 `gemini-api-key`，secret 還沒建好就加 `SKIP_GEMINI_SECRET=1`。
 
-若已經照步驟 3-4 改過 `cloudbuild.yaml`（把 `--service-account` 和 `--set-secrets` 寫進 `deploy-staging` 這個 build step），這行會直接把 secret 帶進去；若沒改 `cloudbuild.yaml`，就要在這行跑完後補步驟 4 的 `gcloud run services update`。
+這一行等同跑完 `scripts/deploy-cloud-run.sh` 全部內容：驗證 `RUN_SERVICE_ACCOUNT` 有設 → `gcloud config set project` → enable API（`run` / `cloudbuild` / `artifactregistry` / `secretmanager`）→ ensure AR repo → `gcloud builds submit --config cloudbuild.yaml`（帶入 `_RUN_SERVICE_ACCOUNT` / `_GEMINI_SECRET`，雲端建置，天然是 linux/amd64，不受本機 Apple Silicon 影響）→ 讀回 `url` / `revision` / `image` → 跑 `smoke()`（`/healthz` 要含 `"status":"ok"`、`/v1/projects` 要有 ≥2 個 fixture project、`/` 要 200、`POST /v1/projects` 要 405）。
+
+`--service-account` 與（除非明確關閉）`--set-secrets` 現在會直接跟著這一行帶入，不需要再補步驟 4 的手動 `gcloud run services update`。
 
 **預期輸出**（`scripts/deploy-cloud-run.sh:61-70`）：
 
@@ -196,12 +233,32 @@ scripts/deploy-cloud-run.sh --smoke "${BASE}"
 
 ---
 
-## 3. 本次演練發現的落差（原腳本沒做但 10/6 需要的事）
+## 3. 這次演練發現的落差，以及 0927 的修法與靜態驗證
 
-1. **`GEMINI_API_KEY` 沒有任何自動化路徑進 Cloud Run**——`cloudbuild.yaml:41-57` 的 `deploy-staging` step 完全沒有 `--set-secrets` / `--update-env-vars`，`scripts/deploy-cloud-run.sh` 也没有相關參數。`docs/operations/CLOUD_RUN_BASELINE.md:35` 只是文字說明「應該設成 secret」，程式碼從未真的做。→ 本手冊第 2 節步驟 3-4 補了具體指令，**未實測**。
-2. **Cloud Run 執行身份未指定** → 落到專案預設 Compute SA，權限範圍不明確、也拿不到 Secret Manager 存取權。→ 本手冊補了建立專用 SA 的步驟。
-3. **`secretmanager.googleapis.com` 沒有被 enable**（`scripts/deploy-cloud-run.sh:46` 只 enable 三個 API）。
-4. 這三點都是**新增步驟**，不是修改既有腳本的 bug；沒有動 `scripts/deploy-cloud-run.sh` / `cloudbuild.yaml` 本身，因為改雲端部署腳本超出「本地建置演練」的授權範圍，且沒有實際環境驗證過改動是否正確，貿然改腳本比手動補步驟風險更高。
+**原本的落差（0926 版本紀錄）**：
+
+1. **`GEMINI_API_KEY` 沒有任何自動化路徑進 Cloud Run**——`cloudbuild.yaml` 的 `deploy-staging` step 完全沒有 `--set-secrets` / `--update-env-vars`，`scripts/deploy-cloud-run.sh` 也没有相關參數。`docs/operations/CLOUD_RUN_BASELINE.md:35` 只是文字說明「應該設成 secret」，程式碼從未真的做。
+2. **Cloud Run 執行身份未指定** → 落到專案預設 Compute SA，權限範圍不明確、也拿不到 Secret Manager 存取權。
+3. **`secretmanager.googleapis.com` 沒有被 enable**（`scripts/deploy-cloud-run.sh` 只 enable 三個 API）。
+
+**0927 修法**：以上三點直接寫進 `cloudbuild.yaml`（`deploy-staging` step 新增 `_GEMINI_SECRET` / `_RUN_SERVICE_ACCOUNT` substitution，並在 enable API 清單加上 `secretmanager.googleapis.com`）與 `scripts/deploy-cloud-run.sh`（新增 `GEMINI_SECRET` / `SKIP_GEMINI_SECRET` / `RUN_SERVICE_ACCOUNT` 環境變數，同步 enable secretmanager API），不再是「手冊記錄額外手動指令」，而是腳本本身的行為。`scripts/bootstrap-w1.sh` 沒有建立 SA／secret 的邏輯（那仍是步驟 3 的手動前置作業），只在呼叫 `deploy-cloud-run.sh` 前加了一行提醒：`RUN_SERVICE_ACCOUNT` 沒 export 就會被下游腳本擋下來。
+
+新增的參數規格：
+
+| 名稱 | 預設值 | 關閉方式 | 缺值時的行為 |
+| --- | --- | --- | --- |
+| `cloudbuild.yaml` substitution `_RUN_SERVICE_ACCOUNT` / 腳本環境變數 `RUN_SERVICE_ACCOUNT` | 無（必填，declared default 是空字串） | 不適用——這是必填值，沒有「關閉」的概念，只有「還沒設」 | 空值時**清楚報錯並退出**（腳本層在呼叫 `gcloud builds submit` 之前就擋下；`cloudbuild.yaml` 的 `deploy-staging` step 自己也擋一次，供直接手動 `gcloud builds submit` 呼叫時使用），訊息附上怎麼設（短名稱，例如 `context-rail-run`）與會解析成的完整 email |
+| `cloudbuild.yaml` substitution `_GEMINI_SECRET` / 腳本環境變數 `GEMINI_SECRET` | `gemini-api-key` | 設成空字串（`_GEMINI_SECRET=`），或腳本設 `SKIP_GEMINI_SECRET=1` | 空值時**不帶 `--set-secrets`**，印一行 NOTE 說明會 fallback 成 rule-advisor；不是靜默略過 |
+
+**靜態驗證（0927，全部在本機跑，沒有碰真的 GCP／docker）**：
+
+- `bash -n scripts/deploy-cloud-run.sh`、`bash -n scripts/bootstrap-w1.sh` — 通過。
+- `shellcheck scripts/deploy-cloud-run.sh` — 只有一個既有的 SC2015（info 等級，第 37 行，跟這次改動無關）；新增的程式碼沒有新的 finding。`shellcheck scripts/bootstrap-w1.sh` — 乾淨。
+- `cloudbuild.yaml` 裡兩個 `entrypoint: bash` 的 step 被抽出來，用實際的 Cloud Build 替換規則（先解析 `${_VAR}`，再把 `$$` 折成 `$`）還原成真正會執行的 bash，分別過 shellcheck：`resolve-digest` 乾淨；`deploy-staging` 有一個 `SC2054`（`--labels` 值裡的逗號被誤判成陣列分隔符，已加 `# shellcheck disable=SC2054` 註解排除，這是已知的 false positive，不是真的 bug）。
+- `python3 -c 'import yaml,sys; yaml.safe_load(open("cloudbuild.yaml"))'` — YAML 語法通過。
+- 寫了一個假 `gcloud` shim（攔截 `config set` / `services enable` / `artifacts ...` / `builds submit` / `run deploy` / `run services describe` / `run revisions describe`，全部只印出收到的參數，不打任何真的網路請求）放在 PATH 最前面，`builds submit` 會被導到一支小 Python 模擬器，模擬 Cloud Build 自己的 substitution 解析規則後，真的用 `bash -ceu` 跑 `cloudbuild.yaml` 裡的 `resolve-digest` / `deploy-staging` 兩個 step（`build` / `push` 這兩個 docker step 刻意跳過，不在這次驗證範圍內，image 建置本身沒有被改動）。分別跑了「預設」「`SKIP_GEMINI_SECRET=1`」「沒設 `RUN_SERVICE_ACCOUNT`」三種情境，組出的 `gcloud run deploy` 參數與錯誤訊息都符合預期（完整輸出見本次任務回報）。
+
+這次修法仍然是**新增／收斂旗標**，不是重寫既有的 build/push/digest 邏輯——image 建置流程、region 預設值等其他行為維持不變。
 
 ## 4. 部署後要回填的證據
 
@@ -288,10 +345,11 @@ docker stop ctr-rehearsal && docker rm ctr-rehearsal
 
 ## 7. 已知風險與未決項
 
-1. **Secret Manager 路徑完全未實測**（第 2 節步驟 3-4 全部標「未實測」）——10/6 當天第一次跑務必保留每個指令的完整輸出，不要假設成功。
+1. **Secret Manager 路徑本身仍未實測**——0927 把 `--set-secrets` / `--service-account` 兩個旗標的**組裝邏輯**用假 `gcloud` shim 驗證過（第 3 節），但 secret 建立、IAM 綁定、以及 Cloud Run 真的把 secret 掛成環境變數這幾件事，都要 10/6 當天用真的 `gcloud` 才能驗——10/6 第一次跑務必保留每個指令的完整輸出，不要假設成功。
 2. **`--min-instances=0`**（`cloudbuild.yaml:53`）代表 demo 展示中途若閒置過久，Cloud Run 可能把 instance 縮到零，`/tmp` 狀態（Change/Candidate/Release ledger）會全部遺失（`Dockerfile:34-37` 註解已明講）。10/6 展示前建議暫時改成 `--min-instances=1`（多花一點錢，換取展示期間不斷線），是否要改由 William 決定，本手冊只記錄風險，沒有代為修改 `cloudbuild.yaml`。
-3. **Cloud Run 執行身份沿用專案預設 Compute SA 的權限範圍不明確**——如果 10/6 當天為了求快跳過第 2 節步驟 3（建專用 SA），直接用預設 SA 掛 secret，要留意預設 SA 在較舊專案上可能有 Editor 角色（過寬），這不是這次任務能決定的政策問題，只記錄。
+3. **`--service-account` 現在是必填，不會再靜默落到專案預設 Compute SA**——但如果 10/6 當天為了求快，把 `RUN_SERVICE_ACCOUNT` 設成專案預設 Compute SA 的名字（等於繞過第 2 節步驟 3 建專用 SA 的意義），要留意預設 SA 在較舊專案上可能有 Editor 角色（過寬），這不是這次任務能決定的政策問題，只記錄；旗標本身已經強制「一定要明確指定某個身份」，但不能阻止指定一個權限過寬的身份。
 4. **`go.mod:3` 寫 `go 1.22`，但 `Dockerfile:17` 與 `.github/workflows/ci.yml:21,49` 都用 Go 1.24**——目前不影響建置（新版 toolchain 可建置宣告較舊 module），只是版本宣告不一致，記錄但不算部署風險。
 5. **Gemini 是否真的被呼叫到，目前只能靠回應內容裡的 `advisor_source` 或 fallback 訊息字串**（第 2 節步驟 6）——沒有專門的健康檢查端點或 log 欄位直接標示「這次請求用了哪個 advisor」；10/6 當天做完整測試後，若要長期化，值得考慮加一個明確的 debug 端點或 log 行（本次任務未實作，超出「本地建置演練」範圍）。
 6. **`scripts/record-promotion.sh` 是給*受管理的 demo application*（`order-operations-portal` 之類）記錄部署用的，不是給 ContextRail 自己的部署記錄**——手冊第 4 節已經標明這個區分，避免 10/6 當天搞混兩支腳本的用途。
-7. **這份手冊沒有動 `scripts/deploy-cloud-run.sh` / `cloudbuild.yaml` 本身**——所有新增步驟都是「額外跑的指令」，不是既有腳本的修改，這是刻意的決定（風險比較低，但代價是 10/6 當天要多跑幾個手動步驟，而不是一鍵完成）。如果 10/6 後確認這些步驟都跑得通，值得考慮把 secret/service-account 相關旗標併回 `cloudbuild.yaml`，那會是另一個 PR。
+7. **（0926 版本的決定，0927 已推翻）** 原本這份手冊刻意不動 `scripts/deploy-cloud-run.sh` / `cloudbuild.yaml` 本身，只記錄「額外跑的手動指令」。0927 由 William 決定改成直接把 `--set-secrets` / `--service-account` 寫進腳本與 `cloudbuild.yaml`（見第 3 節），理由是手動步驟在 10/6 當天容易漏做或打錯，寫進腳本可以讓「忘記設定」變成清楚報錯而不是靜默的安全缺口。代價是這兩個檔案本身沒有在真實 GCP 環境跑過（只有 shim dry-run，見第 3 節），10/6 當天如果 `gcloud run deploy` 报错，要同時排查「這次改動的旗標組裝邏輯」與「SA／secret 本身是否建好」兩條線。
+8. **未實測（0928 補上）**：`--service-account` 這個旗標能不能成功套用，除了 runtime SA 本身要存在，還要求**執行 Cloud Build 的那個身份**對 runtime SA 有 `roles/iam.serviceAccountUser`（步驟 3.1）——這是本次任務新發現、之前手冊沒寫的缺口。目前只查了官方文件、寫了指令，**完全沒有在真實 GCP 專案跑過** `gcloud builds get-default-service-account` 或那條 `add-iam-policy-binding`；10/6 當天如果 `gcloud run deploy` 报 `PERMISSION_DENIED` 且訊息含 `iam.serviceAccounts.actAs`，先查這一步有沒有漏做，而不是先懷疑旗標組裝邏輯（旗標組裝已用 shim 驗證過，見第 3 節）。
