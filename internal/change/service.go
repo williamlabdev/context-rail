@@ -473,7 +473,7 @@ func (service *Service) evaluateVersion(number int, request Request, facts *Proj
 	// Every candidate — rule-based or Gemini-proposed — is priced by the same
 	// deterministic calculator; an advisor only names cost drivers in words.
 	for index := range options {
-		options[index].CostEstimate = EstimateOptionCost(options[index].ID, request.BusinessConstraints)
+		options[index].CostEstimate = EstimateOptionCost(options[index].ID, options[index].PricingRef, request.BusinessConstraints)
 	}
 	return ChangeVersion{
 		Version: number, CreatedAt: at, Actor: actor, Reason: reason, Request: request,

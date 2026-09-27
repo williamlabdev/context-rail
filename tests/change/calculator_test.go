@@ -2,6 +2,7 @@ package change_test
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"context-rail/internal/change"
@@ -15,8 +16,8 @@ func storageConstraints(volume string) map[string]string {
 
 func TestEstimateOptionCostIsDeterministic(t *testing.T) {
 	constraints := storageConstraints("500 GB")
-	first := change.EstimateOptionCost("managed_storage_with_signed_urls", constraints)
-	second := change.EstimateOptionCost("managed_storage_with_signed_urls", constraints)
+	first := change.EstimateOptionCost("managed_storage_with_signed_urls", "", constraints)
+	second := change.EstimateOptionCost("managed_storage_with_signed_urls", "", constraints)
 	if !reflect.DeepEqual(first, second) {
 		t.Fatalf("same input must produce the same estimate:\n%+v\n%+v", first, second)
 	}
@@ -26,7 +27,7 @@ func TestEstimateOptionCostIsDeterministic(t *testing.T) {
 }
 
 func TestEstimateOptionCostUnknownOptionHasNoSKU(t *testing.T) {
-	estimate := change.EstimateOptionCost("minimal_reversible_slice", storageConstraints("500 GB"))
+	estimate := change.EstimateOptionCost("minimal_reversible_slice", "", storageConstraints("500 GB"))
 	if estimate.Status != change.CostUnknown {
 		t.Fatalf("expected UNKNOWN for an option with no priced SKU, got %+v", estimate)
 	}
@@ -41,7 +42,7 @@ func TestEstimateOptionCostUnknownOptionHasNoSKU(t *testing.T) {
 func TestEstimateOptionCostUnparseableVolumeIsUnknown(t *testing.T) {
 	cases := []string{"500 reviews", "10000 uploads", "", "a lot", "GB 500", "500"}
 	for _, volume := range cases {
-		estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", storageConstraints(volume))
+		estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", "", storageConstraints(volume))
 		if estimate.Status != change.CostUnknown {
 			t.Fatalf("volume %q must be UNKNOWN, got %+v", volume, estimate)
 		}
@@ -57,14 +58,14 @@ func TestEstimateOptionCostUnparseableVolumeIsUnknown(t *testing.T) {
 }
 
 func TestEstimateOptionCostMissingBusinessConstraintIsUnknown(t *testing.T) {
-	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", map[string]string{"data_classification": "internal"})
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", "", map[string]string{"data_classification": "internal"})
 	if estimate.Status != change.CostUnknown {
 		t.Fatalf("expected UNKNOWN with no expected_monthly_volume declared, got %+v", estimate)
 	}
 }
 
 func TestEstimateOptionCostScenarioArithmetic(t *testing.T) {
-	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", storageConstraints("1000 GB"))
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", "", storageConstraints("1000 GB"))
 	if estimate.Status != change.CostEstimated {
 		t.Fatalf("expected ESTIMATED, got %+v", estimate)
 	}
@@ -87,7 +88,7 @@ func TestEstimateOptionCostScenarioArithmetic(t *testing.T) {
 }
 
 func TestEstimateOptionCostTraceability(t *testing.T) {
-	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", storageConstraints("2 TB"))
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", "", storageConstraints("2 TB"))
 	if estimate.Status != change.CostEstimated {
 		t.Fatalf("expected ESTIMATED, got %+v", estimate)
 	}
@@ -121,7 +122,7 @@ func TestEstimateOptionCostTraceability(t *testing.T) {
 // monthly_* amounts cover and which stay UNKNOWN, plus which GCP region the
 // price was queried against.
 func TestEstimateOptionCostDisclosesPartialCoverage(t *testing.T) {
-	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", storageConstraints("500 GB"))
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", "", storageConstraints("500 GB"))
 	if estimate.Status != change.CostEstimated {
 		t.Fatalf("expected ESTIMATED, got %+v", estimate)
 	}
@@ -159,7 +160,7 @@ func TestEstimateOptionCostDisclosesPartialCoverage(t *testing.T) {
 // estimate never carries CoveredDrivers/UnpricedDrivers — there is nothing
 // partial to disclose when the whole result is UNKNOWN.
 func TestEstimateOptionCostUnknownHasNoCoverageLists(t *testing.T) {
-	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", storageConstraints("500 reviews"))
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", "", storageConstraints("500 reviews"))
 	if estimate.Status != change.CostUnknown {
 		t.Fatalf("expected UNKNOWN, got %+v", estimate)
 	}
@@ -178,12 +179,47 @@ func TestEstimateOptionCostUnknownPriceProducesUnknownLine(t *testing.T) {
 	unknownPrice.Known = false
 	change.PriceTable["gcs-network-egress-worldwide-tier1"] = unknownPrice
 
-	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", storageConstraints("500 GB"))
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", "", storageConstraints("500 GB"))
 	if estimate.Status != change.CostUnknown {
 		t.Fatalf("expected UNKNOWN once the price is unverified, got %+v", estimate)
 	}
 	if estimate.MonthlyLow != 0 || estimate.MonthlyBase != 0 || estimate.MonthlyHigh != 0 {
 		t.Fatalf("no amount may be invented once the price is unverified: %+v", estimate)
+	}
+}
+
+// TestEstimateOptionCostPricingRefTakesPriorityOverOptionID confirms
+// pricing_ref, when set, decides pricing instead of optionID — the path a
+// Gemini candidate must go through, since advisor.go may rewrite its own id
+// to gemini_option_N. A rewritten id with no priceable SKU still prices
+// successfully once a valid pricing_ref points at one.
+func TestEstimateOptionCostPricingRefTakesPriorityOverOptionID(t *testing.T) {
+	estimate := change.EstimateOptionCost("gemini_option_1", "managed_storage_with_signed_urls", storageConstraints("500 GB"))
+	if estimate.Status != change.CostEstimated {
+		t.Fatalf("expected ESTIMATED via pricing_ref despite an unpriceable optionID, got %+v", estimate)
+	}
+}
+
+// TestEstimateOptionCostInvalidPricingRefIsUnknown confirms an unrecognised
+// pricing_ref is UNKNOWN with a reason naming the bad value — never a
+// fuzzy/best-effort match against costableOptions.
+func TestEstimateOptionCostInvalidPricingRefIsUnknown(t *testing.T) {
+	estimate := change.EstimateOptionCost("gemini_option_1", "totally_bogus_sku", storageConstraints("500 GB"))
+	if estimate.Status != change.CostUnknown {
+		t.Fatalf("expected UNKNOWN for an unrecognised pricing_ref, got %+v", estimate)
+	}
+	if !strings.Contains(estimate.Reason, `pricing_ref "totally_bogus_sku" is not a priced SKU`) {
+		t.Fatalf("expected the reason to name the bad pricing_ref, got %q", estimate.Reason)
+	}
+}
+
+// TestEstimateOptionCostNonePricingRefIsUnknown confirms the literal "none"
+// pricing_ref — the value a Gemini candidate should send when no priced SKU
+// applies — is UNKNOWN, not accidentally treated as "fall back to optionID".
+func TestEstimateOptionCostNonePricingRefIsUnknown(t *testing.T) {
+	estimate := change.EstimateOptionCost("managed_storage_with_signed_urls", "none", storageConstraints("500 GB"))
+	if estimate.Status != change.CostUnknown {
+		t.Fatalf(`expected UNKNOWN for pricing_ref "none", got %+v`, estimate)
 	}
 }
 

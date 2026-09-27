@@ -9,13 +9,35 @@ import (
 )
 
 // EstimateOptionCost is the deterministic cost calculator (VS-004 / P0-C).
-// Same optionID + same business constraints always produce the same
+// Same optionID + pricingRef + business constraints always produce the same
 // CostEstimate: it calls no LLM, reads no clock and makes no network call.
 // An advisor (RuleAdvisor or GeminiAdvisor) only names CostDrivers in words;
 // this function is the only place a monthly amount is computed, and Service
 // runs every proposed option through it before returning ChangeVersion.
-func EstimateOptionCost(optionID string, businessConstraints map[string]string) CostEstimate {
-	if !costableOptions[optionID] {
+//
+// pricingRef is Option.PricingRef. When it is set, it takes priority over
+// optionID for deciding whether (and how) to price the candidate — this is
+// the only path a Gemini candidate can be priced through, since advisor.go
+// may rewrite its own id to gemini_option_N. When pricingRef is empty (the
+// RuleAdvisor path, unchanged from before pricing_ref existed), the original
+// optionID match against costableOptions is used exactly as before. Neither
+// path ever falls back to a fuzzy/best-effort match: an empty, "none" or
+// unrecognised pricingRef is UNKNOWN with a reason naming the bad value, not
+// guessed or matched loosely against costableOptions.
+func EstimateOptionCost(optionID string, pricingRef string, businessConstraints map[string]string) CostEstimate {
+	priceKey := optionID
+	usingPricingRef := pricingRef != ""
+	if usingPricingRef {
+		priceKey = pricingRef
+	}
+	if !costableOptions[priceKey] {
+		if usingPricingRef {
+			return CostEstimate{
+				Status:            CostUnknown,
+				Reason:            fmt.Sprintf("pricing_ref %q is not a priced SKU in price_table_version %s", pricingRef, PriceTableVersion),
+				PriceTableVersion: PriceTableVersion,
+			}
+		}
 		return CostEstimate{
 			Status:            CostUnknown,
 			Reason:            fmt.Sprintf("no priced SKU is mapped to option %q in price_table_version %s", optionID, PriceTableVersion),
@@ -107,9 +129,13 @@ func EstimateOptionCost(optionID string, businessConstraints map[string]string) 
 	return estimate
 }
 
-// costableOptions names the option IDs this P0-C calculator can price. Any
-// other option — including whatever a Gemini candidate proposes — has no
-// mapped SKU yet and is reported UNKNOWN, never guessed.
+// costableOptions names the option IDs this P0-C calculator can price —
+// matched against optionID on the RuleAdvisor path, or against
+// Option.PricingRef on any other path (see EstimateOptionCost). It is also
+// the fixed choice list GeminiAdvisor's prompt and response schema constrain
+// pricing_ref to (see pricingRefChoices in advisor.go), so the two can never
+// drift into listing two different sets of priceable options. Any option
+// this map has no key for is reported UNKNOWN, never guessed.
 var costableOptions = map[string]bool{
 	"managed_storage_with_signed_urls": true,
 }

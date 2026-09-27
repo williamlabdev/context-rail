@@ -113,6 +113,19 @@ type Option struct {
 	Risks         []string `json:"risks"`
 	Recommended   bool     `json:"recommended"`
 	AdvisorSource string   `json:"advisor_source"` // rule-advisor or gemini
+	// PricingRef names which priced SKU (a costableOptions key in
+	// calculator.go) this candidate should be costed as, or the literal
+	// "none" if no priced SKU applies. RuleAdvisor never sets it — its
+	// candidates keep the original id-based match calculator.go has always
+	// used. GeminiAdvisor's prompt and response schema constrain the model to
+	// this same fixed list (see pricingRefChoices in advisor.go), because a
+	// Gemini candidate's own id is free-form prose that advisor.go may
+	// rewrite to gemini_option_N when the model omits it — matching THAT
+	// against costableOptions would be an accidental, not a deliberate,
+	// match. EstimateOptionCost uses PricingRef when set and never falls
+	// back to a fuzzy match: an empty, "none", or unrecognised PricingRef is
+	// UNKNOWN with a reason, never guessed.
+	PricingRef string `json:"pricing_ref,omitempty"`
 	// CostEstimate is produced by the deterministic calculator (calculator.go),
 	// never by an advisor: RuleAdvisor and GeminiAdvisor only name CostDrivers in
 	// words, and Service.evaluateVersion overwrites CostEstimate on every option
