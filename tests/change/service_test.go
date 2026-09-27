@@ -143,8 +143,54 @@ func TestSupplyingInputsCreatesNewVersionAndBecomesReady(t *testing.T) {
 		t.Fatalf("transition must be derived from the topology order: %s", view.Change.Versions[1].Evaluation.AllowedTransition)
 	}
 	options := view.Change.Versions[1].Options
-	if options[len(options)-1].ID != "managed_storage_with_signed_urls" {
+	storageOption := options[len(options)-1]
+	if storageOption.ID != "managed_storage_with_signed_urls" {
 		t.Fatalf("storage-like request should get the signed-url candidate: %v", options)
+	}
+	// "10000 uploads" has no GB-family unit the calculator recognises, so the
+	// cost estimate must stay UNKNOWN rather than guess at a data volume.
+	if storageOption.CostEstimate.Status != change.CostUnknown {
+		t.Fatalf("expected UNKNOWN cost estimate for an unparseable volume, got %+v", storageOption.CostEstimate)
+	}
+}
+
+// TestOptionsCarryDeterministicCostEstimates confirms the service runs every
+// advisor candidate through the deterministic calculator (not just the
+// storage option) and that a parseable volume produces an ESTIMATED result
+// end to end, through the same path the HTTP layer and the frontend read.
+func TestOptionsCarryDeterministicCostEstimates(t *testing.T) {
+	h := newHarness(t)
+	view, err := h.changes.Create("demo", change.CreateRequest{
+		Mutation: mutation("open"),
+		Request: change.Request{
+			Title: "Attach files", Objective: "Let reviewers attach files to an order", OwnerSummary: "Reviewers can attach files.",
+			ScopeIncluded:       []string{"attach a file to an order"},
+			AcceptanceCriteria:  []change.AcceptanceCriterion{{Text: "attaching a file succeeds"}},
+			AllowedPaths:        []string{"internal/attachments/"},
+			TargetEnvironmentID: "staging",
+			BusinessConstraints: map[string]string{"data_classification": "internal", "expected_monthly_volume": "500 GB"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	options := view.Change.Versions[0].Options
+	var storageOption *change.Option
+	for index := range options {
+		if options[index].ID == "managed_storage_with_signed_urls" {
+			storageOption = &options[index]
+		} else if options[index].CostEstimate.Status != change.CostUnknown {
+			t.Fatalf("option %s has no priced SKU and must stay UNKNOWN, got %+v", options[index].ID, options[index].CostEstimate)
+		}
+	}
+	if storageOption == nil {
+		t.Fatalf("expected the storage-like candidate among %v", options)
+	}
+	if storageOption.CostEstimate.Status != change.CostEstimated {
+		t.Fatalf("expected an ESTIMATED cost for a parseable volume, got %+v", storageOption.CostEstimate)
+	}
+	if storageOption.CostEstimate.MonthlyBase <= 0 {
+		t.Fatalf("expected a positive base monthly estimate, got %+v", storageOption.CostEstimate)
 	}
 }
 

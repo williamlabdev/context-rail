@@ -113,6 +113,81 @@ type Option struct {
 	Risks         []string `json:"risks"`
 	Recommended   bool     `json:"recommended"`
 	AdvisorSource string   `json:"advisor_source"` // rule-advisor or gemini
+	// PricingRef names which priced SKU (a costableOptions key in
+	// calculator.go) this candidate should be costed as, or the literal
+	// "none" if no priced SKU applies. RuleAdvisor never sets it — its
+	// candidates keep the original id-based match calculator.go has always
+	// used. GeminiAdvisor's prompt and response schema constrain the model to
+	// this same fixed list (see pricingRefChoices in advisor.go), because a
+	// Gemini candidate's own id is free-form prose that advisor.go may
+	// rewrite to gemini_option_N when the model omits it — matching THAT
+	// against costableOptions would be an accidental, not a deliberate,
+	// match. EstimateOptionCost uses PricingRef when set and never falls
+	// back to a fuzzy match: an empty, "none", or unrecognised PricingRef is
+	// UNKNOWN with a reason, never guessed.
+	PricingRef string `json:"pricing_ref,omitempty"`
+	// CostEstimate is produced by the deterministic calculator (calculator.go),
+	// never by an advisor: RuleAdvisor and GeminiAdvisor only name CostDrivers in
+	// words, and Service.evaluateVersion overwrites CostEstimate on every option
+	// after the advisor returns. See EstimateOptionCost.
+	CostEstimate CostEstimate `json:"cost_estimate"`
+}
+
+// Cost estimate statuses. A CostEstimate or CostLineItem is UNKNOWN whenever
+// a required input could not be parsed or no priced SKU applies; it is never
+// left to guess a number.
+const (
+	CostEstimated = "ESTIMATED"
+	CostUnknown   = "UNKNOWN"
+)
+
+// CostLineItem is one cost driver's priced (or unpriced) result. Every
+// ESTIMATED item carries the full trail back to the price it used: SKU,
+// Region, Currency, SourceURL and AsOf. An UNKNOWN item carries Reason
+// instead of a number.
+type CostLineItem struct {
+	Driver    string  `json:"driver"`
+	SKU       string  `json:"sku,omitempty"`
+	Status    string  `json:"status"` // ESTIMATED or UNKNOWN
+	Low       float64 `json:"low,omitempty"`
+	Base      float64 `json:"base,omitempty"`
+	High      float64 `json:"high,omitempty"`
+	Currency  string  `json:"currency,omitempty"`
+	Unit      string  `json:"unit,omitempty"`
+	Region    string  `json:"region,omitempty"`
+	SourceURL string  `json:"source_url,omitempty"`
+	AsOf      string  `json:"as_of,omitempty"`
+	Reason    string  `json:"reason,omitempty"`
+}
+
+// CostEstimate is the calculator's structured, reproducible output for one
+// Option (VS-004 / P0-C deterministic cost calculator). Status is UNKNOWN
+// whenever expected_monthly_volume cannot be parsed or the option has no
+// priced SKU in this build's price table; estimating and actual billing stay
+// separate concepts, and nothing here is measured spend.
+type CostEstimate struct {
+	Status      string  `json:"status"` // ESTIMATED or UNKNOWN
+	Reason      string  `json:"reason,omitempty"`
+	Currency    string  `json:"currency,omitempty"`
+	MonthlyLow  float64 `json:"monthly_low,omitempty"`
+	MonthlyBase float64 `json:"monthly_base,omitempty"`
+	MonthlyHigh float64 `json:"monthly_high,omitempty"`
+	// Region is the short GCP region the priced line items were queried
+	// against (e.g. "us-central1") — the deployment region can differ (see
+	// DR-014 cost_assumptions); shown so a reader does not assume the two match.
+	Region string `json:"region,omitempty"`
+	// CoveredDrivers / UnpricedDrivers are derived from Breakdown (the driver
+	// names whose Status is ESTIMATED vs UNKNOWN, respectively), computed
+	// once here rather than by the renderer, so the workspace never has to
+	// infer which cost drivers the monthly_* amounts actually total. Neither
+	// field is populated when Status itself is UNKNOWN — there is nothing to
+	// partially cover.
+	CoveredDrivers    []string       `json:"covered_drivers,omitempty"`
+	UnpricedDrivers   []string       `json:"unpriced_drivers,omitempty"`
+	Breakdown         []CostLineItem `json:"breakdown,omitempty"`
+	Assumptions       []string       `json:"assumptions,omitempty"`
+	PriceTableVersion string         `json:"price_table_version,omitempty"`
+	ParsedVolumeGiB   *float64       `json:"parsed_volume_gib,omitempty"`
 }
 
 // ChangeVersion is one immutable evaluation of the request inputs.

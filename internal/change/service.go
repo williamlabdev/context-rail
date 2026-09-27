@@ -470,6 +470,11 @@ func (service *Service) evaluateVersion(number int, request Request, facts *Proj
 		options, unknowns, _ = RuleAdvisor{}.Propose(request, facts)
 		evaluation.Observations = append(evaluation.Observations, fmt.Sprintf("advisor %s unavailable (%v); rule-based candidates used", service.advisor.Name(), err))
 	}
+	// Every candidate — rule-based or Gemini-proposed — is priced by the same
+	// deterministic calculator; an advisor only names cost drivers in words.
+	for index := range options {
+		options[index].CostEstimate = EstimateOptionCost(options[index].ID, options[index].PricingRef, request.BusinessConstraints)
+	}
 	return ChangeVersion{
 		Version: number, CreatedAt: at, Actor: actor, Reason: reason, Request: request,
 		Evaluation: evaluation, Options: options, Unknowns: unknowns,

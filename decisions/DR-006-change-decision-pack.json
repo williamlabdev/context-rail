@@ -63,7 +63,7 @@
     "GeminiAdvisor is UNVERIFIED: no key and no egress to generativelanguage.googleapis.com in the verification workspace.",
     "Durable persistence: same instance-local /tmp caveat as DR-005.",
     "Required business constraints are a fixed policy list (data_classification, expected_monthly_volume); per-Project policy is a later decision.",
-    "Cost is reported as UNKNOWN drivers only; the deterministic calculator with versioned prices is not in this slice."
+    "Cost is reported as UNKNOWN drivers only; the deterministic calculator with versioned prices is not in this slice.（2026-09-27 更新：最小版計算器已由 DR-014 實作，範圍見 DR-014）"
   ],
   "acceptance_criteria": [
     "UI-06: a complete Change reaches DECISION_READY and shows candidates, unknowns and the next transition.",

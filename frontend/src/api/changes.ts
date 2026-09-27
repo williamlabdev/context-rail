@@ -37,8 +37,33 @@ export interface Evaluation {
   evaluated_at: string;
 }
 
+// One cost driver's priced (ESTIMATED) or unpriced (UNKNOWN) result, always
+// traceable to sku/region/currency/source_url/as_of when ESTIMATED.
+export interface CostLineItem {
+  driver: string; sku?: string; status: "ESTIMATED" | "UNKNOWN" | string;
+  low?: number; base?: number; high?: number; currency?: string; unit?: string; region?: string;
+  source_url?: string; as_of?: string; reason?: string;
+}
+
+// The deterministic calculator's structured output for one Option
+// (VS-004 / P0-C). cost_estimate is a data value: reason/assumptions read
+// back unchanged in every locale.
+export interface CostEstimate {
+  status: "ESTIMATED" | "UNKNOWN" | string; reason?: string; currency?: string;
+  monthly_low?: number; monthly_base?: number; monthly_high?: number;
+  // region is the short GCP region the priced line items were queried
+  // against (e.g. "us-central1"); the deployment region can differ — see
+  // DR-014 cost_assumptions. covered_drivers/unpriced_drivers are computed
+  // by the backend from breakdown's own per-item status, so an ESTIMATED
+  // amount is never misread as a total for every named cost driver.
+  region?: string; covered_drivers?: string[]; unpriced_drivers?: string[];
+  breakdown?: CostLineItem[]; assumptions?: string[]; price_table_version?: string; parsed_volume_gib?: number;
+}
+
 export interface Option {
   id: string; title: string; summary: string; cost_drivers: string[]; risks: string[]; recommended: boolean; advisor_source: string;
+  // Absent on fixtures/records rendered before the calculator existed.
+  cost_estimate?: CostEstimate;
 }
 
 export interface ChangeVersion {

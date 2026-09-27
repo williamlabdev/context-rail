@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ChangesPanel } from "../../src/components/ChangesPanel";
 import { LocaleProvider } from "../../src/i18n";
-import type { ChangeView } from "../../src/api/changes";
+import type { ChangeView, CostEstimate } from "../../src/api/changes";
 import type { ChangesController } from "../../src/state/useChanges";
 import type { TopologyEnvironment } from "../../src/api/topology";
 
@@ -63,6 +63,37 @@ const accepted: ChangeView = {
     environment_topology: {}, business_constraints: {}, accepted_scope: [], out_of_scope: [], allowed_paths: ["a.go"], forbidden_actions: ["deploy:production"],
     acceptance_tests: [{ id: "AC-001", expected: "x" }], required_checks: ["smoke"], unknowns: [], evidence_refs: [], rendered_at: "t",
   },
+};
+
+const estimatedCost: CostEstimate = {
+  status: "ESTIMATED", currency: "USD", monthly_low: 30, monthly_base: 60, monthly_high: 120,
+  region: "us-central1", covered_drivers: ["download egress"], unpriced_drivers: ["stored bytes over retention", "metadata reads/writes"],
+  breakdown: [
+    { driver: "download egress", sku: "gcs-network-egress-worldwide-tier1", status: "ESTIMATED", low: 30, base: 60, high: 120, currency: "USD", unit: "GiB", region: "us-central1", source_url: "https://cloud.google.com/storage/pricing#network-egress", as_of: "2026-09-27" },
+    { driver: "stored bytes over retention", status: "UNKNOWN", reason: "retention period is not a declared business constraint" },
+    { driver: "metadata reads/writes", status: "UNKNOWN", reason: "no priced SKU for Class A/B operations" },
+  ],
+  assumptions: ["all downloads charged at the worldwide egress tier"], price_table_version: "gcp-pricing-2026-09-27", parsed_volume_gib: 500,
+};
+
+const unknownCost: CostEstimate = { status: "UNKNOWN", reason: "expected_monthly_volume did not parse as a GB-family unit" };
+
+// decisionReady is DECISION_READY with no decision recorded yet, so the
+// DecisionForm (and each option's CostEstimateLine) renders.
+const decisionReady: ChangeView = {
+  ...needsInput,
+  change: {
+    ...needsInput.change,
+    versions: [{
+      ...needsInput.change.versions[0],
+      evaluation: { ...needsInput.change.versions[0].evaluation, status: "DECISION_READY", missing_inputs: [] },
+      options: [
+        { id: "managed_storage_with_signed_urls", title: "Managed storage with signed URLs", summary: "s", cost_drivers: ["stored bytes", "download egress", "metadata reads/writes"], risks: [], recommended: true, advisor_source: "rule-advisor", cost_estimate: estimatedCost },
+        { id: "minimal_reversible_slice", title: "Minimal reversible slice", summary: "s", cost_drivers: [], risks: [], recommended: false, advisor_source: "rule-advisor", cost_estimate: unknownCost },
+      ],
+    }],
+  },
+  decision: null,
 };
 
 function controller(overrides: Partial<ChangesController> = {}): ChangesController {
@@ -228,5 +259,47 @@ describe("ChangesPanel", () => {
     fireEvent.change(form.querySelector("input[name=reason]")!, { target: { value: "why" } });
     fireEvent.submit(form);
     expect(ctl.create).toHaveBeenCalledWith(expect.objectContaining({ reason: "why", request: expect.objectContaining({ title: "T", target_environment_id: "staging", allowed_paths: ["a.go", "b.go"] }) }));
+  });
+
+  it("shows the deterministic calculator's low/base/high amounts for an ESTIMATED option", () => {
+    render(<ChangesPanel controller={controller({ changes: [decisionReady], selectedID: "CHG-001", selected: decisionReady })} environments={environments} />);
+    const options = screen.getAllByTestId("cost-estimate-known");
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent("30.00");
+    expect(options[0]).toHaveTextContent("60.00");
+    expect(options[0]).toHaveTextContent("120.00");
+    expect(options[0]).toHaveTextContent("USD");
+  });
+
+  it("discloses which cost drivers an ESTIMATED amount covers vs. leaves UNKNOWN, and its pricing region, so it cannot be misread as the option's full cost", () => {
+    render(<ChangesPanel controller={controller({ changes: [decisionReady], selectedID: "CHG-001", selected: decisionReady })} environments={environments} />);
+    const scope = screen.getByTestId("cost-estimate-scope");
+    expect(scope).toHaveTextContent("download egress");
+    expect(scope).toHaveTextContent("stored bytes over retention");
+    expect(scope).toHaveTextContent("metadata reads/writes");
+    expect(scope).toHaveTextContent("us-central1");
+  });
+
+  it("shows the reason instead of an amount for an UNKNOWN option, inventing nothing", () => {
+    render(<ChangesPanel controller={controller({ changes: [decisionReady], selectedID: "CHG-001", selected: decisionReady })} environments={environments} />);
+    const unknown = screen.getByTestId("cost-estimate-unknown");
+    expect(unknown).toHaveTextContent("expected_monthly_volume did not parse as a GB-family unit");
+    expect(unknown.textContent).not.toMatch(/\$|USD/);
+  });
+
+  it("renders the same ESTIMATED amounts in zh-TW, translating only the surrounding sentence", () => {
+    render(<LocaleProvider initial="zh-TW"><ChangesPanel controller={controller({ changes: [decisionReady], selectedID: "CHG-001", selected: decisionReady })} environments={environments} /></LocaleProvider>);
+    const known = screen.getAllByTestId("cost-estimate-known")[0];
+    expect(known).toHaveTextContent("預估每月");
+    expect(known).toHaveTextContent("30.00");
+    expect(known).toHaveTextContent("120.00");
+    const scope = screen.getByTestId("cost-estimate-scope");
+    expect(scope).toHaveTextContent("涵蓋");
+    expect(scope).toHaveTextContent("download egress");
+    expect(scope).toHaveTextContent("不含（未知）");
+    expect(scope).toHaveTextContent("us-central1");
+    const unknown = screen.getByTestId("cost-estimate-unknown");
+    expect(unknown).toHaveTextContent("成本估算：未知");
+    expect(unknown).toHaveTextContent("expected_monthly_volume did not parse as a GB-family unit");
   });
 });

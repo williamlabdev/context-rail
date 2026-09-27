@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 )
@@ -144,6 +145,56 @@ type geminiProposal struct {
 	Unknowns []string `json:"unknowns"`
 }
 
+// pricingRefChoices lists the pricing_ref values GeminiAdvisor's prompt and
+// response schema constrain every candidate to: every SKU calculator.go can
+// price (costableOptions' own keys, sorted for a stable prompt) plus the
+// literal "none" for a candidate with no priced equivalent. Generated from
+// the same map EstimateOptionCost consults for costableOptions, never
+// hand-duplicated in the prompt text, so the two can never list two
+// different sets of priceable options.
+func pricingRefChoices() []string {
+	choices := make([]string, 0, len(costableOptions)+1)
+	for id := range costableOptions {
+		choices = append(choices, id)
+	}
+	sort.Strings(choices)
+	return append(choices, "none")
+}
+
+// geminiResponseSchema is the Gemini generateContent responseSchema that
+// constrains pricing_ref to pricingRefChoices() via an enum, so a compliant
+// model cannot return a value outside that fixed list. The prompt text also
+// states the same list in words (models can still deviate from a schema in
+// practice), and EstimateOptionCost independently re-validates pricing_ref
+// against costableOptions regardless of what either constraint produced —
+// the schema and prompt narrow what a well-behaved model returns, they are
+// not themselves the enforcement.
+func geminiResponseSchema(pricingRefEnum []string) map[string]any {
+	return map[string]any{
+		"type": "OBJECT",
+		"properties": map[string]any{
+			"options": map[string]any{
+				"type": "ARRAY",
+				"items": map[string]any{
+					"type": "OBJECT",
+					"properties": map[string]any{
+						"id":           map[string]any{"type": "STRING"},
+						"title":        map[string]any{"type": "STRING"},
+						"summary":      map[string]any{"type": "STRING"},
+						"cost_drivers": map[string]any{"type": "ARRAY", "items": map[string]any{"type": "STRING"}},
+						"risks":        map[string]any{"type": "ARRAY", "items": map[string]any{"type": "STRING"}},
+						"recommended":  map[string]any{"type": "BOOLEAN"},
+						"pricing_ref":  map[string]any{"type": "STRING", "enum": pricingRefEnum},
+					},
+					"required": []string{"id", "title", "summary", "pricing_ref"},
+				},
+			},
+			"unknowns": map[string]any{"type": "ARRAY", "items": map[string]any{"type": "STRING"}},
+		},
+		"required": []string{"options", "unknowns"},
+	}
+}
+
 func (advisor *GeminiAdvisor) Propose(request Request, facts *ProjectFacts) ([]Option, []string, error) {
 	if advisor.APIKey == "" {
 		return nil, nil, errors.New("GEMINI_API_KEY not configured")
@@ -154,13 +205,21 @@ func (advisor *GeminiAdvisor) Propose(request Request, facts *ProjectFacts) ([]O
 	}
 	groundingJSON, _ := json.Marshal(grounding)
 	requestJSON, _ := json.Marshal(request)
+	pricingRefEnum := pricingRefChoices()
+	pricingRefList := strings.Join(pricingRefEnum, ", ")
 	prompt := "You are the ContextRail decision advisor. Propose 2-3 candidate options for the change request below and list unknowns that block a cost or risk judgement. " +
 		"Use ONLY the request and the grounding facts; if something is not stated, put it in unknowns instead of assuming it. " +
-		"Respond with strict JSON: {\"options\":[{\"id\":snake_case,\"title\":..,\"summary\":..,\"cost_drivers\":[..],\"risks\":[..],\"recommended\":bool}],\"unknowns\":[..]}.\n" +
+		"Every option must also carry pricing_ref: the SKU key of the priced option it is equivalent to, chosen from EXACTLY this list and no other value: [" + pricingRefList + "]. " +
+		"Use \"none\" when no priced SKU applies. Never invent a pricing_ref outside this list and never leave it blank. " +
+		"Respond with strict JSON: {\"options\":[{\"id\":snake_case,\"title\":..,\"summary\":..,\"cost_drivers\":[..],\"risks\":[..],\"recommended\":bool,\"pricing_ref\":one-of-the-list-above}],\"unknowns\":[..]}.\n" +
 		"REQUEST: " + string(requestJSON) + "\nGROUNDING: " + string(groundingJSON)
 	body := map[string]any{
-		"contents":         []map[string]any{{"role": "user", "parts": []map[string]string{{"text": prompt}}}},
-		"generationConfig": map[string]any{"responseMimeType": "application/json", "temperature": 0.2},
+		"contents": []map[string]any{{"role": "user", "parts": []map[string]string{{"text": prompt}}}},
+		"generationConfig": map[string]any{
+			"responseMimeType": "application/json",
+			"temperature":      0.2,
+			"responseSchema":   geminiResponseSchema(pricingRefEnum),
+		},
 	}
 	encoded, _ := json.Marshal(body)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
