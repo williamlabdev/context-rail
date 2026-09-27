@@ -1,7 +1,7 @@
 # Cloud Run 部署手冊 — 2026-10-06 執行版
 
 狀態：草案，供 10/6 GCP 專案／billing／`GEMINI_API_KEY` 到位當天照做
-更新：2026-09-28（補上第 2 節步驟 3.1：Cloud Build 執行身份對 runtime SA 的 `roles/iam.serviceAccountUser` 綁定，這是 verifier 抓到的缺口，之前只做到「建立 runtime SA」沒做到「授權 Cloud Build 去用它」）；2026-09-27（`cloudbuild.yaml` / `scripts/deploy-cloud-run.sh` 已補上 `--set-secrets` 與 `--service-account`，見第 2 節步驟 4、第 3 節）
+更新：2026-09-27（補上第 2 節步驟 3.1：Cloud Build 執行身份對 runtime SA 的 `roles/iam.serviceAccountUser` 綁定，這是 verifier 抓到的缺口，之前只做到「建立 runtime SA」沒做到「授權 Cloud Build 去用它」）；2026-09-27（`cloudbuild.yaml` / `scripts/deploy-cloud-run.sh` 已補上 `--set-secrets` 與 `--service-account`，見第 2 節步驟 4、第 3 節）
 前置演練：本機 `docker build` + `docker run` + curl，見〈本次本地演練結果〉一節；**未執行任何 `gcloud` 寫入動作、未 push image、未建立任何雲端資源**。0927 這次追加的變更只做了假 `gcloud` shim dry-run（見第 3 節），**同樣未跑過真的 `gcloud`／`docker`**。
 
 > 這份手冊記錄的是「10/6 當天要做什麼」。既有的 [`CLOUD_RUN_BASELINE.md`](CLOUD_RUN_BASELINE.md) 是穩態容器契約文件（環境變數表、smoke check 定義），這份是一次性的執行清單，兩者對照著看；本手冊完成後，`CLOUD_RUN_BASELINE.md` 不需要改，但 `evidence/EB-008`、`evidence/EB-009`、`README.md:9` 的宣告值需要回填（見下方對應段落）。
