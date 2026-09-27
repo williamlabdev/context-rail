@@ -1,8 +1,8 @@
 # Cloud Run Baseline (staging, read-only workspace)
 
 Status: baseline for roadmap G1
-Version: 1.1
-Updated: 2026-09-27
+Version: 1.2
+Updated: 2026-09-28
 
 This runbook deploys the current ContextRail read-only workspace (VS-001 importer + VS-002 registry API and React UI) to one Cloud Run **staging** service. It exists so that roadmap gate G1 ("Go build, model, Firestore, Storage, identity and Cloud Run path work for real") has a real service URL instead of a local-only claim.
 
@@ -40,7 +40,7 @@ The binary honours the [Cloud Run container contract](https://cloud.google.com/r
 
 ## Deploy
 
-Prerequisites on the operator machine: `gcloud` authenticated as an identity that can enable APIs, create an Artifact Registry repository, run Cloud Build and deploy Cloud Run in the target GCP project; billing enabled on that project; the Cloud Run runtime service account already created (see [`CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md`](CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md) section 2 step 3 — this baseline doc does not create it).
+Prerequisites on the operator machine: `gcloud` authenticated as an identity that can enable APIs, create an Artifact Registry repository, run Cloud Build and deploy Cloud Run in the target GCP project; billing enabled on that project; the Cloud Run runtime service account already created **and** granted `roles/iam.serviceAccountUser` to whichever identity actually executes the Cloud Build steps (`gcloud builds get-default-service-account` — this is not necessarily the legacy `<PROJECT_NUMBER>@cloudbuild.gserviceaccount.com`; see [`CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md`](CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md) section 2 step 3 / 3.1 — this baseline doc does not create either). Without that binding, `gcloud run deploy` fails with `PERMISSION_DENIED` on `iam.serviceAccounts.actAs` — untested, 2026-09-28.
 
 ```sh
 RUN_SERVICE_ACCOUNT=context-rail-run \

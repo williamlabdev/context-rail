@@ -1,7 +1,7 @@
 # Cloud Run 部署手冊 — 2026-10-06 執行版
 
 狀態：草案，供 10/6 GCP 專案／billing／`GEMINI_API_KEY` 到位當天照做
-更新：2026-09-27（`cloudbuild.yaml` / `scripts/deploy-cloud-run.sh` 已補上 `--set-secrets` 與 `--service-account`，見第 2 節步驟 4、第 3 節）
+更新：2026-09-28（補上第 2 節步驟 3.1：Cloud Build 執行身份對 runtime SA 的 `roles/iam.serviceAccountUser` 綁定，這是 verifier 抓到的缺口，之前只做到「建立 runtime SA」沒做到「授權 Cloud Build 去用它」）；2026-09-27（`cloudbuild.yaml` / `scripts/deploy-cloud-run.sh` 已補上 `--set-secrets` 與 `--service-account`，見第 2 節步驟 4、第 3 節）
 前置演練：本機 `docker build` + `docker run` + curl，見〈本次本地演練結果〉一節；**未執行任何 `gcloud` 寫入動作、未 push image、未建立任何雲端資源**。0927 這次追加的變更只做了假 `gcloud` shim dry-run（見第 3 節），**同樣未跑過真的 `gcloud`／`docker`**。
 
 > 這份手冊記錄的是「10/6 當天要做什麼」。既有的 [`CLOUD_RUN_BASELINE.md`](CLOUD_RUN_BASELINE.md) 是穩態容器契約文件（環境變數表、smoke check 定義），這份是一次性的執行清單，兩者對照著看；本手冊完成後，`CLOUD_RUN_BASELINE.md` 不需要改，但 `evidence/EB-008`、`evidence/EB-009`、`README.md:9` 的宣告值需要回填（見下方對應段落）。
@@ -89,6 +89,29 @@ gcloud secrets add-iam-policy-binding gemini-api-key \
 
 **未實測**：以上 IAM/Secret Manager 指令是依 GCP 官方文件慣例寫的，10/6 當天第一次跑務必看清楚錯誤訊息，不要照抄後假設成功。
 **失敗處置**：`gemini-api-key` 密鑰值請勿用 shell history 留痕（用 `echo -n ... | gcloud secrets versions add` 且該行結束後 `history -d` 或直接不留在互動 shell）；若 secret 已存在，`create` 會報 `ALREADY_EXISTS`，改用 `gcloud secrets versions add` 即可。
+
+#### 步驟 3.1（0928 補上）— Cloud Build 的執行身份要能 `actAs` 這個 runtime SA，否則 `gcloud run deploy` 直接 `PERMISSION_DENIED`
+
+上面建立的 `context-rail-run` 只是「Cloud Run 服務跑起來後」的身份。真正下 `--service-account=context-rail-run@...` 這個旗標的，是**執行 `deploy-staging` step 的那個 Cloud Build 身份**（不是你本機登入的帳號）——GCP 規定：要把服務／revision 綁到某個 SA 上，呼叫端本身要對那個目標 SA 有 `roles/iam.serviceAccountUser`（內含 `iam.serviceAccounts.actAs` 權限），且這個 binding 是綁在**目標 SA 資源本身**上，不是綁在專案層級（來源：[Cloud Run — Configure the service identity](https://cloud.google.com/run/docs/configuring/services/service-accounts)：「To get the permissions that you need to attach a service account as the service identity on the service or revision, you or your administrator must grant your deployer account the Service Account User role (`roles/iam.serviceAccountUser`) on the service account that is used as the service identity.」）。少這一步，`gcloud builds submit` 會在 `deploy-staging` step 卡住，訊息含 `PERMISSION_DENIED` 且提到 `iam.serviceAccounts.actAs`。
+
+**先確認你的專案實際用哪個身份跑 Cloud Build**——2024 年之後新建的專案，Cloud Build 預設可能不是走 legacy 的 `<PROJECT_NUMBER>@cloudbuild.gserviceaccount.com`，而是走 Compute Engine 預設 SA `<PROJECT_NUMBER>-compute@developer.gserviceaccount.com`（依專案的組織政策設定而定；來源：[Cloud Build service accounts](https://cloud.google.com/build/docs/cloud-build-service-account)：「Depending on your organization's settings, Cloud Build may use the Compute Engine default service account or the legacy Cloud Build service account to execute builds on your behalf.」），兩者要綁的 member 不一樣，不要憑記憶假設是哪一個：
+
+```sh
+gcloud builds get-default-service-account [--region=REGION]
+```
+
+**已查證**：`gcloud builds get-default-service-account` 這個指令確實存在（[官方 gcloud 參考文件](https://cloud.google.com/sdk/gcloud/reference/builds/get-default-service-account)：「Get the default service account for a project.」），回傳的就是這個專案 Cloud Build 目前實際會用的服務帳號 email——把這一步的輸出，原封不動當成下面 `--member` 的值：
+
+```sh
+BUILD_SA="$(gcloud builds get-default-service-account --format='value(serviceAccountEmail)')"
+gcloud iam service-accounts add-iam-policy-binding \
+  "context-rail-run@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --member="serviceAccount:${BUILD_SA}" \
+  --role="roles/iam.serviceAccountUser"
+```
+
+**未實測**：`get-default-service-account` 的輸出格式、以及上面這條 binding 在本專案是否真的補齊了 `PERMISSION_DENIED`，都要 10/6 當天用真的 `gcloud` 才能驗——這是本次任務新補的文件，指令本身沒有跑過。
+**失敗處置**：如果 `get-default-service-account` 回傳的是 legacy `@cloudbuild.gserviceaccount.com`，也可能代表 Cloud Build API 是舊專案較早啟用；不論是哪一個，都用它回傳的 email 當 `--member`，不要自己猜專案編號組字串。
 
 ### 步驟 4 — secret 與 SA 現在已經寫進 `cloudbuild.yaml` / `scripts/deploy-cloud-run.sh`（0927 更新，不用再補手動指令）
 
@@ -329,3 +352,4 @@ docker stop ctr-rehearsal && docker rm ctr-rehearsal
 5. **Gemini 是否真的被呼叫到，目前只能靠回應內容裡的 `advisor_source` 或 fallback 訊息字串**（第 2 節步驟 6）——沒有專門的健康檢查端點或 log 欄位直接標示「這次請求用了哪個 advisor」；10/6 當天做完整測試後，若要長期化，值得考慮加一個明確的 debug 端點或 log 行（本次任務未實作，超出「本地建置演練」範圍）。
 6. **`scripts/record-promotion.sh` 是給*受管理的 demo application*（`order-operations-portal` 之類）記錄部署用的，不是給 ContextRail 自己的部署記錄**——手冊第 4 節已經標明這個區分，避免 10/6 當天搞混兩支腳本的用途。
 7. **（0926 版本的決定，0927 已推翻）** 原本這份手冊刻意不動 `scripts/deploy-cloud-run.sh` / `cloudbuild.yaml` 本身，只記錄「額外跑的手動指令」。0927 由 William 決定改成直接把 `--set-secrets` / `--service-account` 寫進腳本與 `cloudbuild.yaml`（見第 3 節），理由是手動步驟在 10/6 當天容易漏做或打錯，寫進腳本可以讓「忘記設定」變成清楚報錯而不是靜默的安全缺口。代價是這兩個檔案本身沒有在真實 GCP 環境跑過（只有 shim dry-run，見第 3 節），10/6 當天如果 `gcloud run deploy` 报错，要同時排查「這次改動的旗標組裝邏輯」與「SA／secret 本身是否建好」兩條線。
+8. **未實測（0928 補上）**：`--service-account` 這個旗標能不能成功套用，除了 runtime SA 本身要存在，還要求**執行 Cloud Build 的那個身份**對 runtime SA 有 `roles/iam.serviceAccountUser`（步驟 3.1）——這是本次任務新發現、之前手冊沒寫的缺口。目前只查了官方文件、寫了指令，**完全沒有在真實 GCP 專案跑過** `gcloud builds get-default-service-account` 或那條 `add-iam-policy-binding`；10/6 當天如果 `gcloud run deploy` 报 `PERMISSION_DENIED` 且訊息含 `iam.serviceAccounts.actAs`，先查這一步有沒有漏做，而不是先懷疑旗標組裝邏輯（旗標組裝已用 shim 驗證過，見第 3 節）。
