@@ -133,7 +133,12 @@ type GeminiAdvisor struct {
 
 func NewGeminiAdvisor(apiKey, model string) *GeminiAdvisor {
 	if model == "" {
-		model = "gemini-2.0-flash"
+		// gemini-2.0-flash is deprecated by Google (shutdown 2026-06-01);
+		// gemini-3.6-flash is the officially recommended replacement.
+		// See https://ai.google.dev/gemini-api/docs/deprecations
+		// (verified 2026-09-28) and
+		// docs/operations/CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md.
+		model = "gemini-3.6-flash"
 	}
 	return &GeminiAdvisor{APIKey: apiKey, Model: model, Endpoint: "https://generativelanguage.googleapis.com/v1beta", Client: &http.Client{Timeout: 30 * time.Second}}
 }

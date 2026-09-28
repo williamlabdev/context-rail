@@ -33,7 +33,7 @@ The binary honours the [Cloud Run container contract](https://cloud.google.com/r
 | `CONTEXT_RAIL_FIXTURE_SCENARIO` | `normal`, `empty`, `invalid`, `unavailable` — verification scenarios only | `normal` |
 | `CONTEXT_RAIL_STATE_DIR` | Governance state (topology versions, document baseline + Context Packs, change ledger, releases) as JSON files | `/tmp/context-rail-state` — instance-local, **not durable**; lost on redeploy or scale-to-zero |
 | `GEMINI_API_KEY` | Optional. Enables the Gemini decision advisor (candidates only; falls back to the rule advisor on error). Injected from Secret Manager by `cloudbuild.yaml`'s `deploy-staging` step (`--set-secrets`, `_GEMINI_SECRET` substitution / `GEMINI_SECRET` env var on `scripts/deploy-cloud-run.sh`, default secret name `gemini-api-key`); never set in the image. Set `_GEMINI_SECRET`/`GEMINI_SECRET` to an empty string, or `SKIP_GEMINI_SECRET=1` on the script, to deploy without it before the secret exists | unset → rule advisor |
-| `CONTEXT_RAIL_GEMINI_MODEL` | Gemini model id for the advisor | `gemini-2.0-flash` |
+| `CONTEXT_RAIL_GEMINI_MODEL` | Gemini model id for the advisor | `gemini-3.6-flash` |
 | `GITHUB_TOKEN` | Optional. Enables GitHub read-back of candidates (compare, PR reviews, check runs) when a submission carries a `read_back` block. Read-only token, set as a secret | unset → declared observations only |
 
 `SIGTERM` triggers a graceful shutdown with a 10 s drain, which is what Cloud Run sends before stopping an instance.
