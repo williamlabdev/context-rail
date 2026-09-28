@@ -112,3 +112,20 @@ func TestGeminiAdvisorMissingPricingRefIsUnknown(t *testing.T) {
 		t.Fatalf("expected UNKNOWN when pricing_ref is missing, got %s: %+v", estimate.Status, estimate)
 	}
 }
+
+// TestNewGeminiAdvisorDefaultModel confirms NewGeminiAdvisor falls back to
+// gemini-3.6-flash when no model is given (CONTEXT_RAIL_GEMINI_MODEL unset),
+// so a 10/6 deploy without that env var still calls a non-deprecated model.
+// gemini-2.0-flash (the previous default) is deprecated by Google, shutdown
+// date 2026-06-01; gemini-3.6-flash is the officially recommended
+// replacement — see advisor.go:136 and
+// docs/operations/CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md.
+func TestNewGeminiAdvisorDefaultModel(t *testing.T) {
+	advisor := change.NewGeminiAdvisor("fake-key", "")
+	if advisor.Model != "gemini-3.6-flash" {
+		t.Fatalf("expected default model gemini-3.6-flash, got %q", advisor.Model)
+	}
+	if advisor.Name() != "gemini:gemini-3.6-flash" {
+		t.Fatalf("expected Name() gemini:gemini-3.6-flash, got %q", advisor.Name())
+	}
+}
