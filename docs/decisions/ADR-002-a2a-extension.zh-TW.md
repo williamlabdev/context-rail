@@ -106,6 +106,8 @@ Stage A 的價值獨立於 A2A 是否啟用：它是 UC1／UC2 兩個情境未�
 
 提交材料若要提及本 ADR，只能描述為「提案方向」，不得描述為已實作或已驗證的功能。Stage A（持久化 `AgentHandoff`）是否在截止前完成，是另一個獨立的實作排程決定，不在本 ADR 範圍內。
 
+**2026-10-16 更新**：專案已退出 Google Cloud AI Builder Cup 2026，上述截止日不再構成約束。Stage A／Stage B 是否實作與何時實作，改依 repo 優化的優先序另行決定；本節其餘內容保留為當時的判斷紀錄。
+
 ## Consequences
 
 正面：

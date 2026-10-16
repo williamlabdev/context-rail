@@ -5,6 +5,8 @@ Google Cloud AI Builder Cup 2026
 版本 4.2　更新日期 2026-09-12  
 工程窗口 2026-09-15 至 2026-10-18　兩人五週；10/16 凍結開發；原型提交截止 2026-10-18（已確認 2026-09-26）
 
+> 狀態（2026-10-16）：本計畫書以參賽為前提撰寫。專案已退出 Google Cloud AI Builder Cup 2026；時程、交件與參賽相關段落保留為歷史紀錄，不再是實作依據。
+
 本版將 ContextRail 的市場定位收斂為 environment-aware AI Change Assurance for AI-assisted changes to cloud-native business systems，技術上仍採 AI Native Software Engineering control layer。Prototype 明確採新創／中小企業優先：先服務 5 至 30 人、已使用 Git／CI 與 AI coding assistant、沒有專職平台團隊且有兩個以上交付環境的工程團隊；大型企業保留為 enterprise-ready extension space，不是 P0 的買方驗證前提。Cloud Run-first 只描述五週 prototype 的第一個部署切口，不限制長期市場只能是 Cloud Run 或內部系統。P0 只證明一條真實英雄流程：Project Registry 建立並管理 Project，Project 先定義可自訂的環境拓撲與 promotion policy，被接受的需求形成受限 Agent Work Order，外部 coding agent 建立候選，系統以 PR／獨立 review、Git／CI 與環境證據完成三次人工決策、prod-demo smoke 及 Release Receipt。P0 也保留 tenant-ready 的資料契約，但不宣稱完成多租戶營運或完整環境管理。每次人工接受後，系統從同一份決策資料產出給 Agent 的 Agent Context Pack 與給人的 Change Decision Brief，兩者共享 ID、版本、來源 hash、環境拓撲與證據引用。Release Bundle 可包含多個 Change，但每個 Change 仍必須保留自己的 scope、evidence 與 gate。只有 G4 PASS、總容量至少 300 人時、至少保留 40 人時風險緩衝，且契約／API／IAM／location 已驗證後，才可從固定 remote agent adapter、FDE Handoff Pack、Application Design Center REST Adapter、單一 Drive／Docs 文件唯讀來源或 Cloud Run revision rollback 中選擇至多一項窄版 P1；local folder 只作來源契約 fixture。這些不能被包裝成任意 agent、autonomous FDE、真正內網整合或完整 enterprise rollback。主要使用者先以 Solution Architect、Tech Lead 或 Delivery Architect 為起點；FDE、Implementation Engineer 與 DevOps 是待驗證的相鄰 persona。v4.2 保留 React 前端與 Go 後端，本文為目前實作範圍的真相源；v1、v2、v3 保留為歷史文件。Word 版由本 Markdown 產生。
 
 ## 01 決策摘要

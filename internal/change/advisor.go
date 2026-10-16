@@ -137,7 +137,7 @@ func NewGeminiAdvisor(apiKey, model string) *GeminiAdvisor {
 		// gemini-3.6-flash is the officially recommended replacement.
 		// See https://ai.google.dev/gemini-api/docs/deprecations
 		// (verified 2026-09-28) and
-		// docs/operations/CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md.
+		// docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md.
 		model = "gemini-3.6-flash"
 	}
 	return &GeminiAdvisor{APIKey: apiKey, Model: model, Endpoint: "https://generativelanguage.googleapis.com/v1beta", Client: &http.Client{Timeout: 30 * time.Second}}

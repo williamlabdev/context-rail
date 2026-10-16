@@ -6,8 +6,6 @@
 
 Before an AI-assisted change advances to the next governed environment, ContextRail proves that the change still matches the accepted intent, scope, policy and release identity — and blocks it when it does not.
 
-> Google Cloud AI Builder Cup 2026 entry. Deployed workspace: `<deployed Cloud Run URL — filled in at submission>` · Demo video: `<link — filled in at submission>`
-
 ## The problem
 
 Startup and SMB engineering teams already use Git, CI and an AI coding assistant, and ship to two or more environments. What they lack is a control plane that keeps three questions answerable while the AI works fast:
@@ -49,7 +47,9 @@ Everything that can drift is hashed and versioned: topology config, source snaps
 | Documents / AI Context | Versioned document baseline, missing documents mapped to readiness stages, rebuildable Context Pack (`PARTIAL` when anything is missing — nothing is synthesized) | UI-20 |
 | Workspace | URL-bound Project, zh-TW / en, human status labels with machine codes | UI-15…19 |
 
-## Google Cloud
+## Deployment target (Google Cloud)
+
+Cloud Run is the designed deployment target. The build and deploy path below has been rehearsed locally (container build, smoke check, `gcloud` dry-run); no public deployment is maintained.
 
 - **Cloud Run** hosts the ContextRail workspace (Go binary serving the API and the built React UI) and is the promotion target of the governed demo application (staging and prod-demo services).
 - **Cloud Build** + **Artifact Registry** build the image; the deploy script promotes by **digest only**, never by tag (`scripts/deploy-cloud-run.sh`, `cloudbuild.yaml`).
@@ -103,5 +103,5 @@ ContextRail is built the way it asks its users to build: every slice has a Decis
 - [Vision](vision.md) · [Roadmap](roadmap.md) · [Architecture](architecture.md)
 - [Project Context Contract](docs/architecture/CONTEXT_RAIL_PROJECT_CONTEXT_CONTRACT.zh-TW.md) · [UI flow and state contract](docs/design/CONTEXT_RAIL_UI_FLOW_STATE_CONTRACT.zh-TW.md)
 - [Cloud Run baseline runbook](docs/operations/CLOUD_RUN_BASELINE.md) · [Real run playbook (Claude Code + GitHub read-back)](docs/operations/REAL_RUN_PLAYBOOK.md)
-- [Demo video script](docs/submission/VIDEO_SCRIPT.md) · [Deck outline](docs/submission/DECK_OUTLINE.md)
+- [Cloud Run first-deploy runbook](docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md) · [Project history](docs/planning/history/README.md) (AI Builder Cup 2026 origin, submission drafts)
 - Template: [Project Context Contract template](template/README.md) · Example Project: [Order Operations Portal](demo/order-operations-portal/README.md) (fixture) — real governed repository: [williamlabdev/order-operations-portal](https://github.com/williamlabdev/order-operations-portal)

@@ -1,9 +1,9 @@
 # ContextRail Roadmap
 
 Status: working product and engineering baseline
-Version: 1.2
-Updated: 2026-09-13
-Team: 2 people, 5-week prototype window (official submission deadline confirmed as 2026-10-18 per the official site, checked 2026-09-26; time zone still unconfirmed)
+Version: 1.3
+Updated: 2026-10-16
+Origin: planned as a two-person, five-week prototype for Google Cloud AI Builder Cup 2026. The project withdrew from the competition on 2026-10-16; the week table in §3 is kept as the original plan, and the competition deadline no longer constrains this roadmap.
 
 ## 1. Roadmap decision
 
@@ -172,7 +172,6 @@ Completion does not mean multi-tenant operations, production readiness, full pri
 
 These are the remaining decisions that can materially change the five-week plan:
 
-- Time zone for the official submission deadline (the deadline date itself, 2026-10-18, is confirmed per the official site, checked 2026-09-26; no time zone is stated on that site or its FAQ).
 - Actual weekly capacity for both people, not only the five-week calendar window.
 - The first design-partner cohort: startup/SMB teams with the stated operating characteristics; enterprise validation is a later extension, not a P0 dependency.
 - The demo source provider: GitHub, GitLab Cloud, self-hosted GitLab or a checked-in fixture.

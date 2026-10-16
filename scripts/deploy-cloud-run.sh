@@ -23,7 +23,7 @@
 # and does not create IAM bindings beyond what `gcloud run deploy` needs for
 # an unauthenticated demo service. It does not create the runtime service
 # account or the Gemini secret — those are still manual pre-flight steps
-# (see docs/operations/CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md).
+# (see docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md).
 set -euo pipefail
 
 smoke() {
@@ -58,7 +58,7 @@ if [ -z "${RUN_SERVICE_ACCOUNT}" ]; then
   echo "Set it to the service account's short name (not the full email), e.g.:" >&2
   echo "  RUN_SERVICE_ACCOUNT=context-rail-run $0 ${PROJECT_ID} ${REGION} ${SERVICE}" >&2
   echo "It resolves to <name>@${PROJECT_ID}.iam.gserviceaccount.com." >&2
-  echo "See docs/operations/CLOUD_RUN_DEPLOY_2026-10-06.zh-TW.md section 2 step 3 to create it." >&2
+  echo "See docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md section 2 step 3 to create it." >&2
   exit 1
 fi
 
