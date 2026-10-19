@@ -1,13 +1,14 @@
 # ContextRail Roadmap
 
 Status: working product and engineering baseline
-Version: 1.3
-Updated: 2026-10-16
+Version: 1.4
+Updated: 2026-10-19
 Origin: planned as a two-person, five-week prototype for Google Cloud AI Builder Cup 2026. The project withdrew from the competition on 2026-10-16; the week table in §3 is kept as the original plan, and the competition deadline no longer constrains this roadmap.
+Deployment decision (2026-10-19, [DR-015](decisions/DR-015-local-only-deployment.json)): ContextRail and the managed demo application are deployed on the developer's machine only. No Cloud Run, Cloud Build, Artifact Registry or Secret Manager resource is a target of this roadmap. Cloud Run remains the reference environment *type*; gates G1, G3 and G4 below read local environments and real Git/CI evidence.
 
 ## 1. Roadmap decision
 
-ContextRail is an environment-aware AI Change Assurance layer for cloud-native business systems. Its first delivery slice is designed for startup and SMB engineering teams, using Cloud Run, Gemini, Git/CI evidence and a controlled staging-to-prod-demo path.
+ContextRail is an environment-aware AI Change Assurance layer for cloud-native business systems. Its first delivery slice is designed for startup and SMB engineering teams, using Cloud Run as the reference environment type, Gemini, Git/CI evidence and a controlled staging-to-prod-demo path that, since DR-015, runs entirely on a local machine.
 
 The core unit is a **Project governance boundary**, not a Git repository and not a Google Cloud Project. A Project may contain many repositories, services, documents and environments. A repository may be connected to more than one Project through an explicit, role-bearing relationship; the system must not silently treat 'one repo = one project'.
 
@@ -143,11 +144,11 @@ The P0 agent exit condition is one reproducible handoff chain with canonical IDs
 
 | Gate | Meaning | If it fails |
 | --- | --- | --- |
-| G0 | Official deadline, capacity, accounts and source access are known. | Replan before implementation. |
-| G1 | Go build, model, embedding, Firestore, Storage, identity and Cloud Run path work for real. | Fix the environment; do not claim cloud integration with mocks. |
+| G0 | Capacity, accounts and source access are known. (The official deadline was removed on 2026-10-16.) | Replan before implementation. |
+| G1 | Go build, model access and the local run path (`go run` / `docker run`) work for real; no cloud resource is required (DR-015). | Fix the environment; do not claim an integration that only a mock has exercised. |
 | G2 | Project contract, environment policy, source citations, deterministic cost and DecisionRecord work. | Stop adding adapters; remove unsupported claims. |
-| G3 | A real external coding-agent run produces a candidate and Git/CI evidence reaches staging. | Remove all stretch/P1 and describe the result as a narrower decision-to-deployment workflow. |
-| G4 | Staging and isolated prod-demo promotion, drift checks, idempotency and receipt work. | Submit as staging-only; do not claim production readiness. |
+| G3 | A real external coding-agent run produces a candidate and real Git/CI evidence reaches a locally deployed staging environment. | Remove all stretch/P1 and describe the result as a narrower decision-to-deployment workflow. |
+| G4 | Local staging and isolated local prod-demo promotion, drift checks, idempotency and receipt work. | Report as staging-only; do not claim production readiness. |
 | G5 | Reproduction, holdout, usability and baseline results are recorded. | Report limitations and keep market claims conditional. |
 
 ## 7. Definition of done for the prototype
@@ -160,7 +161,7 @@ The prototype is complete only when all of the following are observable:
 4. A Project document baseline is validated, missing/stale/conflicting documents are visible, and a derived Context Pack can be rebuilt with source paths, versions, hashes and access scope.
 5. One requirement produces a human-readable Change Decision Brief and an Agent Context Pack with the same 'decision_id', version, source hash and evidence references.
 6. A real agent candidate is constrained by an immutable work order and checked against Git/CI evidence.
-7. Staging and prod-demo use separate deployment evidence; same digest is necessary but not sufficient for promotion.
+7. Staging and prod-demo (both local deployments, DR-015) use separate deployment evidence; same digest is necessary but not sufficient for promotion.
 8. A Release Bundle can carry multiple Changes through one release attempt without losing per-Change scope, evidence or gate results.
 9. A Release Receipt links requirement, decision, work order, candidate, review, commit, digest, target configuration, revision and human approval.
 10. Negative cases block instead of silently passing: missing input, stale policy, unknown source, wrong path, missing review, wrong digest and target drift.
@@ -176,12 +177,12 @@ These are the remaining decisions that can materially change the five-week plan:
 - The first design-partner cohort: startup/SMB teams with the stated operating characteristics; enterprise validation is a later extension, not a P0 dependency.
 - The demo source provider: GitHub, GitLab Cloud, self-hosted GitLab or a checked-in fixture.
 - Whether the first demo uses one repo, a monorepo path or multiple repositories.
-- The exact Cloud Run staging and prod-demo services and the identity allowed to deploy them.
+- How the two local environments (staging, prod-demo) are instantiated and told apart in deployment evidence: separate ports, containers, state directories or a local image digest (DR-015 leaves this open).
 - The first environment matrix and required promotion evidence; Development, Testing, Staging and Production are an example, not a forced global list.
 - Which records must be retained after archive and the minimum access roles for the demo.
 - Whether P1 should prioritize a source adapter, a fixed agent adapter, an FDE handoff pack, a Drive/Docs adapter, ADC or revision rollback.
 
-Until these are confirmed, the safest implementation assumption is one synthetic Cloud Run application, one controlled repository source, four user-defined environments, staging as the real execution target and prod-demo as the isolated release target.
+Until these are confirmed, the safest implementation assumption is one synthetic application deployed locally (`docker run` or `go run`), one controlled repository source, four user-defined environments, a local staging instance as the real execution target and a local prod-demo instance as the isolated release target.
 
 ## 9. Related documents
 
