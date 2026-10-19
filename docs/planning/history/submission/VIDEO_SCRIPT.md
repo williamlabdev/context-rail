@@ -1,5 +1,7 @@
 # ContextRail — demo video script (target ≤2:55, hard limit 3:00)
 
+> Status (2026-10-16): historical draft. ContextRail withdrew from Google Cloud AI Builder Cup 2026 on 2026-10-16, so this file was never finalized. The `[UPDATE BEFORE SUBMISSION]`, `[VERIFY AFTER DEPLOY]` and `[CAPTURE]` tags below are left as they were on 2026-09-26 and will not be resolved. See [../README.md](../README.md).
+
 Format: screen recording of the workspace with voice-over, English narration throughout; the zh-TW / en locale switch (UI-16) is demonstrated **visually only** in beat 8, no Chinese narration. As of 2026-09-26 beats 1–5 and 5b replay a **real, already-recorded** governance state (`evidence/EB-012/`: Change `CHG-001` on the real repository `github.com/williamlabdev/order-operations-portal`, PR #1, CI check runs, the refused first candidate, the accepted second one — checked 2026-09-21). Beats 6–7 need a **release promoted through Cloud Run**, which cannot happen before Google Cloud access lands (**expected 2026-10-06**); those beats are recorded once staging and prod-demo exist and before the 2026-10-18 submission deadline. Until then this script is the shot list, not a transcript of a finished recording. The browser journeys in `tests/browser/*.spec.ts` remain the fallback for any beat that cannot be shown live.
 
 `[UPDATE BEFORE SUBMISSION]` **Deployment status: not deployed yet.** No beat below should be read as "already shown on the live URL" until beats 6–7 are actually recorded post-deploy.
