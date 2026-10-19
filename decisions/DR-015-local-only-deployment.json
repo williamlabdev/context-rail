@@ -1,0 +1,99 @@
+{
+  "decision_id": "DR-015",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "local_only_deployment_gate_on_local_and_imported_evidence",
+  "alternatives": [
+    {
+      "id": "real_cloud_run_first_deploy_once",
+      "status": "rejected",
+      "reason": "The 10/6 first-deploy runbook, deploy-cloud-run.sh, cloudbuild.yaml and the Secret Manager / service-account wiring exist only because the competition demo needed a live URL. The project withdrew on 2026-10-16. A real Cloud Run deploy would prove that GCP IAM and gcloud flags are wired correctly; it proves nothing about the product's own job (deciding whether a change may advance), and it adds billing, quota and secret-handling work with no reader waiting for the result."
+    },
+    {
+      "id": "deploy_managed_demo_app_to_cloud_run_but_not_context_rail",
+      "status": "rejected",
+      "reason": "Would give the promotion gate a real Cloud Run revision/digest to read back, but the same read-back can be exercised against a locally running container. The marginal realism does not justify keeping a cloud footprint for a project that is now optimised as an ordinary repo."
+    },
+    {
+      "id": "no_running_environments_fixtures_only",
+      "status": "rejected",
+      "reason": "Declared deployment records (the current EB-008 / EB-009 state) cannot exercise the parts of the gate that read a live service: healthz, revision identity, digest match, config drift. Running the managed demo application locally as two distinct environments keeps those checks real without any cloud resource."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "roadmap.md",
+      "decisions/DR-015-local-only-deployment.json",
+      "docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md",
+      "docs/operations/CLOUD_RUN_BASELINE.md",
+      ".claude/handoff/"
+    ],
+    "forbidden_paths": [
+      "cloud-deployment-execution",
+      "production-targets",
+      "secrets",
+      "evidence/EB-008/",
+      "evidence/EB-009/",
+      "scripts/deploy-cloud-run.sh",
+      "cloudbuild.yaml",
+      "Dockerfile"
+    ]
+  },
+  "architecture_impact": [
+    "ContextRail itself and the managed demo application (demo/order-operations-portal) are deployed only on the developer's machine: `go run`, the existing Dockerfile via `docker run`, or the demo app's own local scripts. No GCP project, billing account, Cloud Run service, Cloud Build trigger, Artifact Registry repo or Secret Manager secret is created for this project.",
+    "The product boundary in roadmap.md §2 is unchanged and is now the whole story: ContextRail manages a Project's policy and evidence contract and decides whether a change may advance; it never was, and now explicitly is not, the thing that performs a deployment. Cloud Run stays in the model as the reference environment *type* (standard types, minimum protection, revision/digest identity); it stops being a required execution target.",
+    "Deployment evidence for the staging and prod-demo gates comes from two sources only: (a) real Git/CI evidence read back from GitHub, as already exercised in EB-012 (CHG-001 on github.com/williamlabdev/order-operations-portal), and (b) locally running instances of the managed demo application presented as distinct environments. Declared values (EB-008 / EB-009) remain declared and are labelled permanently as such; they are no longer 'to be backfilled after deploy'.",
+    "docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md, scripts/deploy-cloud-run.sh, cloudbuild.yaml and the GEMINI_API_KEY / service-account wiring in them become dormant reference material. They are kept (deleting them rewrites history and they are self-consistent, see the 2026-10-19 status report), but their header states that they are not a current target.",
+    "The 2026-09-27 deferrals recorded in the 0926 handoff as 'not before 10/18' (Project CRUD, scoped invalidation) lose their reason to stay deferred: they are core requirements-management features and are now the natural next work, ahead of any environment integration.",
+    "roadmap.md moves to v1.4: G0 drops the official deadline, G1/G3/G4 no longer require a cloud path, §7 item 7 and §8 name local environments, and the §3 week table stays frozen as the original plan per the 2026-10-16 note."
+  ],
+  "cost_assumptions": [
+    "Zero cloud spend for this project. The only recurring costs are the developer machine and, if and when the Gemini advisor is exercised, direct Gemini API usage from a local run with GEMINI_API_KEY set in the shell for that command only.",
+    "DR-014's price table stays at us-central1 pricing. With no deploy region any more, the previously disclosed us-central1 vs asia-east1 mismatch is moot; CostEstimate.region keeps disclosing the pricing origin as before."
+  ],
+  "unknowns": [
+    "How two local instances of the demo application are instantiated and told apart as 'staging' and 'prod-demo' in deployment evidence (separate ports, separate containers, separate state dirs, or a local registry digest). Not decided here; the first local run that records an evidence bundle will settle it.",
+    "Whether the Gemini advisor will ever be exercised against the real API. It remains UNVERIFIED (advisor.go, DR-014 unknowns). This decision removes the expectation that it would be verified 'after the 10/6 deploy'; a local run with a real key is now the only path, and it is optional.",
+    "Whether scripts/deploy-cloud-run.sh and cloudbuild.yaml should eventually be deleted or moved under docs/planning/history/. Kept for now; revisit if they start to mislead a reader or rot against gcloud flag changes.",
+    "Whether a local-only promotion path still satisfies a future design partner's definition of 'environment-aware'. P0's measurement targets (setup time, repeat use, decision quality) do not depend on where the demo application runs, but this has not been tested with an external reader; the reader test itself is still blocked on finding participants (DR-013 / EB-013 G5)."
+  ],
+  "acceptance_criteria": [
+    "roadmap.md is at v1.4 with G0, G1, G3, G4, §7 item 7 and §8 rewritten so that no gate or assumption requires a cloud resource; the §3 week table is unchanged.",
+    "docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md and CLOUD_RUN_BASELINE.md carry a dated status line naming DR-015 and stating that they are dormant reference material, with their content otherwise untouched.",
+    "The 0926 handoff items 'backfill EB-008/EB-009 with real digests', '10/6 deploy day' and 'record video after deploy' are closed as WON'T DO with a pointer to this record, not left open.",
+    "When a local staging / prod-demo run is first recorded, it lands as a new evidence bundle (EB-015 or later) with the actual local invocation and read-back output, and EB-008 / EB-009 are not edited to look like real deployments."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "635f258",
+  "source_refs": [
+    "roadmap.md:6",
+    "roadmap.md:10",
+    "roadmap.md:53",
+    "roadmap.md:144-151",
+    "roadmap.md:163",
+    "roadmap.md:175-184",
+    "docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md:3",
+    "docs/operations/CLOUD_RUN_FIRST_DEPLOY.zh-TW.md:277-284",
+    "evidence/EB-008/README.md:28",
+    "evidence/EB-009/README.md:35",
+    "evidence/EB-012/README.md",
+    "decisions/DR-014-deterministic-cost-calculator.json",
+    ".claude/handoff/2026-09-26-handoff.md (untracked; §4 risks, §5 next steps)",
+    ".claude/handoff/2026-10-19-status-report.md (untracked; §4, §5 step 3)"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-012/"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-10-19T00:00:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "William 自己打字的原話，逐字記錄：「我的想法會是不實測 因為我目前沒有要參加比賽 我的重點在於我的系統本身 是不是能夠有一個好的需求管理工具來面對所有的異動 確認是不是可以上架」；追問「ContextRail 自己不部署、demo app 也不真的部署」是否正確時，回覆「都只會在本機部署」。前一句是方向，後一句是本紀錄 selected_option 的直接依據。"
+  },
+  "human_review": null
+}

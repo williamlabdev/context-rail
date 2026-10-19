@@ -4,6 +4,7 @@ Status: proposed implementation architecture
 Version: 1.2
 Updated: 2026-09-13
 Implementation constraint: React frontend, Go backend, Cloud Run-first prototype
+Deployment note (2026-10-19, [DR-015](decisions/DR-015-local-only-deployment.json)): the prototype is deployed on a local machine only. Cloud Run, Firestore, Cloud Storage and Cloud Build below describe the reference runtime the design was shaped for, not resources this project provisions.
 
 ## 1. Architecture in one sentence
 
