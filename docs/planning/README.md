@@ -4,6 +4,8 @@
 
 品牌已由 Handoff Guard 更名為 ContextRail。本目錄的現行文件、輸出與 UI 檔名已同步改為 ContextRail；歷史 v1/v2 文件則保留原名稱，僅作背景參考。
 
+專案原為 Google Cloud AI Builder Cup 2026 參賽作品，2026-10-16 起不再參賽。三份計畫書（v1、v2、v4.2）中的時程、交件材料與參賽段落僅作歷史紀錄，不再是實作依據；影片腳本與簡報大綱已移至 [history/submission](history/submission/)，背景說明見 [history/README.md](history/README.md)。
+
 - [Vision](../../vision.md)：產品方向、目標客群與決策邊界。
 - [Roadmap](../../roadmap.md)：五週 P0、環境管理語義、source coverage、里程碑與開始前的確認項目。
 - [Architecture](../../architecture.md)：Project／Repository／GCP Project 邊界、多對多關聯、RAG／Evidence Graph／Decision Engine 與 Go／Cloud Run 架構。

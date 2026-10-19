@@ -51,13 +51,13 @@ else
     echo "attached existing repo ${OWNER}/${REPO_NAME}"
   else
     gh repo create "${REPO_NAME}" --private --source . --remote origin \
-      --description "ContextRail — environment-aware AI Change Assurance (Google Cloud AI Builder Cup 2026 prototype)"
+      --description "ContextRail — environment-aware AI Change Assurance for cloud-native business systems"
     echo "created private repo ${OWNER}/${REPO_NAME}"
   fi
 fi
 git push -u origin develop feat/cloud-run-baseline feat/vs-003-topology feat/vs-004-decision-pack feat/vs-005-candidate-gate feat/vs-006-promotion feat/vs-007-prod-demo feat/ui-20-context-pack feat/ui-15-19-locale docs/w4-submission-prep 2>&1 | tail -6
 git push origin codex/001-manual-order-review 2>/dev/null || true
-echo "remote: $(git remote get-url origin)  (private — switch to public only at submission time)"
+echo "remote: $(git remote get-url origin)  (private — switch to public when ready)"
 
 # ---------------------------------------------------------------- 3. gcp
 if [ -z "${PROJECT_ID}" ]; then

@@ -1,8 +1,8 @@
 # ContextRail Vision
 
 Status: Implementation proposal with validation conditions
-Version: 3.3
-Last updated: 2026-09-13
+Version: 3.4
+Last updated: 2026-10-16
 Planning baseline: ContextRail Project Plan v4.2
 Positioning: Environment-aware AI Change Assurance for Cloud-native Startups, SMBs and Growing Teams (enterprise-ready extension)
 
@@ -182,9 +182,9 @@ Gemini 可以檢索已授權來源、提出影響候選、整理 work order 與�
 
 prod-demo 是使用合成資料的展示發布目標，與客戶 production readiness 分開評估。GCP catalog 可描述額外服務，但有建議說明、能估算、能部署是三種不同支援程度。
 
-五週工程窗口為 2026-09-15 至 2026-10-18；10/16 凍結開發，10/17 至 10/18 為交件緩衝。官方原型提交截止已確認為 2026-10-18（官方網站查核於 2026-09-26），報名與組隊截止為 2026-10-11，評估階段為 2026-10-19 至 2026-11-06；截止時區未見主辦方說明，仍待確認。已確認人數為兩人；工時先沿用每人每週 25 小時的規劃假設，合計約 250 人時，其中 190 人時核心工作、60 人時風險緩衝。每週實際可投入時數仍需在開發啟動時核實；這是有條件的原型交付窗口，並非企業正式產品的完成保證。開發與驗證並行：先用團隊的 Solution Architect 案例驗證工作流，再用第二個匿名案例與 3 至 5 位外部相鄰角色檢查可複製性；這些是驗證活動，不新增 P0 功能。
+原規劃的五週工程窗口為 2026-09-15 至 2026-10-18，以 Google Cloud AI Builder Cup 2026 的原型提交截止為錨點；專案已於 2026-10-16 退出比賽，該截止日與交件緩衝不再構成約束，後續依 repo 自身的優化優先序推進。已確認人數為兩人；工時先沿用每人每週 25 小時的規劃假設，合計約 250 人時，其中 190 人時核心工作、60 人時風險緩衝。每週實際可投入時數仍需在開發啟動時核實；這是有條件的原型交付窗口，並非企業正式產品的完成保證。開發與驗證並行：先用團隊的 Solution Architect 案例驗證工作流，再用第二個匿名案例與 3 至 5 位外部相鄰角色檢查可複製性；這些是驗證活動，不新增 P0 功能。
 
-Application Design Center REST Adapter、固定 remote agent adapter、FDE Handoff Pack、單一 Drive／Docs 文件唯讀匯入與 Cloud Run revision rollback 都是候選窄版 P1；local folder 只作來源契約 fixture，不列為 P1 產品能力。它們不納入 190 人時核心工作。AI Change Assurance 核心路徑、G4 發布與交件緩衝優先；只有 G4 PASS、總容量至少 300 人時、至少保留 40 人時風險緩衝，且契約／API／IAM／location 已驗證後，才選擇至多一項 P1。Gemini Cloud Assist MCP、Figma API、Cloud Deploy、完整成本觀測及企業 RBAC 排入 P2；若 private preview 已取得，也只做隔離 spike，不讓它成為核心依賴。完整多租戶營運、任意 agent orchestration、無人值守 FDE、真正內網 connector、跨資料資源 rollback 與 production readiness 仍保留為後續產品化能力。
+Application Design Center REST Adapter、固定 remote agent adapter、FDE Handoff Pack、單一 Drive／Docs 文件唯讀匯入與 Cloud Run revision rollback 都是候選窄版 P1；local folder 只作來源契約 fixture，不列為 P1 產品能力。它們不納入 190 人時核心工作。AI Change Assurance 核心路徑、G4 發布優先；只有 G4 PASS、總容量至少 300 人時、至少保留 40 人時風險緩衝，且契約／API／IAM／location 已驗證後，才選擇至多一項 P1。Gemini Cloud Assist MCP、Figma API、Cloud Deploy、完整成本觀測及企業 RBAC 排入 P2；若 private preview 已取得，也只做隔離 spike，不讓它成為核心依賴。完整多租戶營運、任意 agent orchestration、無人值守 FDE、真正內網 connector、跨資料資源 rollback 與 production readiness 仍保留為後續產品化能力。
 
 ## 10 市場與商業假設
 
@@ -230,4 +230,3 @@ Go、SDK、模型與 region 的版本在開發第 1 至 2 天完成端到端 spi
 - [Cloud Run Go quickstart](https://docs.cloud.google.com/run/docs/quickstarts/build-and-deploy/deploy-go-service)
 - [Google Gen AI SDK for Go](https://cloud.google.com/vertex-ai/generative-ai/docs/sdks/overview)
 - [Firebase Admin SDK setup](https://firebase.google.com/docs/admin/setup)
-- [AI Builder Cup requirements](https://aibuildercup.com/themes.html)
