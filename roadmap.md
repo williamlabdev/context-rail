@@ -1,8 +1,8 @@
 # ContextRail Roadmap
 
 Status: working product and engineering baseline
-Version: 1.4
-Updated: 2026-10-19
+Version: 1.5
+Updated: 2026-10-20
 Origin: planned as a two-person, five-week prototype for Google Cloud AI Builder Cup 2026. The project withdrew from the competition on 2026-10-16; the week table in §3 is kept as the original plan, and the competition deadline no longer constrains this roadmap.
 Deployment decision (2026-10-19, [DR-015](decisions/DR-015-local-only-deployment.json)): ContextRail and the managed demo application are deployed on the developer's machine only. No Cloud Run, Cloud Build, Artifact Registry or Secret Manager resource is a target of this roadmap. Cloud Run remains the reference environment *type*; gates G1, G3 and G4 below read local environments and real Git/CI evidence.
 
@@ -145,7 +145,7 @@ The P0 agent exit condition is one reproducible handoff chain with canonical IDs
 | Gate | Meaning | If it fails |
 | --- | --- | --- |
 | G0 | Capacity, accounts and source access are known. (The official deadline was removed on 2026-10-16.) | Replan before implementation. |
-| G1 | Go build, model access and the local run path (`go run` / `docker run`) work for real; no cloud resource is required (DR-015). | Fix the environment; do not claim an integration that only a mock has exercised. |
+| G1 | Go build, model access and the local run path (`go run` / `docker run`) work for real; no cloud resource is required (DR-015). **PARTIAL** as of 2026-10-20, [EB-015](evidence/EB-015/README.md): build and both run paths pass; model access is not shown (rule-advisor only, Gemini UNVERIFIED). | Fix the environment; do not claim an integration that only a mock has exercised. |
 | G2 | Project contract, environment policy, source citations, deterministic cost and DecisionRecord work. | Stop adding adapters; remove unsupported claims. |
 | G3 | A real external coding-agent run produces a candidate and real Git/CI evidence reaches a locally deployed staging environment. | Remove all stretch/P1 and describe the result as a narrower decision-to-deployment workflow. |
 | G4 | Local staging and isolated local prod-demo promotion, drift checks, idempotency and receipt work. | Report as staging-only; do not claim production readiness. |

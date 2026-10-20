@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -30,12 +31,17 @@ type reviewRequest struct {
 }
 
 type server struct {
-	mu     sync.RWMutex
-	orders map[string]*order
+	mu          sync.RWMutex
+	environment string
+	orders      map[string]*order
 }
 
+// newServer builds the in-memory portal. The environment label is read from
+// ORDER_PORTAL_ENV so two local instances (DR-015: local staging and local
+// prod-demo) can be told apart from their own /healthz read-back, not only from
+// the port they were started on.
 func newServer() *server {
-	return &server{orders: map[string]*order{
+	return &server{environment: environmentLabel(os.Getenv("ORDER_PORTAL_ENV")), orders: map[string]*order{
 		"ORD-1001": {ID: "ORD-1001", Customer: "Acme North", Amount: 12800, Reason: "Shipping address changed after payment", Status: "PENDING_REVIEW"},
 		"ORD-1002": {ID: "ORD-1002", Customer: "Beta Studio", Amount: 4200, Reason: "High-value order needs a second check", Status: "PENDING_REVIEW"},
 	}}
@@ -56,7 +62,25 @@ func (s *server) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "service": "order-operations-portal"})
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "service": "order-operations-portal", "environment": s.environment})
+}
+
+// environmentLabel normalises ORDER_PORTAL_ENV; an unset value reports "local"
+// so a single-instance run is still distinguishable from a labelled one.
+func environmentLabel(raw string) string {
+	if label := strings.TrimSpace(raw); label != "" {
+		return label
+	}
+	return "local"
+}
+
+// listenAddr honours PORT (Cloud Run convention, also what ContextRail itself
+// reads) and falls back to :8080 so the documented `go run .` keeps working.
+func listenAddr(port string) string {
+	if port = strings.TrimSpace(port); port != "" {
+		return ":" + port
+	}
+	return ":8080"
 }
 
 func (s *server) listOrders(w http.ResponseWriter, r *http.Request) {
@@ -121,5 +145,7 @@ func logging(next http.Handler) http.Handler {
 }
 
 func main() {
-	_ = http.ListenAndServe(":8080", newServer().routes())
+	addr := listenAddr(os.Getenv("PORT"))
+	fmt.Printf("order-operations-portal listening on %s (environment=%s)\n", addr, environmentLabel(os.Getenv("ORDER_PORTAL_ENV")))
+	_ = http.ListenAndServe(addr, newServer().routes())
 }
