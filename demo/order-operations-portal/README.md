@@ -25,14 +25,7 @@ The demo is intentionally split into two parts:
 go run .
 ```
 
-Open <http://localhost:8080>. `PORT` overrides the listen port and `ORDER_PORTAL_ENV` labels the instance; the label is printed on startup and returned by `GET /healthz`. Two local instances (DR-015: local staging and local prod-demo) are run from the same binary and told apart by both, see `evidence/EB-015`:
-
-```sh
-PORT=8091 ORDER_PORTAL_ENV=staging   go run .
-PORT=8092 ORDER_PORTAL_ENV=prod-demo go run .
-```
-
-All order data is synthetic. The API has no login, persistence, payment action or production credentials and must not be used as a real order system.
+Open <http://localhost:8080>. All order data is synthetic. The API has no login, persistence, payment action or production credentials and must not be used as a real order system.
 
 ## Repository status
 

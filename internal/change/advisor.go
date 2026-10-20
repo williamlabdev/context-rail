@@ -117,6 +117,33 @@ func (RuleAdvisor) Propose(request Request, facts *ProjectFacts) ([]Option, []st
 	return options, unknowns, nil
 }
 
+// advisorPrompt is the one prompt every model-backed advisor sends: the same
+// role, the same grounding, the same pricing_ref contract. Keeping it in one
+// place means switching provider (DR-016) cannot silently change what the
+// model is asked, so differences between providers are differences in the
+// model, not in the question.
+func advisorPrompt(request Request, facts *ProjectFacts, pricingRefEnum []string) string {
+	grounding := map[string]any{
+		"project_id": facts.ProjectID, "project_context_status": facts.ContextStatus,
+		"documents": facts.Documents, "repository": facts.RepositoryURL,
+	}
+	groundingJSON, _ := json.Marshal(grounding)
+	requestJSON, _ := json.Marshal(request)
+	pricingRefList := strings.Join(pricingRefEnum, ", ")
+	return "You are the ContextRail decision advisor. Propose 2-3 candidate options for the change request below and list unknowns that block a cost or risk judgement. " +
+		"Use ONLY the request and the grounding facts; if something is not stated, put it in unknowns instead of assuming it. " +
+		"Every option must also carry pricing_ref: the SKU key of the priced option it is equivalent to, chosen from EXACTLY this list and no other value: [" + pricingRefList + "]. " +
+		"Use \"none\" when no priced SKU applies. Never invent a pricing_ref outside this list and never leave it blank. " +
+		"Respond with strict JSON: {\"options\":[{\"id\":snake_case,\"title\":..,\"summary\":..,\"cost_drivers\":[..],\"risks\":[..],\"recommended\":bool,\"pricing_ref\":one-of-the-list-above}],\"unknowns\":[..]}.\n" +
+		"REQUEST: " + string(requestJSON) + "\nGROUNDING: " + string(groundingJSON)
+}
+
+// modelProposal is the JSON every model-backed advisor must answer with.
+type modelProposal struct {
+	Options  []Option `json:"options"`
+	Unknowns []string `json:"unknowns"`
+}
+
 // GeminiAdvisor asks Gemini to propose candidates and unknowns as strict
 // JSON. It is an adapter over the Generative Language REST API; the caller
 // (Service) falls back to RuleAdvisor if it fails, and every option it
@@ -144,11 +171,6 @@ func NewGeminiAdvisor(apiKey, model string) *GeminiAdvisor {
 }
 
 func (advisor *GeminiAdvisor) Name() string { return "gemini:" + advisor.Model }
-
-type geminiProposal struct {
-	Options  []Option `json:"options"`
-	Unknowns []string `json:"unknowns"`
-}
 
 // pricingRefChoices lists the pricing_ref values GeminiAdvisor's prompt and
 // response schema constrain every candidate to: every SKU calculator.go can
@@ -204,20 +226,8 @@ func (advisor *GeminiAdvisor) Propose(request Request, facts *ProjectFacts) ([]O
 	if advisor.APIKey == "" {
 		return nil, nil, errors.New("GEMINI_API_KEY not configured")
 	}
-	grounding := map[string]any{
-		"project_id": facts.ProjectID, "project_context_status": facts.ContextStatus,
-		"documents": facts.Documents, "repository": facts.RepositoryURL,
-	}
-	groundingJSON, _ := json.Marshal(grounding)
-	requestJSON, _ := json.Marshal(request)
 	pricingRefEnum := pricingRefChoices()
-	pricingRefList := strings.Join(pricingRefEnum, ", ")
-	prompt := "You are the ContextRail decision advisor. Propose 2-3 candidate options for the change request below and list unknowns that block a cost or risk judgement. " +
-		"Use ONLY the request and the grounding facts; if something is not stated, put it in unknowns instead of assuming it. " +
-		"Every option must also carry pricing_ref: the SKU key of the priced option it is equivalent to, chosen from EXACTLY this list and no other value: [" + pricingRefList + "]. " +
-		"Use \"none\" when no priced SKU applies. Never invent a pricing_ref outside this list and never leave it blank. " +
-		"Respond with strict JSON: {\"options\":[{\"id\":snake_case,\"title\":..,\"summary\":..,\"cost_drivers\":[..],\"risks\":[..],\"recommended\":bool,\"pricing_ref\":one-of-the-list-above}],\"unknowns\":[..]}.\n" +
-		"REQUEST: " + string(requestJSON) + "\nGROUNDING: " + string(groundingJSON)
+	prompt := advisorPrompt(request, facts, pricingRefEnum)
 	body := map[string]any{
 		"contents": []map[string]any{{"role": "user", "parts": []map[string]string{{"text": prompt}}}},
 		"generationConfig": map[string]any{
@@ -257,7 +267,7 @@ func (advisor *GeminiAdvisor) Propose(request Request, facts *ProjectFacts) ([]O
 	if err := json.Unmarshal(raw, &envelope); err != nil || len(envelope.Candidates) == 0 || len(envelope.Candidates[0].Content.Parts) == 0 {
 		return nil, nil, errors.New("gemini response had no candidate text")
 	}
-	var proposal geminiProposal
+	var proposal modelProposal
 	if err := json.Unmarshal([]byte(envelope.Candidates[0].Content.Parts[0].Text), &proposal); err != nil {
 		return nil, nil, fmt.Errorf("gemini response was not the expected JSON: %w", err)
 	}

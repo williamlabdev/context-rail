@@ -1,14 +1,14 @@
 # ContextRail Roadmap
 
 Status: working product and engineering baseline
-Version: 1.5
+Version: 1.6
 Updated: 2026-10-20
 Origin: planned as a two-person, five-week prototype for Google Cloud AI Builder Cup 2026. The project withdrew from the competition on 2026-10-16; the week table in §3 is kept as the original plan, and the competition deadline no longer constrains this roadmap.
 Deployment decision (2026-10-19, [DR-015](decisions/DR-015-local-only-deployment.json)): ContextRail and the managed demo application are deployed on the developer's machine only. No Cloud Run, Cloud Build, Artifact Registry or Secret Manager resource is a target of this roadmap. Cloud Run remains the reference environment *type*; gates G1, G3 and G4 below read local environments and real Git/CI evidence.
 
 ## 1. Roadmap decision
 
-ContextRail is an environment-aware AI Change Assurance layer for cloud-native business systems. Its first delivery slice is designed for startup and SMB engineering teams, using Cloud Run as the reference environment type, Gemini, Git/CI evidence and a controlled staging-to-prod-demo path that, since DR-015, runs entirely on a local machine.
+ContextRail is an environment-aware AI Change Assurance layer for cloud-native business systems. Its first delivery slice is designed for startup and SMB engineering teams, using Cloud Run as the reference environment type, an optional model advisor (Anthropic or Gemini, DR-016), Git/CI evidence and a controlled staging-to-prod-demo path that, since DR-015, runs entirely on a local machine.
 
 The core unit is a **Project governance boundary**, not a Git repository and not a Google Cloud Project. A Project may contain many repositories, services, documents and environments. A repository may be connected to more than one Project through an explicit, role-bearing relationship; the system must not silently treat 'one repo = one project'.
 
@@ -145,7 +145,7 @@ The P0 agent exit condition is one reproducible handoff chain with canonical IDs
 | Gate | Meaning | If it fails |
 | --- | --- | --- |
 | G0 | Capacity, accounts and source access are known. (The official deadline was removed on 2026-10-16.) | Replan before implementation. |
-| G1 | Go build, model access and the local run path (`go run` / `docker run`) work for real; no cloud resource is required (DR-015). **PARTIAL** as of 2026-10-20, [EB-015](evidence/EB-015/README.md): build and both run paths pass; model access is not shown (rule-advisor only, Gemini UNVERIFIED). | Fix the environment; do not claim an integration that only a mock has exercised. |
+| G1 | Go build, model access and the local run path (`go run` / `docker run`) work for real; no cloud resource is required (DR-015). **MET** as of 2026-10-20: build and both run paths in [EB-015](evidence/EB-015/README.md); model access in [EB-016](evidence/EB-016/README.md), one real Anthropic advisor call (`claude-opus-5-5`, DR-016) producing the candidates of a Change decision, through `go run` only (the `docker run` path was not re-run with an advisor). The Gemini path remains UNVERIFIED; the gate is met by one real provider, not by all. | Fix the environment; do not claim an integration that only a mock has exercised. |
 | G2 | Project contract, environment policy, source citations, deterministic cost and DecisionRecord work. | Stop adding adapters; remove unsupported claims. |
 | G3 | A real external coding-agent run produces a candidate and real Git/CI evidence reaches a locally deployed staging environment. | Remove all stretch/P1 and describe the result as a narrower decision-to-deployment workflow. |
 | G4 | Local staging and isolated local prod-demo promotion, drift checks, idempotency and receipt work. | Report as staging-only; do not claim production readiness. |

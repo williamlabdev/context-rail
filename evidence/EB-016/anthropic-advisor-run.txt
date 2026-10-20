@@ -1,0 +1,236 @@
+# EB-016 real run: Anthropic advisor over the local go-run path
+captured_at=2026-10-20T08:08:40Z
+commit=c3d4fe1 (working tree carries the DR-016 changes, see README)
+binary=./bin/context-rail (go build -o bin/context-rail ./cmd/context-rail)
+command (key redacted; it was set on this one command line only, read from a file outside the repo):
+  ANTHROPIC_API_KEY=<redacted> CONTEXT_RAIL_ADVISOR=anthropic PORT=8080 CONTEXT_RAIL_FIXTURE_ROOTS=demo/order-operations-portal,examples/support-insights CONTEXT_RAIL_STATIC_DIR=frontend/dist CONTEXT_RAIL_STATE_DIR=<scratch> ./bin/context-rail
+env_check: ANTHROPIC_API_KEY exported in the invoking shell? NO
+
+## startup
+ContextRail workspace listening on http://0.0.0.0:8080 (mode=container fixtures=[demo/order-operations-portal examples/support-insights] static=frontend/dist state=/private/tmp/claude-501/-Users-william-dev-source-projects-context-rail/50ecf2d1-05d8-432a-a7f8-f8ce8a77804b/scratchpad/eb016-state advisor=anthropic:claude-opus-5-5 (falls back to rule-advisor on error) read_back=none scenario=normal delay_ms=0)
+pid=10315
+
+## GET /healthz
+http=200 bytes=217
+{"kind":"ContextRailHealth","status":"ok","mode":"container","surfaces":{"changes":"governed-ledger","documents":"baseline-versioned","registry":"read-only","releases":"promotion-gate","topology":"versioned-writes"}}
+
+
+## POST /v1/projects/order-operations-portal/changes (complete request; advisor call happens here)
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-016: exercise the Anthropic advisor once over the local run path (DR-016)",
+  "request": {
+    "title": "Manual order review",
+    "objective": "Let operations staff approve or reject an order exception with a note.",
+    "owner_summary": "Operations can approve or reject an order exception, and must leave a note either way.",
+    "scope_included": ["review action", "required note"],
+    "scope_excluded": ["payment", "fulfillment"],
+    "acceptance_criteria": [{"text": "approve and reject require a note"}, {"id": "AC-404", "text": "unknown order returns 404"}],
+    "allowed_paths": ["main.go", "web/index.html", "main_test.go"],
+    "forbidden_actions": ["authentication"],
+    "target_environment_id": "staging",
+    "business_constraints": {"data_classification": "internal", "expected_monthly_volume": "500 reviews"},
+    "requested_by": "founder-001"
+  }
+}
+
+http=200 bytes=5750 time_total=13.147514s
+wall_seconds=13
+response_body (pretty):
+{
+    "change": {
+        "change_id": "CHG-001",
+        "project_id": "order-operations-portal",
+        "title": "Manual order review",
+        "status": "DECISION_READY",
+        "current_version": 1,
+        "versions": [
+            {
+                "version": 1,
+                "created_at": "2026-10-20T08:08:42Z",
+                "actor": "founder-001",
+                "reason": "EB-016: exercise the Anthropic advisor once over the local run path (DR-016)",
+                "request": {
+                    "title": "Manual order review",
+                    "objective": "Let operations staff approve or reject an order exception with a note.",
+                    "owner_summary": "Operations can approve or reject an order exception, and must leave a note either way.",
+                    "scope_included": [
+                        "review action",
+                        "required note"
+                    ],
+                    "scope_excluded": [
+                        "payment",
+                        "fulfillment"
+                    ],
+                    "acceptance_criteria": [
+                        {
+                            "id": "AC-001",
+                            "text": "approve and reject require a note"
+                        },
+                        {
+                            "id": "AC-404",
+                            "text": "unknown order returns 404"
+                        }
+                    ],
+                    "allowed_paths": [
+                        "main.go",
+                        "web/index.html",
+                        "main_test.go"
+                    ],
+                    "forbidden_actions": [
+                        "authentication"
+                    ],
+                    "target_environment_id": "staging",
+                    "business_constraints": {
+                        "data_classification": "internal",
+                        "expected_monthly_volume": "500 reviews"
+                    },
+                    "requested_by": "founder-001"
+                },
+                "evaluation": {
+                    "status": "DECISION_READY",
+                    "missing_inputs": [],
+                    "observations": [],
+                    "source_snapshot_hash": "sha256:160d2a299e5bd55f3c9cada592ec05eca46886ce0e714a88df0084020b63fdae",
+                    "topology_version": 1,
+                    "topology_config_hash": "sha256:8daa33d8b141ad7930b3752d1d72333d0c4d46fadb3a8f626e3d584f5183e87e",
+                    "target_environment": {
+                        "id": "staging",
+                        "type": "staging",
+                        "sequence": 3,
+                        "target_ref": "cloud-run/order-operations-portal-staging",
+                        "required_evidence": [
+                            "decision-record",
+                            "review",
+                            "single-operator-controls",
+                            "test",
+                            "build",
+                            "smoke"
+                        ],
+                        "status": "ACTIVE"
+                    },
+                    "source_environment": {
+                        "id": "testing",
+                        "type": "testing",
+                        "sequence": 2,
+                        "target_ref": "ci",
+                        "required_evidence": [
+                            "test",
+                            "build",
+                            "code-review"
+                        ],
+                        "status": "ACTIVE"
+                    },
+                    "allowed_transition": "testing-to-staging",
+                    "promotion_path": [
+                        {
+                            "id": "development",
+                            "display_name": "development",
+                            "type": "development",
+                            "status": "ACTIVE"
+                        },
+                        {
+                            "id": "testing",
+                            "display_name": "testing",
+                            "type": "testing",
+                            "status": "ACTIVE"
+                        },
+                        {
+                            "id": "staging",
+                            "display_name": "staging",
+                            "type": "staging",
+                            "status": "ACTIVE"
+                        },
+                        {
+                            "id": "production",
+                            "display_name": "production",
+                            "type": "production",
+                            "status": "ACTIVE"
+                        }
+                    ],
+                    "project_context_status": "DERIVED",
+                    "decision_inputs_readiness": "READY",
+                    "evaluated_at": "2026-10-20T08:08:42Z"
+                },
+                "options": [
+                    {
+                        "id": "inline_review_action_in_existing_app",
+                        "title": "Inline review endpoint with required note",
+                        "summary": "Add an approve/reject endpoint in main.go that rejects requests without a non-empty note and returns 404 for unknown orders. Add a minimal review form in web/index.html and tests in main_test.go. No new external services.",
+                        "cost_drivers": [
+                            "Code changes limited to main.go, web/index.html and main_test.go",
+                            "Test coverage for AC-001 (note required on approve and reject) and AC-404 (unknown order returns 404)",
+                            "Persistence of the decision and note, mechanism not stated in grounding"
+                        ],
+                        "risks": [
+                            "Storage mechanism for the decision and note is not described in the grounding, so durability is unknown",
+                            "Authentication is a forbidden action, so reviewer identity may not be captured with the decision",
+                            "Order exception data model is not described, so integration effort is uncertain"
+                        ],
+                        "recommended": true,
+                        "advisor_source": "anthropic:claude-opus-5-5",
+                        "pricing_ref": "none",
+                        "cost_estimate": {
+                            "status": "UNKNOWN",
+                            "reason": "pricing_ref \"none\" is not a priced SKU in price_table_version gcp-pricing-2026-09-27",
+                            "price_table_version": "gcp-pricing-2026-09-27"
+                        }
+                    },
+                    {
+                        "id": "review_action_with_decision_history",
+                        "title": "Review action with append-only decision history",
+                        "summary": "Same review endpoint and required-note validation, but each approve/reject is stored as an append-only record (order id, decision, note, timestamp) rather than overwriting state. This gives operations a trail of decisions while staying within the allowed paths.",
+                        "cost_drivers": [
+                            "Additional code in main.go to record each decision as an appended entry",
+                            "Tests in main_test.go for history behavior plus AC-001 and AC-404",
+                            "Growth of stored records at the stated volume of about 500 reviews per month"
+                        ],
+                        "risks": [
+                            "Goes beyond the stated scope ('review action', 'required note'), so it may cause scope creep",
+                            "Persistence approach is not stated, so history may be lost if storage is in-memory",
+                            "Without authentication, history entries cannot be reliably attributed to a staff member"
+                        ],
+                        "recommended": false,
+                        "advisor_source": "anthropic:claude-opus-5-5",
+                        "pricing_ref": "none",
+                        "cost_estimate": {
+                            "status": "UNKNOWN",
+                            "reason": "pricing_ref \"none\" is not a priced SKU in price_table_version gcp-pricing-2026-09-27",
+                            "price_table_version": "gcp-pricing-2026-09-27"
+                        }
+                    }
+                ],
+                "unknowns": [
+                    "How order exceptions are currently stored and identified in main.go, which determines how 404 for unknown orders is detected",
+                    "Whether the application has an existing persistence layer or keeps state in memory",
+                    "Whether a reviewer identity must be recorded, given that authentication is forbidden",
+                    "Whether an order can be re-reviewed after approval or rejection, or whether decisions are final",
+                    "Minimum or maximum note length and any content rules beyond 'required'",
+                    "Whether approve or reject should trigger downstream effects, given that payment and fulfillment are excluded",
+                    "Staging environment hosting and runtime details from docs/operations/environments.md, which are not provided in the grounding content",
+                    "Any governance policy constraints from docs/governance/policies.md that apply to internal-classified data, whose content was not provided",
+                    "repository URL is a fixture placeholder; real remote and branch protection unverified"
+                ]
+            }
+        ],
+        "decisions": null,
+        "work_order": null,
+        "candidates": null,
+        "created_at": "2026-10-20T08:08:42Z",
+        "updated_at": "2026-10-20T08:08:42Z"
+    },
+    "decision": null,
+    "brief": null,
+    "agent_context_pack": null,
+    "work_order": null,
+    "staleness": {
+        "stale": false
+    }
+}
+
+## teardown
+ContextRail workspace shutting down
+kill 10315 sent; lsof -nP -iTCP:8080 -sTCP:LISTEN:
+(no listener on 8080)
+state_dir=/private/tmp/claude-501/-Users-william-dev-source-projects-context-rail/50ecf2d1-05d8-432a-a7f8-f8ce8a77804b/scratchpad/eb016-state (scratch, not committed)

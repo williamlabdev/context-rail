@@ -40,7 +40,7 @@ Everything that can drift is hashed and versioned: topology config, source snaps
 | --- | --- | --- |
 | Project Registry | Read-only import of the Project Context Contract (`project.yaml`, documents, decisions, readiness) | VS-001/002 |
 | Environment Topology | Add / edit / reorder / retire / restore environments as immutable versions; production stays read-only; material changes invalidate decisions | VS-003 |
-| Change Decision Pack | Deterministic readiness (missing inputs name their owner), rule or Gemini advisor, first human decision, Brief + Agent Context Pack from one DecisionRecord, hashed Work Order | VS-004 |
+| Change Decision Pack | Deterministic readiness (missing inputs name their owner), rule, Gemini or Anthropic advisor, first human decision, Brief + Agent Context Pack from one DecisionRecord, hashed Work Order | VS-004 |
 | Candidate gate | Agent run + observed evidence (read back from GitHub — verified on a real PR, [EB-012](evidence/EB-012/README.md)) → BLOCKED / NEEDS_EVIDENCE / NEEDS_REVIEW / CANDIDATE_ACCEPTABLE, second human decision | VS-005 |
 | Staging promotion | Release bundle gate (no partial promotion), build digest, third human approval bound to the manifest hash, deployment verification, Release Receipt | VS-006 |
 | Prod-demo promotion | Same digest to the next environment, environment delta listed and bound by a new approval, new revision required, receipts chained | VS-007 |
@@ -53,7 +53,7 @@ Cloud Run is the designed deployment target. The build and deploy path below has
 
 - **Cloud Run** hosts the ContextRail workspace (Go binary serving the API and the built React UI) and is the promotion target of the governed demo application (staging and prod-demo services).
 - **Cloud Build** + **Artifact Registry** build the image; the deploy script promotes by **digest only**, never by tag (`scripts/deploy-cloud-run.sh`, `cloudbuild.yaml`).
-- **Gemini** is the optional decision advisor (`GEMINI_API_KEY`): it proposes candidate options and unknowns; it never makes the decision and its output is marked UNVERIFIED.
+- **A model advisor is optional** and provider-neutral ([DR-016](decisions/DR-016-advisor-provider-selection.json)): set `ANTHROPIC_API_KEY` (Anthropic, default `claude-opus-5-5`) or `GEMINI_API_KEY` (Gemini, default `gemini-3.6-flash`); with both set, `CONTEXT_RAIL_ADVISOR=anthropic|gemini|rule` must choose. The advisor proposes candidate options and unknowns; it never makes the decision, every option names its `advisor_source`, and the service falls back to the rule advisor on any error and says so. The Anthropic path was exercised once for real ([EB-016](evidence/EB-016/README.md)); the Gemini path is still UNVERIFIED.
 - `scripts/record-promotion.sh` reads the live Cloud Run revision and digest with `gcloud`, runs the smoke check and records the observation with an idempotency key, so the receipt reflects what actually landed.
 
 ## Quick start (local)

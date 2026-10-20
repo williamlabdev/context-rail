@@ -1,0 +1,107 @@
+{
+  "decision_id": "DR-016",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "low",
+  "selected_option": "provider_neutral_advisor_with_anthropic_adapter_raw_http",
+  "alternatives": [
+    {
+      "id": "keep_gemini_only_and_obtain_a_gemini_key",
+      "status": "rejected",
+      "reason": "Zero code change, but it binds the product's only model path to one provider and the founder does not hold a Gemini key. The founder holds an Anthropic key with promotional credit and said explicitly that they do not want to be locked into Gemini. A single-provider advisor also means the advisor interface is never exercised by a second implementation, so its provider-neutrality is a claim, not a fact."
+    },
+    {
+      "id": "anthropic_adapter_via_official_go_sdk",
+      "status": "rejected",
+      "reason": "The official SDK is the documented default for Go applications, but this module has exactly one dependency (gopkg.in/yaml.v3) and the existing Gemini adapter is already raw net/http. One advisor call per Change version, a fixed request shape and a fixed response shape do not justify a dependency tree; the Messages API contract (POST /v1/messages, x-api-key, anthropic-version, output_config.format json_schema) is small enough to pin in tests. Revisit if the adapter grows streaming, tool use or retries."
+    },
+    {
+      "id": "replace_gemini_with_anthropic",
+      "status": "rejected",
+      "reason": "Would trade one lock-in for another. The Gemini adapter keeps its behaviour and its UNVERIFIED status; the selection rule treats the two providers symmetrically."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "internal/change/advisor.go",
+      "internal/change/advisor_anthropic.go",
+      "cmd/context-rail/main.go",
+      "tests/change/advisor_anthropic_test.go",
+      "README.md",
+      "roadmap.md",
+      "decisions/DR-016-advisor-provider-selection.json",
+      "evidence/EB-016/",
+      "demo/order-operations-portal/README.md (restore to develop content only; see EB-016 last section)"
+    ],
+    "forbidden_paths": [
+      "secrets",
+      ".env",
+      "evidence/EB-015/",
+      "evidence/EB-008/",
+      "evidence/EB-009/",
+      "internal/change/pricing.go",
+      "demo/order-operations-portal/docs/ai/context-pack.json",
+      "demo/order-operations-portal/decisions/"
+    ]
+  },
+  "architecture_impact": [
+    "The decision advisor is provider-neutral in fact, not only by interface: two model-backed implementations (GeminiAdvisor, AnthropicAdvisor) and the deterministic RuleAdvisor satisfy change.Advisor, and both model adapters send the same user prompt from one function (advisorPrompt). The Anthropic adapter additionally sends a one-line system prompt restating the role and JSON-only rule, and its response schema differs in form (additionalProperties:false on every object, all fields required) because the Messages API requires it. A provider switch therefore changes the model and the provider-specific envelope, not the request, grounding or pricing_ref contract the model is asked about.",
+    "Advisor selection moves out of main.go into change.SelectAdvisor(AdvisorConfig): an explicit CONTEXT_RAIL_ADVISOR (rule | gemini | anthropic) wins and must have its key; with no explicit choice, exactly one configured key picks that provider, no key means the rule advisor, and two keys without a choice is a blocked start (exit 2). Silently preferring one provider is the lock-in this record removes, so it is an error rather than a default. This is a behaviour change for an operator whose shell already carries ANTHROPIC_API_KEY for other tools and who relied on GEMINI_API_KEY alone: the server now refuses to start until CONTEXT_RAIL_ADVISOR is set. The blocked exit lives in cmd/context-rail/main.go, which has no tests; the selection rule itself is table-tested in tests/change.",
+    "AnthropicAdvisor calls the Messages API over raw net/http with the key in the x-api-key header only, a JSON-schema output format whose pricing_ref enum is the same fixed list the Gemini schema uses, and a 45 s timeout chosen to stay under the HTTP server's 60 s write timeout so the rule fallback can still be written. A refusal stop, a max_tokens stop, a non-200 status, an unparseable body or zero options are all errors; the service then reruns the rule advisor and records an observation, exactly as for Gemini.",
+    "Option.advisor_source now takes the value anthropic:<model> as well as gemini:<model> and rule-advisor. No other ledger, Brief or Work Order field changes; the DecisionRecord shape is unchanged.",
+    "DR-014's price table (internal/change/pricing.go, GCS storage and egress SKUs for candidate options) is not touched by this decision. The advisor's own API cost is a separate line below; it was never in that table.",
+    "The Gemini adapter's behaviour is unchanged; its code now reads the prompt from the shared function and parses into the shared modelProposal type (formerly geminiProposal). Its real-API status stays UNVERIFIED (DR-014, DR-015 unknown 2)."
+  ],
+  "cost_assumptions": [
+    "One advisor call per evaluated Change version. At Anthropic list price for claude-opus-5-5 (US$4 per million input tokens, US$20 per million output tokens, from the claude-api reference used during implementation; not re-read from the pricing page at decision time) and an estimated 2-3k input tokens (request plus grounding, ten declared documents) and about 1k output tokens, one call is on the order of US$0.03. This is an estimate: the server does not log the usage field and EB-016 did not capture it.",
+    "The EB-016 call was paid from the founder's single promotional credit (US$200, expires 2026-11-10 UTC, see the operator notes outside this repo). Any further real calls before that date cost nothing beyond that credit; after it, list price applies unless another credit appears.",
+    "Zero cloud spend and zero new dependencies, as DR-015 requires."
+  ],
+  "unknowns": [
+    "Whether the Gemini adapter honours the same schema contract against the real API. Still UNVERIFIED; EB-016 is Anthropic-only and the roadmap row says so.",
+    "Actual token usage and cost per call. Not measured; a usage log line (counts only, never content) would settle it and is a small follow-up if cost ever matters.",
+    "Latency distribution. One measurement (13 s) sits well under the 45 s adapter timeout and the 60 s server write timeout; whether slower requests or larger groundings approach either limit is unknown.",
+    "Whether the advisor's candidates are good enough to be worth the call compared with the rule advisor. This record proves access and schema compliance, not quality; a comparison would need the reader test that DR-013 / EB-013 are still blocked on.",
+    "The Anthropic API version header (2023-06-01) and the output_config.format shape were taken from the claude-api reference and confirmed by one successful real call; a future API change would surface as an HTTP 400 and a rule-advisor fallback observation, not as a silent change of behaviour."
+  ],
+  "acceptance_criteria": [
+    "change.SelectAdvisor exists with the selection rule above and a table test covering: no key, each single key, both keys with and without CONTEXT_RAIL_ADVISOR, an explicit provider without its key, and an unknown provider.",
+    "AnthropicAdvisor sends POST /v1/messages with x-api-key and anthropic-version headers, the configured model, and an output_config.format of type json_schema whose schema closes every object with additionalProperties:false and constrains pricing_ref to pricingRefChoices(); tests pin this against an httptest fake and cover the HTTP-error, refusal, max_tokens and zero-option paths.",
+    "README.md names both providers and the CONTEXT_RAIL_ADVISOR rule; roadmap.md moves to v1.6 with G1 MET, EB-015 and EB-016 cited, model access stated as shown via go run only, and the Gemini path still marked UNVERIFIED.",
+    "EB-016 records one real call through the local go run path: the startup line naming anthropic:<model>, the POST status and duration, a response in which every option's advisor_source is anthropic:<model> and no 'advisor … unavailable' observation appears, and the teardown; the key appears in no file.",
+    "go build ./..., go vet ./... and go test -count=1 ./... pass locally with the change set applied; CI is read only if a run is actually seen green."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "c3d4fe1",
+  "source_refs": [
+    "internal/change/service.go:44-47",
+    "internal/change/service.go:466-480",
+    "internal/change/advisor.go (advisorPrompt, GeminiAdvisor)",
+    "internal/change/advisor_anthropic.go",
+    "cmd/context-rail/main.go:28-40",
+    "cmd/context-rail/main.go:150-160",
+    "tests/change/advisor_anthropic_test.go",
+    "decisions/DR-014-deterministic-cost-calculator.json (unknowns: Gemini schema compliance UNVERIFIED)",
+    "decisions/DR-015-local-only-deployment.json (cost_assumptions 1, unknowns 2)",
+    "evidence/EB-015/README.md (G1 verdict: PARTIAL, model access clause open)",
+    "roadmap.md:11",
+    "roadmap.md:148",
+    "README.md:43",
+    "README.md:56"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-015/",
+    "evidence/EB-016/"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-10-20T00:00:00+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "William 自己打字的原話，逐字記錄：先問「那我可以用claude code的金鑰嗎」（答：Claude Code 的登入是 OAuth，不是 API key，而且 advisor 當時只有 Gemini 實作），接著「但是我有claude的api key 而且我不想被gemini綁住」。後一句是本紀錄 selected_option 的直接依據：不綁單一供應商，用他持有的 Anthropic key 真跑一次把 G1 的 model access 關掉。"
+  },
+  "human_review": null
+}
