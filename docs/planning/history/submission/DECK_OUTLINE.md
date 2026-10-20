@@ -1,5 +1,7 @@
 # ContextRail — submission deck outline (11 slides + appendix)
 
+> Status (2026-10-16): historical draft. ContextRail withdrew from Google Cloud AI Builder Cup 2026 on 2026-10-16, so this file was never finalized. The `[UPDATE BEFORE SUBMISSION]`, `[VERIFY AFTER DEPLOY]` and `[CAPTURE]` tags below are left as they were on 2026-09-26 and will not be resolved. See [../README.md](../README.md).
+
 `[UPDATE BEFORE SUBMISSION]` Status as of 2026-09-26: **not deployed.** Google Cloud access is expected 2026-10-06; the submission deadline is 2026-10-18. Every deployment-dependent claim below is marked `[VERIFY AFTER DEPLOY]`; every screenshot that does not exist yet is marked `[CAPTURE]` with the exact screen and fixture needed. Everything not marked that way already exists under `evidence/` and can be captured today.
 
 1. **Title** — ContextRail: environment-aware AI Change Assurance. One line: *prove the change still matches the accepted intent before each governed environment — with evidence read back from where the change actually lives.* Team, deployed URL `<DEPLOYED_URL — fill after 2026-10-06>`, both public repos (`williamlabdev/context-rail`, `williamlabdev/order-operations-portal`).

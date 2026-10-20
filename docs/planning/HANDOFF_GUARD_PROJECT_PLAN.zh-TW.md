@@ -6,6 +6,8 @@ Future of Work & Enterprise Productivity
 
 版本 1.0　編製日期 2026 年 9 月 9 日　開發期間 9 月 9 日至 9 月 29 日
 
+> 狀態（2026-10-16）：本計畫書以參賽為前提撰寫。專案已退出 Google Cloud AI Builder Cup 2026；時程、交件與參賽相關段落保留為歷史紀錄，不再是實作依據。現行真相源為 [Project Plan v4.2](CONTEXT_RAIL_PROJECT_PLAN_V4.2.zh-TW.md)。
+
 規劃對象為 William 與一位隊友，共兩人。預定投入 160 人時，完成可在 Google Cloud 操作的原型、測試證據與英文交件材料。題目名稱與使用情境為本計劃的提案基準，產品需求由第一週訪談校正。
 
 ## 01 計劃摘要與成功條件
