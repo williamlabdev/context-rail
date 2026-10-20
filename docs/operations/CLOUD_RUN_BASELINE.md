@@ -1,6 +1,7 @@
 # Cloud Run Baseline (staging, read-only workspace)
 
-Status: baseline for roadmap G1
+Status: dormant reference material since 2026-10-19 ([DR-015](../../decisions/DR-015-local-only-deployment.json)): all deployment is local-only, no Cloud Run service is a target; roadmap G1 (v1.4) no longer requires one. Content below is unchanged.
+Original status: baseline for roadmap G1
 Version: 1.2
 Updated: 2026-09-27
 
