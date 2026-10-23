@@ -1,0 +1,28 @@
+## 2026-10-20 15:38:29 CST  README.md Quick start (local), verbatim except CONTEXT_RAIL_STATE_DIR -> scratch dir
+$ PORT=8080 CONTEXT_RAIL_FIXTURE_ROOTS=demo/order-operations-portal,examples/support-insights CONTEXT_RAIL_STATIC_DIR=frontend/dist CONTEXT_RAIL_STATE_DIR=<scratch>/state-go ./bin/context-rail &
+## startup line (stderr); note mode=container only means PORT was set, so the server binds 0.0.0.0 instead of loopback (cmd/context-rail/main.go:121-124)
+ContextRail workspace listening on http://0.0.0.0:8080 (mode=container fixtures=[demo/order-operations-portal examples/support-insights] static=frontend/dist state=/private/tmp/claude-501/-Users-william-dev-source-projects-context-rail/50ecf2d1-05d8-432a-a7f8-f8ce8a77804b/scratchpad/eb015/state-go advisor=rule-advisor read_back=none scenario=normal delay_ms=0)
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8080/
+http=200 bytes=414
+body[0:240]: <!doctype html> <html lang="en">   <head>     <meta charset="UTF-8" />     <meta name="viewport" content="width=device-width, initial-scale=1.0" />     <title>ContextRail Project Workspace</title>     <script type="module" crossorigin src="
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8080/projects/order-operations-portal
+http=200 bytes=414
+body[0:240]: <!doctype html> <html lang="en">   <head>     <meta charset="UTF-8" />     <meta name="viewport" content="width=device-width, initial-scale=1.0" />     <title>ContextRail Project Workspace</title>     <script type="module" crossorigin src="
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8080/v1/projects/order-operations-portal/environments
+http=200 bytes=1727
+body[0:240]: {"kind":"EnvironmentTopologyState","schema_version":"environment-topology/v1","project_id":"order-operations-portal","current_version":1,"versions":[{"version":1,"previous_version":0,"created_at":"2026-10-20T07:38:29Z","actor":"system","ori
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8080/v1/projects/order-operations-portal/changes
+http=200 bytes=110
+body[0:240]: {"kind":"ChangeList","schema_version":"change-ledger/v1","project_id":"order-operations-portal","changes":[]} 
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8080/v1/projects/support-insights/documents
+http=200 bytes=7600
+body[0:240]: {"project_id":"support-insights","current_version":1,"baseline":{"version":1,"previous_version":0,"created_at":"2026-10-20T07:38:29Z","actor":"context-rail","origin":"manifest","change":{"operation":"BOOTSTRAP","reason":"baseline imported f
+
+## stop
+$ kill 93177  (pid of ./bin/context-rail)
+$ lsof -nP -iTCP:8080 -sTCP:LISTEN | wc -l  -> 0

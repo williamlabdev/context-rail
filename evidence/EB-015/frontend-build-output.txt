@@ -1,0 +1,14 @@
+$ cd frontend && npm ci && npm run build   (README.md Quick start, verbatim)
+added 119 packages, and audited 120 packages in 2s
+25 packages are looking for funding
+✓ built in 307ms
+rc=0
+--- dist ---
+-rw-r--r--@ 1 william  staff  414 20 Oct 15:32 frontend/dist/index.html
+
+frontend/dist/assets:
+total 744
+drwxr-xr-x@ 4 william  staff     128 20 Oct 15:32 .
+drwxr-xr-x@ 4 william  staff     128 20 Oct 15:32 ..
+-rw-r--r--@ 1 william  staff  362137 20 Oct 15:32 index-DcKlHWoA.js
+-rw-r--r--@ 1 william  staff   16371 20 Oct 15:32 index-rzUFpzlr.css

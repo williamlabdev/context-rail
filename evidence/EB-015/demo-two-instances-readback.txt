@@ -1,0 +1,40 @@
+## 2026-10-20 15:38:33 CST  demo/order-operations-portal @ d5803c4 + the PORT/ORDER_PORTAL_ENV change in this PR
+$ go build -o <scratch>/order-operations-portal .
+$ PORT=8091 ORDER_PORTAL_ENV=staging   <scratch>/order-operations-portal &   -> pid 93319
+$ PORT=8092 ORDER_PORTAL_ENV=prod-demo <scratch>/order-operations-portal &   -> pid 93320
+
+## startup lines (stdout)
+pid 93319: order-operations-portal listening on :8091 (environment=staging)
+pid 93320: order-operations-portal listening on :8092 (environment=prod-demo)
+
+## pid -> environment of each process (ps eww prints the process environment)
+$ ps eww -o pid= -p 93319 | tr ' ' '
+' | grep -E '^(PORT|ORDER_PORTAL_ENV)='  -> pid 93319: PORT=8091 ORDER_PORTAL_ENV=staging 
+$ ps eww -o pid= -p 93320 | tr ' ' '
+' | grep -E '^(PORT|ORDER_PORTAL_ENV)='  -> pid 93320: PORT=8092 ORDER_PORTAL_ENV=prod-demo 
+
+## pid -> port
+$ lsof -nP -iTCP:8091 -iTCP:8092 -sTCP:LISTEN
+COMMAND PID NAME
+order-ope 93319 *:8091
+order-ope 93320 *:8092
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8091/healthz
+http=200 bytes=76
+body[0:240]: {"environment":"staging","service":"order-operations-portal","status":"ok"} 
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8091/api/orders
+http=200 bytes=267
+body[0:240]: [{"id":"ORD-1001","customer":"Acme North","amount":12800,"reason":"Shipping address changed after payment","status":"PENDING_REVIEW"},{"id":"ORD-1002","customer":"Beta Studio","amount":4200,"reason":"High-value order needs a second check","
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8092/healthz
+http=200 bytes=78
+body[0:240]: {"environment":"prod-demo","service":"order-operations-portal","status":"ok"} 
+
+$ curl -s -o body -w 'http=%{http_code} bytes=%{size_download}' http://127.0.0.1:8092/api/orders
+http=200 bytes=267
+body[0:240]: [{"id":"ORD-1001","customer":"Acme North","amount":12800,"reason":"Shipping address changed after payment","status":"PENDING_REVIEW"},{"id":"ORD-1002","customer":"Beta Studio","amount":4200,"reason":"High-value order needs a second check","
+
+## stop
+$ kill 93319 93320
+$ lsof -nP -iTCP:8091 -iTCP:8092 -sTCP:LISTEN | wc -l  -> 0

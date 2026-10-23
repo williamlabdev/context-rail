@@ -1,0 +1,23 @@
+$ docker build -t context-rail:g1-d5803c4 .   (Dockerfile unchanged, @ d5803c4; daemon: Docker Desktop, server 29.6.1)
+--- first lines ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.81kB done
+#1 DONE 0.0s
+
+--- ... 170 step lines omitted ... ---
+
+#28 exporting to image
+#28 exporting layers
+#28 exporting layers 0.2s done
+#28 exporting manifest sha256:4f6d8fea7b0e96b2f0c446fc662ec01b7cc02241e443c929881a908be9e09918 done
+#28 exporting config sha256:dcd2a37fdb5bc101e80705c546b0bdd5a5b84eb6fdf0d150fe242bb222af6805 done
+#28 exporting attestation manifest sha256:6de95b9d06cd00b42b12fe374bb0be746fe9b40bd1c821b2545cf972c66d72aa 0.0s done
+#28 exporting manifest list sha256:4bc906170bd3696d9bbb28aaf95c6ac96100a316d3f3d7e257a277358d80b5f2 done
+#28 naming to docker.io/library/context-rail:g1-d5803c4 done
+#28 unpacking to docker.io/library/context-rail:g1-d5803c4 0.1s done
+#28 DONE 0.4s
+rc=0
+--- image ---
+id=sha256:4bc906170bd3696d9bbb28aaf95c6ac96100a316d3f3d7e257a277358d80b5f2 size_bytes=8594067 created=2026-10-20T07:32:39.410138546Z

@@ -26,14 +26,17 @@ import (
 // without flags while keeping every Project root explicit; there is still no
 // arbitrary filesystem traversal, remote discovery or write path.
 const (
-	envPort         = "PORT"                       // Cloud Run container contract
-	envFixtureRoots = "CONTEXT_RAIL_FIXTURE_ROOTS" // comma-separated Project roots
-	envStaticDir    = "CONTEXT_RAIL_STATIC_DIR"    // built workspace directory
-	envScenario     = "CONTEXT_RAIL_FIXTURE_SCENARIO"
-	envStateDir     = "CONTEXT_RAIL_STATE_DIR" // governance state (topology versions, change ledger); JSON files in P0
-	envGeminiKey    = "GEMINI_API_KEY"         // optional: enables the Gemini decision advisor (candidates only)
-	envGeminiModel  = "CONTEXT_RAIL_GEMINI_MODEL"
-	envGitHubToken  = "GITHUB_TOKEN" // optional: enables GitHub read-back of candidates
+	envPort           = "PORT"                       // Cloud Run container contract
+	envFixtureRoots   = "CONTEXT_RAIL_FIXTURE_ROOTS" // comma-separated Project roots
+	envStaticDir      = "CONTEXT_RAIL_STATIC_DIR"    // built workspace directory
+	envScenario       = "CONTEXT_RAIL_FIXTURE_SCENARIO"
+	envStateDir       = "CONTEXT_RAIL_STATE_DIR" // governance state (topology versions, change ledger); JSON files in P0
+	envAdvisor        = "CONTEXT_RAIL_ADVISOR"   // optional: rule, gemini or anthropic; otherwise inferred from which key is set (DR-016)
+	envGeminiKey      = "GEMINI_API_KEY"         // optional: enables the Gemini decision advisor (candidates only)
+	envGeminiModel    = "CONTEXT_RAIL_GEMINI_MODEL"
+	envAnthropicKey   = "ANTHROPIC_API_KEY" // optional: enables the Anthropic (Claude) decision advisor (candidates only)
+	envAnthropicModel = "CONTEXT_RAIL_ANTHROPIC_MODEL"
+	envGitHubToken    = "GITHUB_TOKEN" // optional: enables GitHub read-back of candidates
 )
 
 const shutdownGrace = 10 * time.Second
@@ -144,12 +147,16 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 	}
 	topologyService := topology.NewService(topologyStore, topology.NewRegistrySource(roots))
 	documentService := document.NewService(documentStore, document.NewRegistrySource(roots)).WithTopology(topologyService)
-	var advisor change.Advisor = change.RuleAdvisor{}
-	advisorName := "rule-advisor"
-	if key := os.Getenv(envGeminiKey); key != "" {
-		gemini := change.NewGeminiAdvisor(key, os.Getenv(envGeminiModel))
-		advisor = gemini
-		advisorName = gemini.Name() + " (falls back to rule-advisor on error)"
+	advisor, advisorName, err := change.SelectAdvisor(change.AdvisorConfig{
+		Provider:       os.Getenv(envAdvisor),
+		GeminiKey:      os.Getenv(envGeminiKey),
+		GeminiModel:    os.Getenv(envGeminiModel),
+		AnthropicKey:   os.Getenv(envAnthropicKey),
+		AnthropicModel: os.Getenv(envAnthropicModel),
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "CONTEXT RAIL BLOCKED: advisor configuration: %v\n", err)
+		os.Exit(2)
 	}
 	changeService := change.NewService(changeStore, change.NewRegistrySource(roots, topologyService).WithDocuments(documentService), advisor)
 	documentService.WithDecisions(changeService)

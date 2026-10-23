@@ -1,0 +1,18 @@
+# go build / vet / test at 2026-10-20T08:09:13Z, commit c3d4fe1 + DR-016 working tree
+$ go build ./... && go vet ./...
+exit=0
+$ go test -count=1 ./...
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/change	[no test files]
+?   	context-rail/internal/document	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+?   	context-rail/internal/release	[no test files]
+?   	context-rail/internal/topology	[no test files]
+ok  	context-rail/tests/change	0.801s
+ok  	context-rail/tests/document	0.625s
+ok  	context-rail/tests/http	0.753s
+ok  	context-rail/tests/registry	0.945s
+ok  	context-rail/tests/release	0.517s
+ok  	context-rail/tests/topology	0.471s
+exit=0

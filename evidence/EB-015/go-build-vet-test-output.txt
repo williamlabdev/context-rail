@@ -1,0 +1,47 @@
+$ go version
+go version go1.26.6 darwin/arm64
+
+$ go build ./... && go build -o bin/context-rail ./cmd/context-rail
+ok (bin/context-rail rebuilt)
+
+$ go vet ./...
+ok
+
+$ go test -count=1 ./...
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/change	[no test files]
+?   	context-rail/internal/document	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+?   	context-rail/internal/release	[no test files]
+?   	context-rail/internal/topology	[no test files]
+ok  	context-rail/tests/change	0.405s
+ok  	context-rail/tests/document	0.904s
+ok  	context-rail/tests/http	1.086s
+ok  	context-rail/tests/registry	1.567s
+ok  	context-rail/tests/release	1.306s
+ok  	context-rail/tests/topology	1.499s
+
+$ (cd demo/order-operations-portal && go vet ./... && go test -count=1 ./...)
+=== RUN   TestHealthAndOrderList
+--- PASS: TestHealthAndOrderList (0.00s)
+=== RUN   TestReviewRequiresNote
+--- PASS: TestReviewRequiresNote (0.00s)
+=== RUN   TestReviewRejectsInvalidJSON
+--- PASS: TestReviewRejectsInvalidJSON (0.00s)
+=== RUN   TestReviewRejectsTrailingJSON
+--- PASS: TestReviewRejectsTrailingJSON (0.00s)
+=== RUN   TestReviewRejectsUnsupportedDecision
+--- PASS: TestReviewRejectsUnsupportedDecision (0.00s)
+=== RUN   TestReviewUpdatesOrder
+--- PASS: TestReviewUpdatesOrder (0.00s)
+=== RUN   TestReviewCanBeRepeated
+--- PASS: TestReviewCanBeRepeated (0.00s)
+=== RUN   TestReviewUnknownOrder
+--- PASS: TestReviewUnknownOrder (0.00s)
+=== RUN   TestListenAddrHonoursPort
+--- PASS: TestListenAddrHonoursPort (0.00s)
+=== RUN   TestHealthReportsEnvironmentLabel
+--- PASS: TestHealthReportsEnvironmentLabel (0.00s)
+PASS
+ok  	example.com/order-operations-portal	0.181s

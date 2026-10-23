@@ -138,3 +138,30 @@ func TestReviewUnknownOrder(t *testing.T) {
 		t.Fatalf("got %d, want 404", res.Code)
 	}
 }
+
+func TestListenAddrHonoursPort(t *testing.T) {
+	cases := map[string]string{"": ":8080", " ": ":8080", "8091": ":8091", " 8092\n": ":8092"}
+	for in, want := range cases {
+		if got := listenAddr(in); got != want {
+			t.Fatalf("listenAddr(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestHealthReportsEnvironmentLabel(t *testing.T) {
+	t.Setenv("ORDER_PORTAL_ENV", "prod-demo")
+	s := newServer()
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	res := httptest.NewRecorder()
+	s.routes().ServeHTTP(res, req)
+	var body map[string]string
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode healthz: %v", err)
+	}
+	if body["environment"] != "prod-demo" {
+		t.Fatalf("healthz environment = %q, want prod-demo", body["environment"])
+	}
+	if environmentLabel("") != "local" {
+		t.Fatalf("unset ORDER_PORTAL_ENV should report local")
+	}
+}
