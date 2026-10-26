@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# EB-017 / G4: promote one locally built demo binary through local staging and
+# EB-018 / G4: promote one locally built demo binary through local staging and
 # local prod-demo with ContextRail's release gates reading each instance back
-# over loopback (DR-017). Reproducible: run from the repo root.
+# over loopback (DR-017 v2). The topology is the one project.yaml declares;
+# EB-017 was the earlier run that built it at runtime instead. Reproducible: run from the repo root.
 #
-#   scripts/local-promotion.sh            # writes evidence/EB-017/local-promotion-run.txt
+#   scripts/local-promotion.sh            # writes evidence/EB-018/local-promotion-run.txt
 #   OUT=/tmp/run.txt scripts/local-promotion.sh
 #
 # Ports (override with env): RAIL_PORT=8090 STAGING_PORT=8091 PROD_DEMO_PORT=8092 DRIFT_PORT=8093
@@ -16,8 +17,8 @@ RAIL_PORT="${RAIL_PORT:-8090}"
 STAGING_PORT="${STAGING_PORT:-8091}"
 PROD_DEMO_PORT="${PROD_DEMO_PORT:-8092}"
 DRIFT_PORT="${DRIFT_PORT:-8093}"
-OUT="${OUT:-evidence/EB-017/local-promotion-run.txt}"
-STATE_DIR="${STATE_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/eb017-state.XXXXXX")}"
+OUT="${OUT:-evidence/EB-018/local-promotion-run.txt}"
+STATE_DIR="${STATE_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/eb018-state.XXXXXX")}"
 PROJECT="order-operations-portal"
 BASE="http://127.0.0.1:${RAIL_PORT}/v1/projects/${PROJECT}"
 ACTOR="founder-001"
@@ -71,7 +72,7 @@ if rc: print("  receipt", rc.get("receipt_id"), rc.get("status"), "previous", rc
 '; }
 
 HEAD_COMMIT="$(git rev-parse HEAD)"
-log "# EB-017 real run: local staging -> local prod-demo promotion with loopback read-back (DR-017, G4)"
+log "# EB-018 real run: local staging -> local prod-demo promotion with loopback read-back (DR-017, G4)"
 log "captured_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 log "commit=$HEAD_COMMIT"
 log "tracked changes not in that commit: $(git status --porcelain --untracked-files=no | tr '\n' ' ' | sed 's/ *$//')"
@@ -114,76 +115,83 @@ log "## what each instance says about itself (GET /healthz, read directly for th
 for p in "$STAGING_PORT" "$PROD_DEMO_PORT" "$DRIFT_PORT"; do log "127.0.0.1:$p -> $(curl -s "http://127.0.0.1:${p}/healthz")"; done
 
 log ""
-log "## topology: point staging at a local target and add prod-demo (runtime state; project.yaml untouched)"
+log "## topology: read back what project.yaml declares (DR-017 v2: no runtime topology edits)"
 call GET "$BASE/environments"
-V="$(printf '%s' "$BODY" | jget 'd["current_version"]')"
-call PATCH "$BASE/environments/staging" "{\"expected_version\":$V,\"actor\":\"$ACTOR\",\"reason\":\"EB-017: staging is a local process (DR-015/DR-017)\",\"target_ref\":\"local/order-operations-portal-staging\"}"
-V="$(printf '%s' "$BODY" | jget 'd["current_version"]')"
-call POST "$BASE/environments" "{\"expected_version\":$V,\"actor\":\"$ACTOR\",\"reason\":\"EB-017: isolated local prod-demo (DR-015/DR-017)\",\"id\":\"prod-demo\",\"display_name\":\"prod-demo\",\"type\":\"prod-demo\",\"sequence\":4,\"target_ref\":\"local/order-operations-portal-prod-demo\",\"owner\":\"founder-001\",\"required_evidence\":[\"release-approval\",\"staging-receipt\",\"smoke\",\"single-operator-controls\"],\"approver_policy\":\"distinct human approver\"}"
+printf '%s' "$BODY" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+envs = {e["id"]: e for e in d["versions"][-1]["environments"]}
+want = {"staging": "local/order-operations-portal-staging", "prod-demo": "local/order-operations-portal-prod-demo"}
+for env_id, target in want.items():
+    got = envs.get(env_id, {}).get("target_ref")
+    if got != target:
+        sys.exit(f"declared topology mismatch: {env_id} target_ref={got!r}, want {target!r}")
+print("declared topology ok: v%s, %s" % (d["current_version"], ", ".join("%s=%s" % (e["id"], e["target_ref"]) for e in d["versions"][-1]["environments"])))
+' | tee -a "$OUT"
 
 log ""
 log "## change: request -> decision -> work order -> candidate -> accepted"
 call POST "$BASE/changes" "$(cat <<JSON
-{"actor":"$ACTOR","reason":"EB-017: the healthz identity change that this promotion ships",
- "request":{"title":"Report revision and build digest from /healthz","objective":"Let a local instance answer which build runs and which start of it answers, so a promotion gate can read it back without a container registry.",
- "owner_summary":"Each local instance reports its environment label, a per-start revision and the sha256 of its own executable on /healthz.",
- "scope_included":["healthz identity fields","unit tests"],"scope_excluded":["project.yaml","authentication","order review behaviour"],
- "acceptance_criteria":[{"text":"healthz reports revision, build_digest and started_at"},{"text":"build_digest equals the sha256 of the running executable"}],
- "allowed_paths":["main.go","main_test.go"],"forbidden_actions":["project.yaml edits","authentication"],
+{"actor":"$ACTOR","reason":"EB-018: the healthz identity and declared local topology change that this promotion ships",
+ "request":{"title":"Report revision and build digest from /healthz and declare the local environments","objective":"Let a local instance answer which build runs and which start of it answers, so a promotion gate can read it back without a container registry, and declare the local staging and prod-demo targets in the governed baseline.",
+ "owner_summary":"Each local instance reports its environment label, a per-start revision and the sha256 of its own executable on /healthz; project.yaml declares local staging and local prod-demo targets.",
+ "scope_included":["healthz identity fields","unit tests","declared local environments","Context Pack rebuild"],"scope_excluded":["authentication","order review behaviour","production environment"],
+ "acceptance_criteria":[{"text":"healthz reports revision, build_digest and started_at"},{"text":"build_digest equals the sha256 of the running executable"},{"text":"project.yaml declares local staging and prod-demo and the Context Pack stays CURRENT"}],
+ "allowed_paths":["main.go","main_test.go","project.yaml","docs/operations/environments.md","docs/ai/context-pack.json"],"forbidden_actions":["authentication","production deployment"],
  "target_environment_id":"staging","business_constraints":{"data_classification":"internal","expected_monthly_volume":"500 reviews"},"requested_by":"$ACTOR"}}
 JSON
 )"
 OPTION="$(printf '%s' "$BODY" | jget 'd["change"]["versions"][-1]["options"][0]["id"]')"
 log "selected option: $OPTION"
-call POST "$BASE/changes/CHG-001/decision" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017\",\"decision\":\"ACCEPT\",\"role\":\"founder\",\"selected_option\":\"$OPTION\",\"rationale\":\"Smallest change that gives the release gate something real to read back.\",\"risk_level\":\"low\"}"
-call POST "$BASE/changes/CHG-001/work-order" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017\"}"
+call POST "$BASE/changes/CHG-001/decision" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018\",\"decision\":\"ACCEPT\",\"role\":\"founder\",\"selected_option\":\"$OPTION\",\"rationale\":\"Smallest change that gives the release gate something real to read back.\",\"risk_level\":\"low\"}"
+call POST "$BASE/changes/CHG-001/work-order" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018\"}"
 WO_ID="$(printf '%s' "$BODY" | jget 'd["work_order"]["work_order_id"]')"
 WO_HASH="$(printf '%s' "$BODY" | jget 'd["work_order"]["work_order_hash"]')"
 BASE_BRANCH="$(printf '%s' "$BODY" | jget 'd["work_order"].get("base_branch","develop")')"
 TARGET_BRANCH="$(printf '%s' "$BODY" | jget 'd["work_order"].get("target_branch","g4/local-promotion")')"
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 call POST "$BASE/changes/CHG-001/candidates" "$(cat <<JSON
-{"actor":"$ACTOR","reason":"EB-017: candidate from the agent run that produced the healthz change",
- "run":{"kind":"ContextRailRun","schema_version":"1","run_id":"run-eb017-1","work_order_id":"$WO_ID","work_order_hash":"$WO_HASH",
-   "agent":{"name":"claude-code","provider":"anthropic","model":"claude-fable-5-1"},"adapter":"claude-code-cli","started_by":"$ACTOR","started_at":"$NOW"},
+{"actor":"$ACTOR","reason":"EB-018: candidate from the agent run that produced the healthz change",
+ "run":{"kind":"ContextRailRun","schema_version":"1","run_id":"run-eb018-1","work_order_id":"$WO_ID","work_order_hash":"$WO_HASH",
+   "agent":{"name":"claude-code","provider":"anthropic","model":"claude-opus-5-5"},"adapter":"claude-code-cli","started_by":"$ACTOR","started_at":"$NOW"},
  "observation":{"source":"local-git","repository":"williamlabdev/context-rail","branch":"$TARGET_BRANCH","base_branch":"$BASE_BRANCH",
-   "base_commit":"7d371b8","head_commit":"$HEAD_COMMIT","changed_paths":["main.go","main_test.go"],
-   "checks":[{"name":"test","status":"PASS","evidence_ref":"evidence/EB-017/go-build-test-output.txt","observed_at":"$NOW"},
-             {"name":"build","status":"PASS","evidence_ref":"evidence/EB-017/local-promotion-run.txt#build","observed_at":"$NOW"}],
-   "reviews":[{"reviewer":"verifier subagent (Claude; model per agent definition: sonnet)","kind":"ai","verdict":"APPROVED","evidence_ref":"evidence/EB-017/ai-review-demo-healthz.md","at":"$NOW"}],
-   "compensating_controls":{"declared":true,"evidence_ref":"evidence/EB-017/ai-review-demo-healthz.md + demo/order-operations-portal/docs/governance/policies.md (single_operator mode)","reason":"single operator: the only human is also the run starter; an independent AI review plus the local gate read-back stand in for a second human (DR-015 scope: local staging and prod-demo only)"},
+   "base_commit":"65a7d44","head_commit":"$HEAD_COMMIT","changed_paths":["main.go","main_test.go","project.yaml","docs/operations/environments.md","docs/ai/context-pack.json"],
+   "checks":[{"name":"test","status":"PASS","evidence_ref":"evidence/EB-018/go-build-test-output.txt","observed_at":"$NOW"},
+             {"name":"build","status":"PASS","evidence_ref":"evidence/EB-018/local-promotion-run.txt#build","observed_at":"$NOW"}],
+   "reviews":[{"reviewer":"verifier subagent (Claude; model per agent definition: sonnet)","kind":"ai","verdict":"APPROVED","evidence_ref":"evidence/EB-018/ai-review-demo-healthz.md","at":"$NOW"}],
+   "compensating_controls":{"declared":true,"evidence_ref":"evidence/EB-018/ai-review-demo-healthz.md + demo/order-operations-portal/docs/governance/policies.md (single_operator mode)","reason":"single operator: the only human is also the run starter; an independent AI review plus the local gate read-back stand in for a second human (DR-015 scope: local staging and prod-demo only)"},
    "observed_at":"$NOW"}}
 JSON
 )"
-call POST "$BASE/changes/CHG-001/candidates/CAND-001/decision" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017\",\"decision\":\"ACCEPT\",\"role\":\"founder\",\"rationale\":\"Checks pass, AI review approved, waiver declared.\"}"
+call POST "$BASE/changes/CHG-001/candidates/CAND-001/decision" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018\",\"decision\":\"ACCEPT\",\"role\":\"founder\",\"rationale\":\"Checks pass, AI review approved, waiver declared.\"}"
 
 log ""
 log "## release 1: CHG-001 -> staging (local instance on :$STAGING_PORT)"
-call POST "$BASE/releases" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017\",\"change_ids\":[\"CHG-001\"],\"target_environment_id\":\"staging\"}"
-call POST "$BASE/releases/REL-001/build" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017\",\"image_digest\":\"$DIGEST\",\"image_ref\":\"file://bin/order-portal\",\"build_id\":\"local-build-1\",\"source_commit\":\"$HEAD_COMMIT\",\"includes_commits\":[\"$HEAD_COMMIT\"],\"evidence_ref\":\"evidence/EB-017/local-promotion-run.txt#build\"}"
-call POST "$BASE/releases/REL-001/approval" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017\",\"decision\":\"APPROVE\",\"role\":\"release_manager\",\"rationale\":\"Local staging under single-operator controls.\"}"
-call POST "$BASE/releases/REL-001/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017 staging deploy\",\"idempotency_key\":\"k-staging-1\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${STAGING_PORT}\"}"
+call POST "$BASE/releases" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018\",\"change_ids\":[\"CHG-001\"],\"target_environment_id\":\"staging\"}"
+call POST "$BASE/releases/REL-001/build" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018\",\"image_digest\":\"$DIGEST\",\"image_ref\":\"file://bin/order-portal\",\"build_id\":\"local-build-1\",\"source_commit\":\"$HEAD_COMMIT\",\"includes_commits\":[\"$HEAD_COMMIT\"],\"evidence_ref\":\"evidence/EB-018/local-promotion-run.txt#build\"}"
+call POST "$BASE/releases/REL-001/approval" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018\",\"decision\":\"APPROVE\",\"role\":\"release_manager\",\"rationale\":\"Local staging under single-operator controls.\"}"
+call POST "$BASE/releases/REL-001/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018 staging deploy\",\"idempotency_key\":\"k-staging-1\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${STAGING_PORT}\"}"
 log "--- gates:"; gates | tee -a "$OUT"
 log ""
 log "### replay: same idempotency_key again (must not re-read the instance or issue a new receipt)"
-call POST "$BASE/releases/REL-001/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017 staging deploy (retry)\",\"idempotency_key\":\"k-staging-1\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${STAGING_PORT}\"}"
+call POST "$BASE/releases/REL-001/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018 staging deploy (retry)\",\"idempotency_key\":\"k-staging-1\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${STAGING_PORT}\"}"
 log "--- gates:"; gates | tee -a "$OUT"
 
 log ""
 log "## release 2: promote REL-001 -> prod-demo"
-call POST "$BASE/releases" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017\",\"source_release_id\":\"REL-001\",\"target_environment_id\":\"prod-demo\"}"
-call POST "$BASE/releases/REL-002/approval" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017\",\"decision\":\"APPROVE\",\"role\":\"release_manager\",\"rationale\":\"Promote the staged build unchanged.\"}"
+call POST "$BASE/releases" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018\",\"source_release_id\":\"REL-001\",\"target_environment_id\":\"prod-demo\"}"
+call POST "$BASE/releases/REL-002/approval" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018\",\"decision\":\"APPROVE\",\"role\":\"release_manager\",\"rationale\":\"Promote the staged build unchanged.\"}"
 log ""
 log "### attempt A: the drift binary answers on :$DRIFT_PORT (expected: digest_drift BLOCKED)"
-call POST "$BASE/releases/REL-002/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017 prod-demo attempt A (drift)\",\"idempotency_key\":\"k-prod-demo-a\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${DRIFT_PORT}\"}"
+call POST "$BASE/releases/REL-002/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018 prod-demo attempt A (drift)\",\"idempotency_key\":\"k-prod-demo-a\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${DRIFT_PORT}\"}"
 log "--- gates:"; gates | tee -a "$OUT"
 log ""
 log "### attempt B: the staging instance answers for prod-demo on :$STAGING_PORT (expected: target_drift + new_revision BLOCKED)"
-call POST "$BASE/releases/REL-002/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017 prod-demo attempt B (wrong instance)\",\"idempotency_key\":\"k-prod-demo-b\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${STAGING_PORT}\"}"
+call POST "$BASE/releases/REL-002/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018 prod-demo attempt B (wrong instance)\",\"idempotency_key\":\"k-prod-demo-b\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${STAGING_PORT}\"}"
 log "--- gates:"; gates | tee -a "$OUT"
 log ""
-log "### attempt C: the real prod-demo instance on :$PROD_DEMO_PORT (expected: PROMOTED, receipt chained to RR-001)"
-call POST "$BASE/releases/REL-002/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-017 prod-demo attempt C\",\"idempotency_key\":\"k-prod-demo-c\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${PROD_DEMO_PORT}\"}"
+log "### attempt C: the real prod-demo instance on :$PROD_DEMO_PORT (expected: PROMOTED, previous receipt RR-001)"
+call POST "$BASE/releases/REL-002/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018 prod-demo attempt C\",\"idempotency_key\":\"k-prod-demo-c\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${PROD_DEMO_PORT}\"}"
 log "--- gates:"; gates | tee -a "$OUT"
 
 log ""

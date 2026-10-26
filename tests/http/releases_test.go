@@ -63,7 +63,7 @@ func TestPromotionJourneyOverHTTP(t *testing.T) {
 	}
 	response, payload = call(t, mux, http.MethodPost, releases+"/REL-001/deployment", map[string]any{
 		"reason": "deployed", "idempotency_key": "k1", "operation_id": "op1", "revision": "oop-00003", "service_url": "https://oop.a.run.app",
-		"deployed_digest": digest, "deployed_target_ref": "cloud-run/order-operations-portal-staging", "smoke": map[string]string{"status": "PASS", "evidence_ref": "smoke.txt"},
+		"deployed_digest": digest, "deployed_target_ref": "local/order-operations-portal-staging", "smoke": map[string]string{"status": "PASS", "evidence_ref": "smoke.txt"},
 	})
 	if response.Code != http.StatusOK {
 		t.Fatalf("deployment: %d %s", response.Code, response.Body.String())
@@ -77,11 +77,11 @@ func TestPromotionJourneyOverHTTP(t *testing.T) {
 		t.Fatalf("receipt must link decision and revision: %v", receipt)
 	}
 	// Replay with the same key returns the same receipt; a new key is refused.
-	response, payload = call(t, mux, http.MethodPost, releases+"/REL-001/deployment", map[string]any{"reason": "retry", "idempotency_key": "k1", "revision": "oop-00003", "deployed_digest": digest, "deployed_target_ref": "cloud-run/order-operations-portal-staging"})
+	response, payload = call(t, mux, http.MethodPost, releases+"/REL-001/deployment", map[string]any{"reason": "retry", "idempotency_key": "k1", "revision": "oop-00003", "deployed_digest": digest, "deployed_target_ref": "local/order-operations-portal-staging"})
 	if response.Code != http.StatusOK || payload["release"].(map[string]any)["receipt"].(map[string]any)["receipt_id"] != receipt["receipt_id"] {
 		t.Fatalf("replay must return the same receipt: %d %s", response.Code, response.Body.String())
 	}
-	response, payload = call(t, mux, http.MethodPost, releases+"/REL-001/deployment", map[string]any{"reason": "again", "idempotency_key": "k2", "revision": "oop-00004", "deployed_digest": digest, "deployed_target_ref": "cloud-run/order-operations-portal-staging"})
+	response, payload = call(t, mux, http.MethodPost, releases+"/REL-001/deployment", map[string]any{"reason": "again", "idempotency_key": "k2", "revision": "oop-00004", "deployed_digest": digest, "deployed_target_ref": "local/order-operations-portal-staging"})
 	if response.Code != http.StatusConflict || payload["code"] != release.CodeAlreadyPromoted {
 		t.Fatalf("second promotion must be 409 ALREADY_PROMOTED: %d %s", response.Code, response.Body.String())
 	}

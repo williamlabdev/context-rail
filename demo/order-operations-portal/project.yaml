@@ -35,11 +35,16 @@ spec:
     - id: staging
       type: staging
       sequence: 3
-      targetRef: cloud-run/order-operations-portal-staging
+      targetRef: local/order-operations-portal-staging
       requiredEvidence: [decision-record, review, single-operator-controls, test, build, smoke]
+    - id: prod-demo
+      type: prod-demo
+      sequence: 4
+      targetRef: local/order-operations-portal-prod-demo
+      requiredEvidence: [release-approval, staging-receipt, smoke, single-operator-controls]
     - id: production
       type: production
-      sequence: 4
+      sequence: 5
       targetRef: protected/read-only
       requiredEvidence: [release-approval, staging-receipt, smoke]
       action: blocked-in-demo

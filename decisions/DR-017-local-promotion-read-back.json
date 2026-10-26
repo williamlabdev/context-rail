@@ -2,15 +2,15 @@
   "decision_id": "DR-017",
   "project_id": "context-rail",
   "request_id": null,
-  "version": 1,
+  "version": 2,
   "status": "ACCEPTED_FOR_DEVELOPMENT",
   "risk_level": "low",
   "selected_option": "local_instances_observed_through_loopback_healthz_read_back",
   "alternatives": [
     {
-      "id": "edit_demo_project_yaml_to_local_targets_and_add_prod_demo",
+      "id": "runtime_topology_edits_with_project_yaml_untouched",
       "status": "rejected",
-      "reason": "project.yaml is a declared source of the demo Context Pack, which records a per-file content_hash. No generator exists to re-hash the pack, so any edit turns the pack STALE and breaks tests/http and tests/registry, as the PR #22 README edit did. The topology API exists to change environments at runtime, so this record uses it and leaves the governed Project untouched."
+      "reason": "Version 1 selected this: staging was retargeted and prod-demo added through the topology API at run time, and project.yaml stayed unchanged (EB-017). The founder rejected it on 2026-10-26 in favour of declaring the topology in project.yaml. Version 1 also stated that no Context Pack generator exists; that was wrong. template/scripts/rebuild_context_pack.py --root rebuilds the demo pack, and on the unchanged demo it reproduced the committed pack exactly apart from generated_at and effective_time."
     },
     {
       "id": "docker_image_digest_through_the_docker_socket",
@@ -18,22 +18,39 @@
       "reason": "It would give a real OCI digest, but it ties the gate to a container runtime, needs socket access from the ContextRail process and still has no registry to compare against. DR-015 already accepts the go-run path as a first-class local run; a binary digest is the matching identity for it."
     },
     {
+      "id": "build_the_demo_with_buildvcs_false",
+      "status": "rejected",
+      "reason": "It would keep the binary digest equal across commits that leave the demo source unchanged, at the cost of dropping the commit stamp from the binary and rerunning the promotion. The founder kept the stamped binary digest and asked for the limit to be stated instead (see unknowns)."
+    },
+    {
       "id": "keep_local_deployments_declared_only",
       "status": "rejected",
       "reason": "DR-015 rejected declared-only local records because they cannot exercise the parts of the gate that read a live service: healthz, revision identity and digest match. G4 asks for drift checks that actually fire."
+    },
+    {
+      "id": "accept_declared_local_fields_as_hints",
+      "status": "rejected",
+      "reason": "Letting a source \"local\" request carry expected revision or digest values, with the read-back winning and a mismatch blocking, adds a path to test and blurs the rule that only observed values count. The founder kept the rejection of declared fields."
     }
   ],
   "scope": {
     "allowed_paths": [
       "demo/order-operations-portal/main.go",
       "demo/order-operations-portal/main_test.go",
+      "demo/order-operations-portal/project.yaml",
+      "demo/order-operations-portal/docs/operations/environments.md",
+      "demo/order-operations-portal/docs/ai/context-pack.json",
       "internal/release/observer.go",
       "internal/release/model.go",
       "internal/release/service.go",
       "cmd/context-rail/main.go",
       "tests/release/local_readback_test.go",
+      "tests/http/releases_test.go",
+      "tests/http/topology_test.go",
+      "tests/registry/contract_test.go",
+      "tests/topology/service_test.go",
       "scripts/local-promotion.sh",
-      "evidence/EB-017/",
+      "evidence/EB-018/",
       "decisions/DR-017-local-promotion-read-back.json",
       "roadmap.md",
       "README.md"
@@ -41,67 +58,69 @@
     "forbidden_paths": [
       "secrets",
       ".env",
-      "demo/order-operations-portal/project.yaml",
-      "demo/order-operations-portal/docs/",
-      "demo/order-operations-portal/docs/ai/context-pack.json",
       "demo/order-operations-portal/decisions/",
       "demo/order-operations-portal/README.md",
+      "demo/order-operations-portal/scripts/deploy-staging.sh",
       "evidence/EB-008/",
       "evidence/EB-009/",
       "evidence/EB-015/",
       "evidence/EB-016/",
+      "evidence/EB-017/",
       "internal/change/pricing.go"
     ]
   },
   "architecture_impact": [
     "Each local environment is a separate process of the same built binary on its own loopback port, labelled by ORDER_PORTAL_ENV, so staging and prod-demo are told apart by what each instance reports about itself, not only by the port it was started on (roadmap §8 open question, DR-015 unknown).",
-    "A local instance carries two identities on /healthz: revision (<environment>-<start time>-<pid>, new on every start) and build_digest (sha256 of the running executable). The build digest is a local binary digest, not an OCI image digest; it is compared with the image_digest field of the build evidence only because both name the bytes that run.",
+    "A local instance carries two identities on /healthz: revision (<environment label reduced to [a-z0-9-]>-<start time>-<pid>, new on every start) and build_digest (sha256 of the running executable, computed once per process). The build digest is a local binary digest, not an OCI image digest; it is compared with the image_digest field of the build evidence only because both name the bytes that run.",
     "release.Observer is a new interface; release.LocalReadBack is its only implementation. It accepts only loopback hosts (127.0.0.0/8, ::1, localhost), http or https, a bare origin without user info, query or fragment, never follows a redirect, uses a 5 second timeout and reads at most 64 KiB of /healthz.",
     "A DeploymentRequest with source \"local\" must leave revision, deployed_digest, deployed_target_ref, deployed_config_hash and smoke empty and give service_url; ContextRail fills them from the read-back. The observed target_ref is derived as local/<service>-<environment> from the instance's own answer. An unreachable or unhealthy instance yields a smoke FAIL with the reason in smoke.detail, so the attempt is PROMOTION_FAILED with a receipt, never a silent pass.",
     "The idempotency replay check runs before the read-back, so a retry with the same key returns the recorded attempt and receipt without reading the instance again.",
-    "The demo baseline in project.yaml is unchanged. Retargeting staging to local/order-operations-portal-staging and adding prod-demo are runtime topology versions in the ContextRail state directory, recorded in EB-017.",
+    "The demo baseline declares the local topology: in project.yaml staging targets local/order-operations-portal-staging, prod-demo (type prod-demo, sequence 4, target local/order-operations-portal-prod-demo, evidence release-approval, staging-receipt, smoke, single-operator-controls) sits before production, which moves to sequence 5 and stays blocked-in-demo. docs/operations/environments.md says the same, and the Context Pack is rebuilt with template/scripts/rebuild_context_pack.py. The manifest has no owner or approver_policy fields, so prod-demo carries neither; neither feeds a gate. The Cloud Run path in demo scripts/deploy-staging.sh is kept as pre-DR-015 history and is not retargeted.",
     "The server prints local_read_back=loopback in its startup line; the GitHub read-back and its UNVERIFIED status are unaffected."
   ],
   "cost_assumptions": [
-    "No cloud resource and no model call: the EB-017 run uses CONTEXT_RAIL_ADVISOR=rule and only loopback HTTP.",
+    "No cloud resource and no model call: the EB-017 and EB-018 runs use CONTEXT_RAIL_ADVISOR=rule and only loopback HTTP.",
     "One /healthz GET per non-replayed deployment attempt; nothing polls."
   ],
   "unknowns": [
-    "config_drift is not observable from a local instance: /healthz does not report a config hash, and a local request may not declare deployed_config_hash, so the gate is always skipped for source \"local\". EB-017 does not exercise it.",
-    "Whether the demo baseline should eventually declare local target_refs and a prod-demo environment in project.yaml. That needs a Context Pack generator first.",
-    "Isolation between staging and prod-demo is process and port only: same machine, same user, same ContextRail state. Nothing stops an operator from pointing a prod-demo deployment at the staging port; the gates catch it (EB-017 attempt B), they do not prevent it.",
-    "The executable is hashed once at start; a binary replaced on disk between exec and the hash would be misreported (AI review finding, accepted as a narrow local race).",
+    "config_drift is not observable from a local instance: /healthz does not report a config hash, and a local request may not declare deployed_config_hash, so the gate is always skipped for source \"local\". Neither EB-017 nor EB-018 exercises it.",
+    "Isolation between staging and prod-demo is process and port only: same machine, same user, same ContextRail state. Nothing stops an operator from pointing a prod-demo deployment at the staging port; the gates catch it (EB-017 and EB-018 attempt B), they do not prevent it.",
+    "The executable is hashed once per process, from the file at os.Executable(); a binary replaced on disk between exec and that hash would be misreported. There is no portable way to hash the mapped image instead, so this stays an accepted local limit (AI review finding).",
     "The single-operator waiver (AI review plus declared compensating controls) is what lets one person accept the candidate and approve both releases; a distinct human approver has not been exercised.",
-    "The build digest of the same demo source changes with every repository commit, because Go stamps vcs.revision and vcs.modified into the binary. A promotion therefore compares one build's bytes, as intended; it cannot show that two builds from different commits are the same program."
+    "The build digest of the same demo source changes with every repository commit, because Go stamps vcs.revision and vcs.modified into the binary. A promotion therefore compares one build's bytes, as intended; it cannot show that two builds from different commits are the same program. The founder kept this limit on 2026-10-26 rather than building with -buildvcs=false.",
+    "EB-017 records version 1 (runtime topology); it is kept unchanged as the record of that run and is not reproducible from scripts/local-promotion.sh after version 2, only from its source commit."
   ],
   "acceptance_criteria": [
-    "The demo /healthz reports revision, build_digest and started_at, and a unit test compares build_digest with an independent sha256 of the test executable.",
+    "The demo /healthz reports revision, build_digest and started_at. Unit tests compare build_digest with an independent sha256 of the test executable, check that the revision label is reduced to [a-z0-9-], and start the test binary twice as real processes to show two different revisions with one build digest.",
     "LocalReadBack rejects non-loopback hosts (including 10.0.0.1 and 169.254.169.254), non-http schemes, user info, query, fragment and an empty URL, never follows a redirect, and treats a non-200 answer as an observation, not an error (tests/release/local_readback_test.go).",
     "A source \"local\" deployment that declares any identity field (revision, deployed_digest, deployed_target_ref, deployed_config_hash, smoke), lacks service_url, or runs on a server without an observer is rejected as an invalid request.",
-    "A real run (scripts/local-promotion.sh, EB-017) shows: staging PROMOTED with receipt RR-001; a same-key replay returning the same receipt without a new read; a prod-demo attempt against a different binary BLOCKED on digest_drift; a prod-demo attempt against the staging instance BLOCKED on target_drift and new_revision; a prod-demo attempt against the prod-demo instance PROMOTED with a receipt whose previous_receipt_id is RR-001.",
+    "A real run (scripts/local-promotion.sh, EB-018) reads back the topology project.yaml declares without editing it, and shows: staging PROMOTED with receipt RR-001; a same-key replay returning the same receipt without a new read; a prod-demo attempt against a different binary BLOCKED on digest_drift; a prod-demo attempt against the staging instance BLOCKED on target_drift and new_revision; a prod-demo attempt against the prod-demo instance PROMOTED with a receipt whose previous_receipt_id is RR-001.",
+    "The demo Context Pack is CURRENT after the project.yaml and environments.md edits, rebuilt by template/scripts/rebuild_context_pack.py, and tests/http, tests/registry and tests/topology pass against the five declared environments.",
     "go build ./..., go vet ./... and go test -count=1 ./... pass locally, and the demo module's go vet and go test pass; CI is cited only if a run is actually seen green."
   ],
   "source_snapshot_hash": null,
-  "source_commit": "7d371b8",
+  "source_commit": "65a7d44",
   "source_refs": [
     "decisions/DR-015-local-only-deployment.json",
     "roadmap.md §6 G4",
     "roadmap.md §8 (local environments told apart)",
     "internal/release/service.go (executableTypes, deployment gates)",
     "internal/topology (Add/Edit environment API)",
-    "demo/order-operations-portal/project.yaml (environments, unchanged)",
+    "demo/order-operations-portal/project.yaml (environments, declared local in version 2)",
+    "template/scripts/rebuild_context_pack.py (Context Pack generator)",
     "demo/order-operations-portal/docs/ai/context-pack.json (per-file content_hash)"
   ],
   "policy_version": "project-workspace-v1",
   "evidence_refs": [
-    "evidence/EB-017/"
+    "evidence/EB-017/",
+    "evidence/EB-018/"
   ],
   "human_decision": {
     "actor": "founder-001",
     "role": "founder_and_solution_architect",
-    "at": "2026-10-26T00:00:00+08:00",
+    "at": "2026-10-26T22:11:07+08:00",
     "decision": "ACCEPTED_FOR_DEVELOPMENT",
-    "reason": "William 自己打字的原話，逐字記錄：「好 先做G4」。這句授權的是開始做 roadmap §6 的 G4，不是本紀錄的設計選擇。selected_option、四個 alternatives 的取捨、loopback-only 與 binary digest 的界線，都是 agent 提出的，尚待 William 確認；若他否決任一項，本紀錄改版而不是沿用。"
+    "reason": "版本 1 的授權是 William 打字的原話「好 先做G4」，只授權開工，設計選擇由 agent 提出。版本 2 記錄他對設計選擇的裁決：2026-10-26 他在 agent 提供的選項 UI 中選擇，以下為所選選項的標籤原文。拓撲來源：「改進 project.yaml」（否決 agent 建議的「確認現狀」，本版因此改為在 project.yaml 宣告本地拓撲）。Build 身分：「確認，並在文件標明限制 (Recommended)」。讀取規則：「兩條都確認 (Recommended)」（loopback-only、不跟隨 redirect；source local 的欄位只能實測）。後續項目：「填 human_decision.at」「補 revision 重啟測試」「處理 AI 審查的 🟡」。at 為 agent 寫入本版的時刻，他的回答在此之前數分鐘，確切時間未記錄。"
   },
   "human_review": null
 }
