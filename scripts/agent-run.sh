@@ -38,7 +38,7 @@ PERMISSION_MODE="dontAsk"
 AUTHOR_BUILTINS="Read,Edit,Bash"
 REVIEW_BUILTINS="Read"
 # Keep Read away from where secrets live; the key file and gh credentials are outside the clone anyway.
-DENY_TOOLS="Read(//$HOME/dev/source/core/**),Read(//$HOME/.config/**),Read(//$HOME/.ssh/**),Read(//$HOME/.claude/**)"
+DENY_TOOLS="Read(/$HOME/dev/source/core/**),Read(/$HOME/.config/**),Read(/$HOME/.ssh/**),Read(/$HOME/.claude/**)"
 KEY_FILE="${KEY_FILE:-$HOME/dev/source/core/aine/orvena/.env}"
 EB="evidence/EB-019"
 OUT="$EB/agent-run-$RUN_N.txt"

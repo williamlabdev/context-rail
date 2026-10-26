@@ -1,0 +1,5090 @@
+# EB-019 real run 1: headless Claude Code under a ContextRail Work Order -> GitHub -> local staging (DR-018 v2, G3)
+captured_at=2026-10-26T15:38:53Z
+context-rail commit=e2209b4d74b58f2d0c342fda0bf709a5c31c89b3
+tracked changes not in that commit: 
+ports: context-rail=8094 staging=8095
+author: claude -p --bare --model claude-fable-5-1 --max-budget-usd 20 --allowedTools "Read,Edit,Bash(go test:*),Bash(go vet:*),Bash(gofmt:*)"
+reviewer: claude -p --bare --model claude-opus-5-5 --max-budget-usd 5 --allowedTools "Read"
+both: --disallowedTools "Read(///Users/william/dev/source/core/**),Read(///Users/william/.config/**),Read(///Users/william/.ssh/**),Read(///Users/william/.claude/**)"
+claude version: 2.1.310 (Claude Code)
+env_check: ANTHROPIC_API_KEY exported in the invoking shell? NO; key read from the local .env (not printed)
+
+## clone the Project (the external repository is the single source, DR-018)
+$ git clone https://github.com/williamlabdev/order-operations-portal   -> main @ c3c23371ecc1277da6ddd2bc53abbd4b7b39cc79 (sync: bring the ContextRail demo's local run path and healthz identity here (#2))
+agent clone on agent/order-status-filter from c3c23371ecc1277da6ddd2bc53abbd4b7b39cc79; ContextRail reads the untouched clone
+
+## start ContextRail (rule advisor, GitHub read-back, the Project root is the external clone)
+$ GITHUB_TOKEN=<gh auth token> CONTEXT_RAIL_ADVISOR=rule PORT=8094 CONTEXT_RAIL_FIXTURE_ROOTS=<scratch>/root,examples/support-insights CONTEXT_RAIL_STATIC_DIR=frontend/dist CONTEXT_RAIL_STATE_DIR=<scratch>/rail ./bin/context-rail
+startup line: ContextRail workspace listening on http://0.0.0.0:8094 (mode=container fixtures=[<scratch>/root examples/support-insights] static=frontend/dist state=<scratch>/rail advisor=rule-advisor read_back=github local_read_back=loopback scenario=normal delay_ms=0)
+
+## change -> decision -> Work Order
+
+### POST /v1/projects/order-operations-portal/changes
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019: the change the headless agent run makes",
+  "request": {
+    "title": "Filter the order list by status",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "scope_included": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "scope_excluded": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "acceptance_criteria": [
+      {
+        "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "text": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "text": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "target_environment_id": "staging",
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "requested_by": "founder-001"
+  }
+}
+http=200
+{
+  "change": {
+    "change_id": "CHG-001",
+    "project_id": "order-operations-portal",
+    "title": "Filter the order list by status",
+    "status": "DECISION_READY",
+    "current_version": 1,
+    "versions": [
+      {
+        "version": 1,
+        "created_at": "2026-10-26T15:38:57Z",
+        "actor": "founder-001",
+        "reason": "EB-019: the change the headless agent run makes",
+        "request": {
+          "title": "Filter the order list by status",
+          "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+          "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+          "scope_included": [
+            "status query parameter on GET /api/orders",
+            "validation of the status value",
+            "unit tests"
+          ],
+          "scope_excluded": [
+            "authentication",
+            "order review behaviour",
+            "web UI",
+            "new dependencies",
+            "production environment"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC-001",
+              "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+            },
+            {
+              "id": "AC-002",
+              "text": "GET /api/orders without a status parameter returns every order, as before"
+            },
+            {
+              "id": "AC-003",
+              "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+            },
+            {
+              "id": "AC-004",
+              "text": "main_test.go covers the three cases and go test ./... passes"
+            }
+          ],
+          "allowed_paths": [
+            "main.go",
+            "main_test.go"
+          ],
+          "forbidden_actions": [
+            "authentication",
+            "production deployment",
+            "changing the order review endpoint",
+            "adding dependencies"
+          ],
+          "target_environment_id": "staging",
+          "business_constraints": {
+            "data_classification": "internal",
+            "expected_monthly_volume": "500 reviews"
+          },
+          "requested_by": "founder-001"
+        },
+        "evaluation": {
+          "status": "DECISION_READY",
+          "missing_inputs": [],
+          "observations": [],
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "topology_version": 1,
+          "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+          "target_environment": {
+            "id": "staging",
+            "type": "staging",
+            "sequence": 3,
+            "target_ref": "local/order-operations-portal-staging",
+            "required_evidence": [
+              "decision-record",
+              "review",
+              "single-operator-controls",
+              "test",
+              "build",
+              "smoke"
+            ],
+            "status": "ACTIVE"
+          },
+          "source_environment": {
+            "id": "testing",
+            "type": "testing",
+            "sequence": 2,
+            "target_ref": "ci",
+            "required_evidence": [
+              "test",
+              "build",
+              "code-review"
+            ],
+            "status": "ACTIVE"
+          },
+          "allowed_transition": "testing-to-staging",
+          "promotion_path": [
+            {
+              "id": "development",
+              "display_name": "development",
+              "type": "development",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "testing",
+              "display_name": "testing",
+              "type": "testing",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "staging",
+              "display_name": "staging",
+              "type": "staging",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "prod-demo",
+              "display_name": "prod-demo",
+              "type": "prod-demo",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "production",
+              "display_name": "production",
+              "type": "production",
+              "status": "ACTIVE"
+            }
+          ],
+          "project_context_status": "DERIVED",
+          "decision_inputs_readiness": "READY",
+          "evaluated_at": "2026-10-26T15:38:57Z"
+        },
+        "options": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "unknowns": []
+      }
+    ],
+    "decisions": null,
+    "work_order": null,
+    "candidates": null,
+    "created_at": "2026-10-26T15:38:57Z",
+    "updated_at": "2026-10-26T15:38:57Z"
+  },
+  "decision": null,
+  "brief": null,
+  "agent_context_pack": null,
+  "work_order": null,
+  "staleness": {
+    "stale": false
+  }
+}
+selected option: minimal_reversible_slice
+
+### POST /v1/projects/order-operations-portal/changes/CHG-001/decision
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019",
+  "decision": "ACCEPT",
+  "role": "founder",
+  "selected_option": "minimal_reversible_slice",
+  "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+  "risk_level": "low"
+}
+http=200
+{
+  "change": {
+    "change_id": "CHG-001",
+    "project_id": "order-operations-portal",
+    "title": "Filter the order list by status",
+    "status": "ACCEPTED",
+    "current_version": 1,
+    "versions": [
+      {
+        "version": 1,
+        "created_at": "2026-10-26T15:38:57Z",
+        "actor": "founder-001",
+        "reason": "EB-019: the change the headless agent run makes",
+        "request": {
+          "title": "Filter the order list by status",
+          "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+          "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+          "scope_included": [
+            "status query parameter on GET /api/orders",
+            "validation of the status value",
+            "unit tests"
+          ],
+          "scope_excluded": [
+            "authentication",
+            "order review behaviour",
+            "web UI",
+            "new dependencies",
+            "production environment"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC-001",
+              "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+            },
+            {
+              "id": "AC-002",
+              "text": "GET /api/orders without a status parameter returns every order, as before"
+            },
+            {
+              "id": "AC-003",
+              "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+            },
+            {
+              "id": "AC-004",
+              "text": "main_test.go covers the three cases and go test ./... passes"
+            }
+          ],
+          "allowed_paths": [
+            "main.go",
+            "main_test.go"
+          ],
+          "forbidden_actions": [
+            "authentication",
+            "production deployment",
+            "changing the order review endpoint",
+            "adding dependencies"
+          ],
+          "target_environment_id": "staging",
+          "business_constraints": {
+            "data_classification": "internal",
+            "expected_monthly_volume": "500 reviews"
+          },
+          "requested_by": "founder-001"
+        },
+        "evaluation": {
+          "status": "DECISION_READY",
+          "missing_inputs": [],
+          "observations": [],
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "topology_version": 1,
+          "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+          "target_environment": {
+            "id": "staging",
+            "type": "staging",
+            "sequence": 3,
+            "target_ref": "local/order-operations-portal-staging",
+            "required_evidence": [
+              "decision-record",
+              "review",
+              "single-operator-controls",
+              "test",
+              "build",
+              "smoke"
+            ],
+            "status": "ACTIVE"
+          },
+          "source_environment": {
+            "id": "testing",
+            "type": "testing",
+            "sequence": 2,
+            "target_ref": "ci",
+            "required_evidence": [
+              "test",
+              "build",
+              "code-review"
+            ],
+            "status": "ACTIVE"
+          },
+          "allowed_transition": "testing-to-staging",
+          "promotion_path": [
+            {
+              "id": "development",
+              "display_name": "development",
+              "type": "development",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "testing",
+              "display_name": "testing",
+              "type": "testing",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "staging",
+              "display_name": "staging",
+              "type": "staging",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "prod-demo",
+              "display_name": "prod-demo",
+              "type": "prod-demo",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "production",
+              "display_name": "production",
+              "type": "production",
+              "status": "ACTIVE"
+            }
+          ],
+          "project_context_status": "DERIVED",
+          "decision_inputs_readiness": "READY",
+          "evaluated_at": "2026-10-26T15:38:57Z"
+        },
+        "options": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "unknowns": []
+      }
+    ],
+    "decisions": [
+      {
+        "decision_id": "DEC-001",
+        "project_id": "order-operations-portal",
+        "change_id": "CHG-001",
+        "change_version": 1,
+        "version": 1,
+        "status": "ACCEPTED_FOR_DEVELOPMENT",
+        "risk_level": "low",
+        "selected_option": "minimal_reversible_slice",
+        "alternatives": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+        "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+        "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+        "accepted_scope": [
+          "status query parameter on GET /api/orders",
+          "validation of the status value",
+          "unit tests"
+        ],
+        "out_of_scope": [
+          "authentication",
+          "order review behaviour",
+          "web UI",
+          "new dependencies",
+          "production environment"
+        ],
+        "allowed_paths": [
+          "main.go",
+          "main_test.go"
+        ],
+        "forbidden_actions": [
+          "deploy:production",
+          "modify:iam",
+          "read:deployment-secrets",
+          "merge-or-approve-release",
+          "change-scope-without-new-decision-version",
+          "authentication",
+          "production deployment",
+          "changing the order review endpoint",
+          "adding dependencies"
+        ],
+        "acceptance_criteria": [
+          {
+            "id": "AC-001",
+            "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+          },
+          {
+            "id": "AC-002",
+            "text": "GET /api/orders without a status parameter returns every order, as before"
+          },
+          {
+            "id": "AC-003",
+            "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+          },
+          {
+            "id": "AC-004",
+            "text": "main_test.go covers the three cases and go test ./... passes"
+          }
+        ],
+        "business_constraints": {
+          "data_classification": "internal",
+          "expected_monthly_volume": "500 reviews"
+        },
+        "unknowns": [],
+        "target_environment": {
+          "id": "staging",
+          "type": "staging",
+          "sequence": 3,
+          "target_ref": "local/order-operations-portal-staging",
+          "required_evidence": [
+            "decision-record",
+            "review",
+            "single-operator-controls",
+            "test",
+            "build",
+            "smoke"
+          ],
+          "status": "ACTIVE"
+        },
+        "source_environment": {
+          "id": "testing",
+          "type": "testing",
+          "sequence": 2,
+          "target_ref": "ci",
+          "required_evidence": [
+            "test",
+            "build",
+            "code-review"
+          ],
+          "status": "ACTIVE"
+        },
+        "allowed_transition": "testing-to-staging",
+        "promotion_path": [
+          {
+            "id": "development",
+            "display_name": "development",
+            "type": "development",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "testing",
+            "display_name": "testing",
+            "type": "testing",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "staging",
+            "display_name": "staging",
+            "type": "staging",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "prod-demo",
+            "display_name": "prod-demo",
+            "type": "prod-demo",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "production",
+            "display_name": "production",
+            "type": "production",
+            "status": "ACTIVE"
+          }
+        ],
+        "production_action": "forbidden",
+        "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+        "topology_version": 1,
+        "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+        "policy_version": "project-workspace-v1",
+        "evidence_refs": [],
+        "human_decision": {
+          "actor": "founder-001",
+          "role": "founder",
+          "at": "2026-10-26T15:38:57Z",
+          "decision": "ACCEPTED",
+          "reason": "Small read-only API addition; the agent run is the point of the exercise."
+        },
+        "created_at": "2026-10-26T15:38:57Z"
+      }
+    ],
+    "work_order": null,
+    "candidates": null,
+    "created_at": "2026-10-26T15:38:57Z",
+    "updated_at": "2026-10-26T15:38:57Z"
+  },
+  "decision": {
+    "decision_id": "DEC-001",
+    "project_id": "order-operations-portal",
+    "change_id": "CHG-001",
+    "change_version": 1,
+    "version": 1,
+    "status": "ACCEPTED_FOR_DEVELOPMENT",
+    "risk_level": "low",
+    "selected_option": "minimal_reversible_slice",
+    "alternatives": [
+      {
+        "id": "minimal_reversible_slice",
+        "title": "Minimal reversible slice",
+        "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+        "cost_drivers": [
+          "compute of the existing service",
+          "build and test minutes"
+        ],
+        "risks": [
+          "may not cover the full business need on its own",
+          "state resets if the slice is stateless"
+        ],
+        "recommended": true,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      },
+      {
+        "id": "defer",
+        "title": "Defer / keep current process",
+        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+        "cost_drivers": [
+          "ongoing manual effort (not measured)"
+        ],
+        "risks": [
+          "business impact of waiting is not quantified"
+        ],
+        "recommended": false,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      },
+      {
+        "id": "expanded_scope_new_infrastructure",
+        "title": "Expanded scope with new infrastructure",
+        "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+        "cost_drivers": [
+          "new managed services",
+          "operations and on-call load"
+        ],
+        "risks": [
+          "scope creep",
+          "cost unknown until sized",
+          "longer time to first evidence"
+        ],
+        "recommended": false,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      }
+    ],
+    "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "accepted_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "AC-001",
+        "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "id": "AC-002",
+        "text": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "id": "AC-003",
+        "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "id": "AC-004",
+        "text": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "unknowns": [],
+    "target_environment": {
+      "id": "staging",
+      "type": "staging",
+      "sequence": 3,
+      "target_ref": "local/order-operations-portal-staging",
+      "required_evidence": [
+        "decision-record",
+        "review",
+        "single-operator-controls",
+        "test",
+        "build",
+        "smoke"
+      ],
+      "status": "ACTIVE"
+    },
+    "source_environment": {
+      "id": "testing",
+      "type": "testing",
+      "sequence": 2,
+      "target_ref": "ci",
+      "required_evidence": [
+        "test",
+        "build",
+        "code-review"
+      ],
+      "status": "ACTIVE"
+    },
+    "allowed_transition": "testing-to-staging",
+    "promotion_path": [
+      {
+        "id": "development",
+        "display_name": "development",
+        "type": "development",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "testing",
+        "display_name": "testing",
+        "type": "testing",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "staging",
+        "display_name": "staging",
+        "type": "staging",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "prod-demo",
+        "display_name": "prod-demo",
+        "type": "prod-demo",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "production",
+        "display_name": "production",
+        "type": "production",
+        "status": "ACTIVE"
+      }
+    ],
+    "production_action": "forbidden",
+    "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+    "topology_version": 1,
+    "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+    "policy_version": "project-workspace-v1",
+    "evidence_refs": [],
+    "human_decision": {
+      "actor": "founder-001",
+      "role": "founder",
+      "at": "2026-10-26T15:38:57Z",
+      "decision": "ACCEPTED",
+      "reason": "Small read-only API addition; the agent run is the point of the exercise."
+    },
+    "created_at": "2026-10-26T15:38:57Z"
+  },
+  "brief": {
+    "artifact_type": "change_decision_brief",
+    "schema_version": "change-decision-brief/v2",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "audience": "business owner, engineering manager, PM",
+    "state": "ACCEPTED",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "owner_summary_missing": false,
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "selected": {
+      "id": "minimal_reversible_slice",
+      "title": "Minimal reversible slice",
+      "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+      "code": "minimal_reversible_slice"
+    },
+    "route": {
+      "source_environment_id": "testing",
+      "target_environment_id": "staging",
+      "target_type": "staging",
+      "target_ref": "local/order-operations-portal-staging",
+      "transition": "testing-to-staging",
+      "production_action": "forbidden",
+      "path": [
+        {
+          "id": "development",
+          "display_name": "development",
+          "type": "development",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "testing",
+          "display_name": "testing",
+          "type": "testing",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "staging",
+          "display_name": "staging",
+          "type": "staging",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "prod-demo",
+          "display_name": "prod-demo",
+          "type": "prod-demo",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "production",
+          "display_name": "production",
+          "type": "production",
+          "status": "ACTIVE"
+        }
+      ]
+    },
+    "risk_level": "low",
+    "unknowns": [],
+    "in_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "required_evidence": [
+      "build",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "smoke",
+      "test"
+    ],
+    "decided_by": {
+      "actor": "founder-001",
+      "role": "founder",
+      "at": "2026-10-26T15:38:57Z",
+      "rationale": "Small read-only API addition; the agent run is the point of the exercise."
+    },
+    "alternatives": [
+      {
+        "id": "defer",
+        "title": "Defer / keep current process",
+        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+        "code": "defer"
+      },
+      {
+        "id": "expanded_scope_new_infrastructure",
+        "title": "Expanded scope with new infrastructure",
+        "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+        "code": "expanded_scope_new_infrastructure"
+      }
+    ],
+    "rendered_at": "2026-10-26T15:38:57Z"
+  },
+  "agent_context_pack": {
+    "artifact_type": "agent_context_pack",
+    "schema_version": "agent-context-pack/v1",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "status": "ISSUED_FOR_DEVELOPMENT_CANDIDATE",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "environment_topology": {
+      "allowed_transition_id": "testing-to-staging",
+      "config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "production_action": "forbidden",
+      "source_environment_id": "testing",
+      "target_environment_id": "staging",
+      "target_ref": "local/order-operations-portal-staging",
+      "version": 1
+    },
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "accepted_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_tests": [
+      {
+        "id": "AC-001",
+        "expected": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "id": "AC-002",
+        "expected": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "id": "AC-003",
+        "expected": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "id": "AC-004",
+        "expected": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "required_checks": [
+      "allowed-paths-diff-check",
+      "independent-review",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "test",
+      "build",
+      "smoke"
+    ],
+    "unknowns": [],
+    "evidence_refs": [],
+    "rendered_at": "2026-10-26T15:38:57Z"
+  },
+  "work_order": null,
+  "staleness": {
+    "stale": false
+  }
+}
+
+### POST /v1/projects/order-operations-portal/changes/CHG-001/work-order
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019",
+  "target_branch": "agent/order-status-filter"
+}
+http=200
+{
+  "change": {
+    "change_id": "CHG-001",
+    "project_id": "order-operations-portal",
+    "title": "Filter the order list by status",
+    "status": "ACCEPTED",
+    "current_version": 1,
+    "versions": [
+      {
+        "version": 1,
+        "created_at": "2026-10-26T15:38:57Z",
+        "actor": "founder-001",
+        "reason": "EB-019: the change the headless agent run makes",
+        "request": {
+          "title": "Filter the order list by status",
+          "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+          "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+          "scope_included": [
+            "status query parameter on GET /api/orders",
+            "validation of the status value",
+            "unit tests"
+          ],
+          "scope_excluded": [
+            "authentication",
+            "order review behaviour",
+            "web UI",
+            "new dependencies",
+            "production environment"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC-001",
+              "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+            },
+            {
+              "id": "AC-002",
+              "text": "GET /api/orders without a status parameter returns every order, as before"
+            },
+            {
+              "id": "AC-003",
+              "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+            },
+            {
+              "id": "AC-004",
+              "text": "main_test.go covers the three cases and go test ./... passes"
+            }
+          ],
+          "allowed_paths": [
+            "main.go",
+            "main_test.go"
+          ],
+          "forbidden_actions": [
+            "authentication",
+            "production deployment",
+            "changing the order review endpoint",
+            "adding dependencies"
+          ],
+          "target_environment_id": "staging",
+          "business_constraints": {
+            "data_classification": "internal",
+            "expected_monthly_volume": "500 reviews"
+          },
+          "requested_by": "founder-001"
+        },
+        "evaluation": {
+          "status": "DECISION_READY",
+          "missing_inputs": [],
+          "observations": [],
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "topology_version": 1,
+          "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+          "target_environment": {
+            "id": "staging",
+            "type": "staging",
+            "sequence": 3,
+            "target_ref": "local/order-operations-portal-staging",
+            "required_evidence": [
+              "decision-record",
+              "review",
+              "single-operator-controls",
+              "test",
+              "build",
+              "smoke"
+            ],
+            "status": "ACTIVE"
+          },
+          "source_environment": {
+            "id": "testing",
+            "type": "testing",
+            "sequence": 2,
+            "target_ref": "ci",
+            "required_evidence": [
+              "test",
+              "build",
+              "code-review"
+            ],
+            "status": "ACTIVE"
+          },
+          "allowed_transition": "testing-to-staging",
+          "promotion_path": [
+            {
+              "id": "development",
+              "display_name": "development",
+              "type": "development",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "testing",
+              "display_name": "testing",
+              "type": "testing",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "staging",
+              "display_name": "staging",
+              "type": "staging",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "prod-demo",
+              "display_name": "prod-demo",
+              "type": "prod-demo",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "production",
+              "display_name": "production",
+              "type": "production",
+              "status": "ACTIVE"
+            }
+          ],
+          "project_context_status": "DERIVED",
+          "decision_inputs_readiness": "READY",
+          "evaluated_at": "2026-10-26T15:38:57Z"
+        },
+        "options": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "unknowns": []
+      }
+    ],
+    "decisions": [
+      {
+        "decision_id": "DEC-001",
+        "project_id": "order-operations-portal",
+        "change_id": "CHG-001",
+        "change_version": 1,
+        "version": 1,
+        "status": "ACCEPTED_FOR_DEVELOPMENT",
+        "risk_level": "low",
+        "selected_option": "minimal_reversible_slice",
+        "alternatives": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+        "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+        "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+        "accepted_scope": [
+          "status query parameter on GET /api/orders",
+          "validation of the status value",
+          "unit tests"
+        ],
+        "out_of_scope": [
+          "authentication",
+          "order review behaviour",
+          "web UI",
+          "new dependencies",
+          "production environment"
+        ],
+        "allowed_paths": [
+          "main.go",
+          "main_test.go"
+        ],
+        "forbidden_actions": [
+          "deploy:production",
+          "modify:iam",
+          "read:deployment-secrets",
+          "merge-or-approve-release",
+          "change-scope-without-new-decision-version",
+          "authentication",
+          "production deployment",
+          "changing the order review endpoint",
+          "adding dependencies"
+        ],
+        "acceptance_criteria": [
+          {
+            "id": "AC-001",
+            "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+          },
+          {
+            "id": "AC-002",
+            "text": "GET /api/orders without a status parameter returns every order, as before"
+          },
+          {
+            "id": "AC-003",
+            "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+          },
+          {
+            "id": "AC-004",
+            "text": "main_test.go covers the three cases and go test ./... passes"
+          }
+        ],
+        "business_constraints": {
+          "data_classification": "internal",
+          "expected_monthly_volume": "500 reviews"
+        },
+        "unknowns": [],
+        "target_environment": {
+          "id": "staging",
+          "type": "staging",
+          "sequence": 3,
+          "target_ref": "local/order-operations-portal-staging",
+          "required_evidence": [
+            "decision-record",
+            "review",
+            "single-operator-controls",
+            "test",
+            "build",
+            "smoke"
+          ],
+          "status": "ACTIVE"
+        },
+        "source_environment": {
+          "id": "testing",
+          "type": "testing",
+          "sequence": 2,
+          "target_ref": "ci",
+          "required_evidence": [
+            "test",
+            "build",
+            "code-review"
+          ],
+          "status": "ACTIVE"
+        },
+        "allowed_transition": "testing-to-staging",
+        "promotion_path": [
+          {
+            "id": "development",
+            "display_name": "development",
+            "type": "development",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "testing",
+            "display_name": "testing",
+            "type": "testing",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "staging",
+            "display_name": "staging",
+            "type": "staging",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "prod-demo",
+            "display_name": "prod-demo",
+            "type": "prod-demo",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "production",
+            "display_name": "production",
+            "type": "production",
+            "status": "ACTIVE"
+          }
+        ],
+        "production_action": "forbidden",
+        "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+        "topology_version": 1,
+        "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+        "policy_version": "project-workspace-v1",
+        "evidence_refs": [],
+        "human_decision": {
+          "actor": "founder-001",
+          "role": "founder",
+          "at": "2026-10-26T15:38:57Z",
+          "decision": "ACCEPTED",
+          "reason": "Small read-only API addition; the agent run is the point of the exercise."
+        },
+        "created_at": "2026-10-26T15:38:57Z"
+      }
+    ],
+    "work_order": {
+      "kind": "AgentWorkOrder",
+      "schema_version": "agent-work-order/v1",
+      "work_order_id": "AWO-001",
+      "lineage": {
+        "decision_id": "DEC-001",
+        "decision_version": 1,
+        "change_id": "CHG-001",
+        "project_id": "order-operations-portal",
+        "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+        "topology_version": 1,
+        "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+        "policy_version": "project-workspace-v1"
+      },
+      "status": "ISSUED",
+      "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+      "issuer": "founder-001",
+      "repository": "github.com/williamlabdev/order-operations-portal",
+      "base_branch": "main",
+      "target_branch": "agent/order-status-filter",
+      "target_environment_id": "staging",
+      "allowed_transition": "testing-to-staging",
+      "allowed_paths": [
+        "main.go",
+        "main_test.go"
+      ],
+      "forbidden_actions": [
+        "deploy:production",
+        "modify:iam",
+        "read:deployment-secrets",
+        "merge-or-approve-release",
+        "change-scope-without-new-decision-version",
+        "authentication",
+        "production deployment",
+        "changing the order review endpoint",
+        "adding dependencies"
+      ],
+      "acceptance_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004"
+      ],
+      "required_checks": [
+        "allowed-paths-diff-check",
+        "independent-review",
+        "decision-record",
+        "review",
+        "single-operator-controls",
+        "test",
+        "build",
+        "smoke"
+      ],
+      "output_paths": [
+        "runs/",
+        "evidence/"
+      ],
+      "issued_at": "2026-10-26T15:38:57Z",
+      "expires_at": "2026-11-09T15:38:57Z",
+      "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011"
+    },
+    "candidates": null,
+    "created_at": "2026-10-26T15:38:57Z",
+    "updated_at": "2026-10-26T15:38:57Z"
+  },
+  "decision": {
+    "decision_id": "DEC-001",
+    "project_id": "order-operations-portal",
+    "change_id": "CHG-001",
+    "change_version": 1,
+    "version": 1,
+    "status": "ACCEPTED_FOR_DEVELOPMENT",
+    "risk_level": "low",
+    "selected_option": "minimal_reversible_slice",
+    "alternatives": [
+      {
+        "id": "minimal_reversible_slice",
+        "title": "Minimal reversible slice",
+        "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+        "cost_drivers": [
+          "compute of the existing service",
+          "build and test minutes"
+        ],
+        "risks": [
+          "may not cover the full business need on its own",
+          "state resets if the slice is stateless"
+        ],
+        "recommended": true,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      },
+      {
+        "id": "defer",
+        "title": "Defer / keep current process",
+        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+        "cost_drivers": [
+          "ongoing manual effort (not measured)"
+        ],
+        "risks": [
+          "business impact of waiting is not quantified"
+        ],
+        "recommended": false,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      },
+      {
+        "id": "expanded_scope_new_infrastructure",
+        "title": "Expanded scope with new infrastructure",
+        "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+        "cost_drivers": [
+          "new managed services",
+          "operations and on-call load"
+        ],
+        "risks": [
+          "scope creep",
+          "cost unknown until sized",
+          "longer time to first evidence"
+        ],
+        "recommended": false,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      }
+    ],
+    "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "accepted_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "AC-001",
+        "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "id": "AC-002",
+        "text": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "id": "AC-003",
+        "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "id": "AC-004",
+        "text": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "unknowns": [],
+    "target_environment": {
+      "id": "staging",
+      "type": "staging",
+      "sequence": 3,
+      "target_ref": "local/order-operations-portal-staging",
+      "required_evidence": [
+        "decision-record",
+        "review",
+        "single-operator-controls",
+        "test",
+        "build",
+        "smoke"
+      ],
+      "status": "ACTIVE"
+    },
+    "source_environment": {
+      "id": "testing",
+      "type": "testing",
+      "sequence": 2,
+      "target_ref": "ci",
+      "required_evidence": [
+        "test",
+        "build",
+        "code-review"
+      ],
+      "status": "ACTIVE"
+    },
+    "allowed_transition": "testing-to-staging",
+    "promotion_path": [
+      {
+        "id": "development",
+        "display_name": "development",
+        "type": "development",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "testing",
+        "display_name": "testing",
+        "type": "testing",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "staging",
+        "display_name": "staging",
+        "type": "staging",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "prod-demo",
+        "display_name": "prod-demo",
+        "type": "prod-demo",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "production",
+        "display_name": "production",
+        "type": "production",
+        "status": "ACTIVE"
+      }
+    ],
+    "production_action": "forbidden",
+    "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+    "topology_version": 1,
+    "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+    "policy_version": "project-workspace-v1",
+    "evidence_refs": [],
+    "human_decision": {
+      "actor": "founder-001",
+      "role": "founder",
+      "at": "2026-10-26T15:38:57Z",
+      "decision": "ACCEPTED",
+      "reason": "Small read-only API addition; the agent run is the point of the exercise."
+    },
+    "created_at": "2026-10-26T15:38:57Z"
+  },
+  "brief": {
+    "artifact_type": "change_decision_brief",
+    "schema_version": "change-decision-brief/v2",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "audience": "business owner, engineering manager, PM",
+    "state": "ACCEPTED",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "owner_summary_missing": false,
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "selected": {
+      "id": "minimal_reversible_slice",
+      "title": "Minimal reversible slice",
+      "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+      "code": "minimal_reversible_slice"
+    },
+    "route": {
+      "source_environment_id": "testing",
+      "target_environment_id": "staging",
+      "target_type": "staging",
+      "target_ref": "local/order-operations-portal-staging",
+      "transition": "testing-to-staging",
+      "production_action": "forbidden",
+      "path": [
+        {
+          "id": "development",
+          "display_name": "development",
+          "type": "development",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "testing",
+          "display_name": "testing",
+          "type": "testing",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "staging",
+          "display_name": "staging",
+          "type": "staging",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "prod-demo",
+          "display_name": "prod-demo",
+          "type": "prod-demo",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "production",
+          "display_name": "production",
+          "type": "production",
+          "status": "ACTIVE"
+        }
+      ]
+    },
+    "risk_level": "low",
+    "unknowns": [],
+    "in_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "required_evidence": [
+      "build",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "smoke",
+      "test"
+    ],
+    "decided_by": {
+      "actor": "founder-001",
+      "role": "founder",
+      "at": "2026-10-26T15:38:57Z",
+      "rationale": "Small read-only API addition; the agent run is the point of the exercise."
+    },
+    "alternatives": [
+      {
+        "id": "defer",
+        "title": "Defer / keep current process",
+        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+        "code": "defer"
+      },
+      {
+        "id": "expanded_scope_new_infrastructure",
+        "title": "Expanded scope with new infrastructure",
+        "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+        "code": "expanded_scope_new_infrastructure"
+      }
+    ],
+    "rendered_at": "2026-10-26T15:38:57Z"
+  },
+  "agent_context_pack": {
+    "artifact_type": "agent_context_pack",
+    "schema_version": "agent-context-pack/v1",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "status": "ISSUED_FOR_DEVELOPMENT_CANDIDATE",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "environment_topology": {
+      "allowed_transition_id": "testing-to-staging",
+      "config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "production_action": "forbidden",
+      "source_environment_id": "testing",
+      "target_environment_id": "staging",
+      "target_ref": "local/order-operations-portal-staging",
+      "version": 1
+    },
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "accepted_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_tests": [
+      {
+        "id": "AC-001",
+        "expected": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "id": "AC-002",
+        "expected": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "id": "AC-003",
+        "expected": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "id": "AC-004",
+        "expected": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "required_checks": [
+      "allowed-paths-diff-check",
+      "independent-review",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "test",
+      "build",
+      "smoke"
+    ],
+    "unknowns": [],
+    "evidence_refs": [],
+    "rendered_at": "2026-10-26T15:38:57Z"
+  },
+  "work_order": {
+    "kind": "AgentWorkOrder",
+    "schema_version": "agent-work-order/v1",
+    "work_order_id": "AWO-001",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "status": "ISSUED",
+    "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+    "issuer": "founder-001",
+    "repository": "github.com/williamlabdev/order-operations-portal",
+    "base_branch": "main",
+    "target_branch": "agent/order-status-filter",
+    "target_environment_id": "staging",
+    "allowed_transition": "testing-to-staging",
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_ids": [
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004"
+    ],
+    "required_checks": [
+      "allowed-paths-diff-check",
+      "independent-review",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "test",
+      "build",
+      "smoke"
+    ],
+    "output_paths": [
+      "runs/",
+      "evidence/"
+    ],
+    "issued_at": "2026-10-26T15:38:57Z",
+    "expires_at": "2026-11-09T15:38:57Z",
+    "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011"
+  },
+  "staleness": {
+    "stale": false
+  }
+}
+
+## author run (headless Claude Code, claude-fable-5-1)
+prompt rendered from AWO-001: evidence/EB-019/author-prompt-1.md
+exit=0 started=2026-10-26T15:38:58Z finished=2026-10-26T15:40:18Z transcript=evidence/EB-019/author-transcript-1.jsonl (checked: no key, no GitHub token)
+is_error=False subtype=success turns=8 duration_ms=78390 total_cost_usd=0.6070409999999999
+models=claude-fable-5-1
+tool Bash: cat AGENTS.md; echo "-----"; cat docs/engineering/development.md; echo "-----"; ls -la; echo "-----"; cat main.go; echo "-----"; cat main_test.go
+tool Bash: cat scripts/validate-demo.sh; echo "-----"; ls work-orders .github/workflows 2>/dev/null; echo "-----"; cat .github/workflows/*.yml 2>/dev/null | head -60; echo "-----"; cat go.mod; go version
+tool Edit: <scratch>/agent/main.go
+tool Edit: <scratch>/agent/main_test.go
+tool Edit: <scratch>/agent/main.go
+tool Bash: gofmt -l main.go main_test.go; echo "gofmt exit=$? (no files listed = already formatted)"; echo "----- go vet"; go vet ./... && echo "VET OK"; echo "----- go test"; go test ./... 2>&1 | tail -5; echo "----- go test -v (new tests)"; go test -run 'TestListOrders|TestHealthAndOrderList' -v ./... 2>&1 | grep -E '^(=== RUN|--- |PASS|FAIL|ok)'; echo "----- go build"; go build ./... && echo "BUILD OK"; echo "----- validate-demo"; ./scripts/validate-demo.sh 2>&1 | tail -3
+tool Bash: git status --porcelain
+
+## scope check before anything is committed (Work Order allowed_paths: main.go, main_test.go)
+changed paths: main_test.go main.go
+scope ok
+diff checked: no key, no GitHub token
+$ git diff --stat
+   main.go      |  34 +++++++++++++++++
+   main_test.go | 119 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   2 files changed, 153 insertions(+)
+
+## harness re-runs the checks itself (not the agent's word)
+$ gofmt -l main.go main_test.go -> ''
+  === RUN   TestHealthAndOrderList
+  --- PASS: TestHealthAndOrderList (0.00s)
+  === RUN   TestListOrdersFiltersByStatus
+  --- PASS: TestListOrdersFiltersByStatus (0.00s)
+  === RUN   TestListOrdersWithoutStatusReturnsAll
+  --- PASS: TestListOrdersWithoutStatusReturnsAll (0.00s)
+  === RUN   TestListOrdersRejectsUnknownStatus
+  --- PASS: TestListOrdersRejectsUnknownStatus (0.00s)
+  === RUN   TestReviewRequiresNote
+  --- PASS: TestReviewRequiresNote (0.00s)
+  === RUN   TestReviewRejectsInvalidJSON
+  --- PASS: TestReviewRejectsInvalidJSON (0.00s)
+  === RUN   TestReviewRejectsTrailingJSON
+  --- PASS: TestReviewRejectsTrailingJSON (0.00s)
+  === RUN   TestReviewRejectsUnsupportedDecision
+  --- PASS: TestReviewRejectsUnsupportedDecision (0.00s)
+  === RUN   TestReviewUpdatesOrder
+  --- PASS: TestReviewUpdatesOrder (0.00s)
+  === RUN   TestReviewCanBeRepeated
+  --- PASS: TestReviewCanBeRepeated (0.00s)
+  === RUN   TestReviewUnknownOrder
+  --- PASS: TestReviewUnknownOrder (0.00s)
+  === RUN   TestEvidenceRequiresLabelAndHTTPURL
+  --- PASS: TestEvidenceRequiresLabelAndHTTPURL (0.00s)
+  === RUN   TestEvidenceIsCappedAtThreePerOrder
+  --- PASS: TestEvidenceIsCappedAtThreePerOrder (0.00s)
+  === RUN   TestEvidenceUnknownOrder
+  --- PASS: TestEvidenceUnknownOrder (0.00s)
+  === RUN   TestEvidenceIsListedWithTheOrder
+  --- PASS: TestEvidenceIsListedWithTheOrder (0.00s)
+  === RUN   TestUnknownOrderActionIsNotFound
+  --- PASS: TestUnknownOrderActionIsNotFound (0.00s)
+  === RUN   TestListenAddrHonoursPort
+  --- PASS: TestListenAddrHonoursPort (0.00s)
+  === RUN   TestHealthReportsEnvironmentLabel
+  --- PASS: TestHealthReportsEnvironmentLabel (0.00s)
+  === RUN   TestHealthReportsRevisionAndBuildDigest
+  --- PASS: TestHealthReportsRevisionAndBuildDigest (0.00s)
+  === RUN   TestRevisionLabelIsSanitised
+  --- PASS: TestRevisionLabelIsSanitised (0.00s)
+  === RUN   TestRestartIsANewRevision
+  --- PASS: TestRestartIsANewRevision (0.02s)
+  === RUN   TestHealthHelperProcess
+  PASS
+  ok  	example.com/order-operations-portal	0.242s
+  ok  	example.com/order-operations-portal	(cached)
+  VALIDATION PASS: Project Context Contract files, tests and build are present.
+
+## harness commits, pushes and opens the pull request
+head commit: b646caf96b287eaa8593856c34f28208a8d66906
+pushed agent/order-status-filter
+pull request: https://github.com/williamlabdev/order-operations-portal/pull/3
+
+## external CI on the pull request
+build	pass	25s	https://github.com/williamlabdev/order-operations-portal/actions/runs/40351630442/job/121672937734	
+test	pass	23s	https://github.com/williamlabdev/order-operations-portal/actions/runs/40351630442/job/121672937260	
+
+## independent AI review (separate read-only run, claude-opus-5-5)
+exit=0 transcript=evidence/EB-019/review-transcript-1.jsonl (checked: no key, no GitHub token)
+is_error=False subtype=success turns=3 duration_ms=27903 total_cost_usd=0.0723162
+models=claude-opus-5-5
+tool Bash: git log --oneline -3; git diff --stat main...HEAD; head -30 main.go; head -25 main_test.go; grep -n "func decodeError\|func writeJSON\|HandleFunc\|func (s \*server) routes" -A3 main.go main_test.go | head -40; go vet ./... && go test ./... 2>&1 | tail -5
+tool Bash: go test -count=1 -race ./... 2>&1|tail -3; grep -n "ORD-10\|Status:" main.go | head; grep -n "api/orders" web/index.html; git diff main...HEAD --stat -- go.mod go.sum
+verdict=APPROVED
+
+## candidate: GitHub read-back + declared AI review and single-operator controls
+
+### POST /v1/projects/order-operations-portal/changes/CHG-001/candidates
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019: candidate from headless agent run run-eb019-1",
+  "run": {
+    "kind": "ContextRailRun",
+    "schema_version": "1",
+    "run_id": "run-eb019-1",
+    "work_order_id": "AWO-001",
+    "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011",
+    "agent": {
+      "name": "claude-code",
+      "provider": "anthropic",
+      "model": "claude-fable-5-1"
+    },
+    "adapter": "claude-code-cli-headless",
+    "started_by": "founder-001",
+    "started_at": "2026-10-26T15:38:58Z",
+    "finished_at": "2026-10-26T15:40:18Z",
+    "declared_commands": [
+      "cat AGENTS.md; echo \"-----\"; cat docs/engineering/development.md; echo \"-----\"; ls -la; echo \"-----\"; cat main.go; echo \"-----\"; cat main_test.go",
+      "cat scripts/validate-demo.sh; echo \"-----\"; ls work-orders .github/workflows 2>/dev/null; echo \"-----\"; cat .github/workflows/*.yml 2>/dev/null | head -60; echo \"-----\"; cat go.mod; go version",
+      "gofmt -l main.go main_test.go; echo \"gofmt exit=$? (no files listed = already formatted)\"; echo \"----- go vet\"; go vet ./... && echo \"VET OK\"; echo \"----- go test\"; go test ./... 2>&1 | tail -5; echo \"----- go test -v (new tests)\"; go test -run 'TestListOrders|TestHealthAndOrderList' -v ./... 2>&1 | grep -E '^(=== RUN|--- |PASS|FAIL|ok)'; echo \"----- go build\"; go build ./... && echo \"BUILD OK\"; echo \"----- validate-demo\"; ./scripts/validate-demo.sh 2>&1 | tail -3",
+      "git status --porcelain"
+    ],
+    "declared_changed_paths": [
+      "main_test.go",
+      "main.go"
+    ]
+  },
+  "observation": {
+    "reviews": [
+      {
+        "reviewer": "headless claude -p, claude-opus-5-5, separate read-only run",
+        "kind": "ai",
+        "verdict": "APPROVED",
+        "evidence_ref": "evidence/EB-019/ai-review-1.md",
+        "at": "2026-10-26T15:41:38Z"
+      }
+    ],
+    "compensating_controls": {
+      "declared": true,
+      "evidence_ref": "evidence/EB-019/ai-review-1.md + docs/governance/policies.md (single_operator mode)",
+      "reason": "single operator: the only human is also the run starter; an AI review on a different model from the author, the harness scope check and the local gate read-back stand in for a second human (DR-015 scope: local staging only)"
+    }
+  },
+  "read_back": {
+    "source": "github",
+    "repository": "williamlabdev/order-operations-portal",
+    "base": "main",
+    "head": "agent/order-status-filter"
+  }
+}
+http=200
+{
+  "change": {
+    "change_id": "CHG-001",
+    "project_id": "order-operations-portal",
+    "title": "Filter the order list by status",
+    "status": "ACCEPTED",
+    "current_version": 1,
+    "versions": [
+      {
+        "version": 1,
+        "created_at": "2026-10-26T15:38:57Z",
+        "actor": "founder-001",
+        "reason": "EB-019: the change the headless agent run makes",
+        "request": {
+          "title": "Filter the order list by status",
+          "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+          "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+          "scope_included": [
+            "status query parameter on GET /api/orders",
+            "validation of the status value",
+            "unit tests"
+          ],
+          "scope_excluded": [
+            "authentication",
+            "order review behaviour",
+            "web UI",
+            "new dependencies",
+            "production environment"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC-001",
+              "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+            },
+            {
+              "id": "AC-002",
+              "text": "GET /api/orders without a status parameter returns every order, as before"
+            },
+            {
+              "id": "AC-003",
+              "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+            },
+            {
+              "id": "AC-004",
+              "text": "main_test.go covers the three cases and go test ./... passes"
+            }
+          ],
+          "allowed_paths": [
+            "main.go",
+            "main_test.go"
+          ],
+          "forbidden_actions": [
+            "authentication",
+            "production deployment",
+            "changing the order review endpoint",
+            "adding dependencies"
+          ],
+          "target_environment_id": "staging",
+          "business_constraints": {
+            "data_classification": "internal",
+            "expected_monthly_volume": "500 reviews"
+          },
+          "requested_by": "founder-001"
+        },
+        "evaluation": {
+          "status": "DECISION_READY",
+          "missing_inputs": [],
+          "observations": [],
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "topology_version": 1,
+          "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+          "target_environment": {
+            "id": "staging",
+            "type": "staging",
+            "sequence": 3,
+            "target_ref": "local/order-operations-portal-staging",
+            "required_evidence": [
+              "decision-record",
+              "review",
+              "single-operator-controls",
+              "test",
+              "build",
+              "smoke"
+            ],
+            "status": "ACTIVE"
+          },
+          "source_environment": {
+            "id": "testing",
+            "type": "testing",
+            "sequence": 2,
+            "target_ref": "ci",
+            "required_evidence": [
+              "test",
+              "build",
+              "code-review"
+            ],
+            "status": "ACTIVE"
+          },
+          "allowed_transition": "testing-to-staging",
+          "promotion_path": [
+            {
+              "id": "development",
+              "display_name": "development",
+              "type": "development",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "testing",
+              "display_name": "testing",
+              "type": "testing",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "staging",
+              "display_name": "staging",
+              "type": "staging",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "prod-demo",
+              "display_name": "prod-demo",
+              "type": "prod-demo",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "production",
+              "display_name": "production",
+              "type": "production",
+              "status": "ACTIVE"
+            }
+          ],
+          "project_context_status": "DERIVED",
+          "decision_inputs_readiness": "READY",
+          "evaluated_at": "2026-10-26T15:38:57Z"
+        },
+        "options": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "unknowns": []
+      }
+    ],
+    "decisions": [
+      {
+        "decision_id": "DEC-001",
+        "project_id": "order-operations-portal",
+        "change_id": "CHG-001",
+        "change_version": 1,
+        "version": 1,
+        "status": "ACCEPTED_FOR_DEVELOPMENT",
+        "risk_level": "low",
+        "selected_option": "minimal_reversible_slice",
+        "alternatives": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+        "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+        "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+        "accepted_scope": [
+          "status query parameter on GET /api/orders",
+          "validation of the status value",
+          "unit tests"
+        ],
+        "out_of_scope": [
+          "authentication",
+          "order review behaviour",
+          "web UI",
+          "new dependencies",
+          "production environment"
+        ],
+        "allowed_paths": [
+          "main.go",
+          "main_test.go"
+        ],
+        "forbidden_actions": [
+          "deploy:production",
+          "modify:iam",
+          "read:deployment-secrets",
+          "merge-or-approve-release",
+          "change-scope-without-new-decision-version",
+          "authentication",
+          "production deployment",
+          "changing the order review endpoint",
+          "adding dependencies"
+        ],
+        "acceptance_criteria": [
+          {
+            "id": "AC-001",
+            "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+          },
+          {
+            "id": "AC-002",
+            "text": "GET /api/orders without a status parameter returns every order, as before"
+          },
+          {
+            "id": "AC-003",
+            "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+          },
+          {
+            "id": "AC-004",
+            "text": "main_test.go covers the three cases and go test ./... passes"
+          }
+        ],
+        "business_constraints": {
+          "data_classification": "internal",
+          "expected_monthly_volume": "500 reviews"
+        },
+        "unknowns": [],
+        "target_environment": {
+          "id": "staging",
+          "type": "staging",
+          "sequence": 3,
+          "target_ref": "local/order-operations-portal-staging",
+          "required_evidence": [
+            "decision-record",
+            "review",
+            "single-operator-controls",
+            "test",
+            "build",
+            "smoke"
+          ],
+          "status": "ACTIVE"
+        },
+        "source_environment": {
+          "id": "testing",
+          "type": "testing",
+          "sequence": 2,
+          "target_ref": "ci",
+          "required_evidence": [
+            "test",
+            "build",
+            "code-review"
+          ],
+          "status": "ACTIVE"
+        },
+        "allowed_transition": "testing-to-staging",
+        "promotion_path": [
+          {
+            "id": "development",
+            "display_name": "development",
+            "type": "development",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "testing",
+            "display_name": "testing",
+            "type": "testing",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "staging",
+            "display_name": "staging",
+            "type": "staging",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "prod-demo",
+            "display_name": "prod-demo",
+            "type": "prod-demo",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "production",
+            "display_name": "production",
+            "type": "production",
+            "status": "ACTIVE"
+          }
+        ],
+        "production_action": "forbidden",
+        "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+        "topology_version": 1,
+        "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+        "policy_version": "project-workspace-v1",
+        "evidence_refs": [],
+        "human_decision": {
+          "actor": "founder-001",
+          "role": "founder",
+          "at": "2026-10-26T15:38:57Z",
+          "decision": "ACCEPTED",
+          "reason": "Small read-only API addition; the agent run is the point of the exercise."
+        },
+        "created_at": "2026-10-26T15:38:57Z"
+      }
+    ],
+    "work_order": {
+      "kind": "AgentWorkOrder",
+      "schema_version": "agent-work-order/v1",
+      "work_order_id": "AWO-001",
+      "lineage": {
+        "decision_id": "DEC-001",
+        "decision_version": 1,
+        "change_id": "CHG-001",
+        "project_id": "order-operations-portal",
+        "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+        "topology_version": 1,
+        "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+        "policy_version": "project-workspace-v1"
+      },
+      "status": "ISSUED",
+      "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+      "issuer": "founder-001",
+      "repository": "github.com/williamlabdev/order-operations-portal",
+      "base_branch": "main",
+      "target_branch": "agent/order-status-filter",
+      "target_environment_id": "staging",
+      "allowed_transition": "testing-to-staging",
+      "allowed_paths": [
+        "main.go",
+        "main_test.go"
+      ],
+      "forbidden_actions": [
+        "deploy:production",
+        "modify:iam",
+        "read:deployment-secrets",
+        "merge-or-approve-release",
+        "change-scope-without-new-decision-version",
+        "authentication",
+        "production deployment",
+        "changing the order review endpoint",
+        "adding dependencies"
+      ],
+      "acceptance_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004"
+      ],
+      "required_checks": [
+        "allowed-paths-diff-check",
+        "independent-review",
+        "decision-record",
+        "review",
+        "single-operator-controls",
+        "test",
+        "build",
+        "smoke"
+      ],
+      "output_paths": [
+        "runs/",
+        "evidence/"
+      ],
+      "issued_at": "2026-10-26T15:38:57Z",
+      "expires_at": "2026-11-09T15:38:57Z",
+      "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011"
+    },
+    "candidates": [
+      {
+        "candidate_id": "CAND-001",
+        "change_id": "CHG-001",
+        "work_order_id": "AWO-001",
+        "lineage": {
+          "decision_id": "DEC-001",
+          "decision_version": 1,
+          "change_id": "CHG-001",
+          "project_id": "order-operations-portal",
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "topology_version": 1,
+          "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+          "policy_version": "project-workspace-v1"
+        },
+        "run": {
+          "kind": "AgentRunRecord",
+          "schema_version": "agent-run-record/v1",
+          "run_id": "run-eb019-1",
+          "work_order_id": "AWO-001",
+          "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011",
+          "agent": {
+            "name": "claude-code",
+            "provider": "anthropic",
+            "model": "claude-fable-5-1",
+            "version": ""
+          },
+          "adapter": "claude-code-cli-headless",
+          "started_by": "founder-001",
+          "started_at": "2026-10-26T15:38:58Z",
+          "finished_at": "2026-10-26T15:40:18Z",
+          "declared_commands": [
+            "cat AGENTS.md; echo \"-----\"; cat docs/engineering/development.md; echo \"-----\"; ls -la; echo \"-----\"; cat main.go; echo \"-----\"; cat main_test.go",
+            "cat scripts/validate-demo.sh; echo \"-----\"; ls work-orders .github/workflows 2>/dev/null; echo \"-----\"; cat .github/workflows/*.yml 2>/dev/null | head -60; echo \"-----\"; cat go.mod; go version",
+            "gofmt -l main.go main_test.go; echo \"gofmt exit=$? (no files listed = already formatted)\"; echo \"----- go vet\"; go vet ./... && echo \"VET OK\"; echo \"----- go test\"; go test ./... 2>&1 | tail -5; echo \"----- go test -v (new tests)\"; go test -run 'TestListOrders|TestHealthAndOrderList' -v ./... 2>&1 | grep -E '^(=== RUN|--- |PASS|FAIL|ok)'; echo \"----- go build\"; go build ./... && echo \"BUILD OK\"; echo \"----- validate-demo\"; ./scripts/validate-demo.sh 2>&1 | tail -3",
+            "git status --porcelain"
+          ],
+          "declared_changed_paths": [
+            "main_test.go",
+            "main.go"
+          ]
+        },
+        "observation": {
+          "source": "github",
+          "repository": "github.com/williamlabdev/order-operations-portal",
+          "branch": "agent/order-status-filter",
+          "base_branch": "main",
+          "base_commit": "c3c23371ecc1277da6ddd2bc53abbd4b7b39cc79",
+          "head_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+          "pull_request": "https://github.com/williamlabdev/order-operations-portal/pull/3",
+          "changed_paths": [
+            "main.go",
+            "main_test.go"
+          ],
+          "checks": [
+            {
+              "name": "build",
+              "status": "PASS",
+              "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/actions/runs/40351630442/job/121672937734",
+              "observed_at": "2026-10-26T15:40:56Z"
+            },
+            {
+              "name": "test",
+              "status": "PASS",
+              "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/actions/runs/40351630442/job/121672937260",
+              "observed_at": "2026-10-26T15:40:55Z"
+            }
+          ],
+          "reviews": [
+            {
+              "reviewer": "headless claude -p, claude-opus-5-5, separate read-only run",
+              "kind": "ai",
+              "verdict": "APPROVED",
+              "evidence_ref": "evidence/EB-019/ai-review-1.md",
+              "at": "2026-10-26T15:41:38Z"
+            }
+          ],
+          "compensating_controls": {
+            "declared": true,
+            "evidence_ref": "evidence/EB-019/ai-review-1.md + docs/governance/policies.md (single_operator mode)",
+            "reason": "single operator: the only human is also the run starter; an AI review on a different model from the author, the harness scope check and the local gate read-back stand in for a second human (DR-015 scope: local staging only)"
+          },
+          "observed_at": "2026-10-26T15:41:41Z"
+        },
+        "gates": [
+          {
+            "gate": "work_order_bound",
+            "status": "PASS",
+            "detail": "AWO-001 sha256:8a4a7dfcad67"
+          },
+          {
+            "gate": "decision_current",
+            "status": "PASS",
+            "detail": "DEC-001 v1 bound to topology v1"
+          },
+          {
+            "gate": "branch_matches",
+            "status": "PASS",
+            "detail": "agent/order-status-filter ← main"
+          },
+          {
+            "gate": "commit_observed",
+            "status": "PASS",
+            "detail": "b646caf96b287eaa859"
+          },
+          {
+            "gate": "allowed_paths",
+            "status": "PASS",
+            "detail": "2 changed path(s) all within allowed_paths"
+          },
+          {
+            "gate": "forbidden_actions",
+            "status": "PASS",
+            "detail": "no forbidden path touched (non-path actions are enforced at promotion)"
+          },
+          {
+            "gate": "required_checks",
+            "status": "PASS",
+            "detail": "all required pre-promotion checks have PASS evidence"
+          },
+          {
+            "gate": "promotion_checks",
+            "status": "DEFERRED_TO_PROMOTION",
+            "detail": "verified by the promotion gate after deployment: smoke"
+          },
+          {
+            "gate": "independent_review",
+            "status": "WAIVED",
+            "detail": "no second human; accepted under documented single-operator controls (evidence/EB-019/ai-review-1.md + docs/governance/policies.md (single_operator mode)) plus AI technical review — low-risk staging only, never production"
+          },
+          {
+            "gate": "work_order_expiry",
+            "status": "PASS",
+            "detail": "run started before 2026-11-09T15:38:57Z"
+          }
+        ],
+        "violations": [],
+        "verdict": "CANDIDATE_ACCEPTABLE",
+        "status": "EVALUATED",
+        "recommended_action": "A human may accept this candidate for promotion; acceptance is a separate decision from the requirement and from release.",
+        "human_decision": null,
+        "submitted_by": "founder-001",
+        "reason": "EB-019: candidate from headless agent run run-eb019-1",
+        "created_at": "2026-10-26T15:41:41Z"
+      }
+    ],
+    "created_at": "2026-10-26T15:38:57Z",
+    "updated_at": "2026-10-26T15:41:41Z"
+  },
+  "decision": {
+    "decision_id": "DEC-001",
+    "project_id": "order-operations-portal",
+    "change_id": "CHG-001",
+    "change_version": 1,
+    "version": 1,
+    "status": "ACCEPTED_FOR_DEVELOPMENT",
+    "risk_level": "low",
+    "selected_option": "minimal_reversible_slice",
+    "alternatives": [
+      {
+        "id": "minimal_reversible_slice",
+        "title": "Minimal reversible slice",
+        "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+        "cost_drivers": [
+          "compute of the existing service",
+          "build and test minutes"
+        ],
+        "risks": [
+          "may not cover the full business need on its own",
+          "state resets if the slice is stateless"
+        ],
+        "recommended": true,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      },
+      {
+        "id": "defer",
+        "title": "Defer / keep current process",
+        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+        "cost_drivers": [
+          "ongoing manual effort (not measured)"
+        ],
+        "risks": [
+          "business impact of waiting is not quantified"
+        ],
+        "recommended": false,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      },
+      {
+        "id": "expanded_scope_new_infrastructure",
+        "title": "Expanded scope with new infrastructure",
+        "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+        "cost_drivers": [
+          "new managed services",
+          "operations and on-call load"
+        ],
+        "risks": [
+          "scope creep",
+          "cost unknown until sized",
+          "longer time to first evidence"
+        ],
+        "recommended": false,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      }
+    ],
+    "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "accepted_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "AC-001",
+        "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "id": "AC-002",
+        "text": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "id": "AC-003",
+        "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "id": "AC-004",
+        "text": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "unknowns": [],
+    "target_environment": {
+      "id": "staging",
+      "type": "staging",
+      "sequence": 3,
+      "target_ref": "local/order-operations-portal-staging",
+      "required_evidence": [
+        "decision-record",
+        "review",
+        "single-operator-controls",
+        "test",
+        "build",
+        "smoke"
+      ],
+      "status": "ACTIVE"
+    },
+    "source_environment": {
+      "id": "testing",
+      "type": "testing",
+      "sequence": 2,
+      "target_ref": "ci",
+      "required_evidence": [
+        "test",
+        "build",
+        "code-review"
+      ],
+      "status": "ACTIVE"
+    },
+    "allowed_transition": "testing-to-staging",
+    "promotion_path": [
+      {
+        "id": "development",
+        "display_name": "development",
+        "type": "development",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "testing",
+        "display_name": "testing",
+        "type": "testing",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "staging",
+        "display_name": "staging",
+        "type": "staging",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "prod-demo",
+        "display_name": "prod-demo",
+        "type": "prod-demo",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "production",
+        "display_name": "production",
+        "type": "production",
+        "status": "ACTIVE"
+      }
+    ],
+    "production_action": "forbidden",
+    "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+    "topology_version": 1,
+    "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+    "policy_version": "project-workspace-v1",
+    "evidence_refs": [],
+    "human_decision": {
+      "actor": "founder-001",
+      "role": "founder",
+      "at": "2026-10-26T15:38:57Z",
+      "decision": "ACCEPTED",
+      "reason": "Small read-only API addition; the agent run is the point of the exercise."
+    },
+    "created_at": "2026-10-26T15:38:57Z"
+  },
+  "brief": {
+    "artifact_type": "change_decision_brief",
+    "schema_version": "change-decision-brief/v2",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "audience": "business owner, engineering manager, PM",
+    "state": "ACCEPTED",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "owner_summary_missing": false,
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "selected": {
+      "id": "minimal_reversible_slice",
+      "title": "Minimal reversible slice",
+      "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+      "code": "minimal_reversible_slice"
+    },
+    "route": {
+      "source_environment_id": "testing",
+      "target_environment_id": "staging",
+      "target_type": "staging",
+      "target_ref": "local/order-operations-portal-staging",
+      "transition": "testing-to-staging",
+      "production_action": "forbidden",
+      "path": [
+        {
+          "id": "development",
+          "display_name": "development",
+          "type": "development",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "testing",
+          "display_name": "testing",
+          "type": "testing",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "staging",
+          "display_name": "staging",
+          "type": "staging",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "prod-demo",
+          "display_name": "prod-demo",
+          "type": "prod-demo",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "production",
+          "display_name": "production",
+          "type": "production",
+          "status": "ACTIVE"
+        }
+      ]
+    },
+    "risk_level": "low",
+    "unknowns": [],
+    "in_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "required_evidence": [
+      "build",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "smoke",
+      "test"
+    ],
+    "decided_by": {
+      "actor": "founder-001",
+      "role": "founder",
+      "at": "2026-10-26T15:38:57Z",
+      "rationale": "Small read-only API addition; the agent run is the point of the exercise."
+    },
+    "alternatives": [
+      {
+        "id": "defer",
+        "title": "Defer / keep current process",
+        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+        "code": "defer"
+      },
+      {
+        "id": "expanded_scope_new_infrastructure",
+        "title": "Expanded scope with new infrastructure",
+        "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+        "code": "expanded_scope_new_infrastructure"
+      }
+    ],
+    "rendered_at": "2026-10-26T15:38:57Z"
+  },
+  "agent_context_pack": {
+    "artifact_type": "agent_context_pack",
+    "schema_version": "agent-context-pack/v1",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "status": "ISSUED_FOR_DEVELOPMENT_CANDIDATE",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "environment_topology": {
+      "allowed_transition_id": "testing-to-staging",
+      "config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "production_action": "forbidden",
+      "source_environment_id": "testing",
+      "target_environment_id": "staging",
+      "target_ref": "local/order-operations-portal-staging",
+      "version": 1
+    },
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "accepted_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_tests": [
+      {
+        "id": "AC-001",
+        "expected": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "id": "AC-002",
+        "expected": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "id": "AC-003",
+        "expected": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "id": "AC-004",
+        "expected": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "required_checks": [
+      "allowed-paths-diff-check",
+      "independent-review",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "test",
+      "build",
+      "smoke"
+    ],
+    "unknowns": [],
+    "evidence_refs": [],
+    "rendered_at": "2026-10-26T15:38:57Z"
+  },
+  "work_order": {
+    "kind": "AgentWorkOrder",
+    "schema_version": "agent-work-order/v1",
+    "work_order_id": "AWO-001",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "status": "ISSUED",
+    "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+    "issuer": "founder-001",
+    "repository": "github.com/williamlabdev/order-operations-portal",
+    "base_branch": "main",
+    "target_branch": "agent/order-status-filter",
+    "target_environment_id": "staging",
+    "allowed_transition": "testing-to-staging",
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_ids": [
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004"
+    ],
+    "required_checks": [
+      "allowed-paths-diff-check",
+      "independent-review",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "test",
+      "build",
+      "smoke"
+    ],
+    "output_paths": [
+      "runs/",
+      "evidence/"
+    ],
+    "issued_at": "2026-10-26T15:38:57Z",
+    "expires_at": "2026-11-09T15:38:57Z",
+    "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011"
+  },
+  "staleness": {
+    "stale": false
+  }
+}
+candidate CAND-001 verdict CANDIDATE_ACCEPTABLE source github head b646caf96b287eaa8593856c34f28208a8d66906
+  observed changed_paths ['main.go', 'main_test.go']
+  check build PASS https://github.com/williamlabdev/order-operations-portal/actions/runs/40351630442/job/121672937734
+  check test PASS https://github.com/williamlabdev/order-operations-portal/actions/runs/40351630442/job/121672937260
+  gate work_order_bound PASS - AWO-001 sha256:8a4a7dfcad67
+  gate decision_current PASS - DEC-001 v1 bound to topology v1
+  gate branch_matches PASS - agent/order-status-filter ← main
+  gate commit_observed PASS - b646caf96b287eaa859
+  gate allowed_paths PASS - 2 changed path(s) all within allowed_paths
+  gate forbidden_actions PASS - no forbidden path touched (non-path actions are enforced at promotion)
+  gate required_checks PASS - all required pre-promotion checks have PASS evidence
+  gate promotion_checks DEFERRED_TO_PROMOTION - verified by the promotion gate after deployment: smoke
+  gate independent_review WAIVED - no second human; accepted under documented single-operator controls (evidence/EB-019/ai-review-1.md + docs/governance/policies.md (single_operator mode)) plus AI technical review — low-risk staging only, never production
+  gate work_order_expiry PASS - run started before 2026-11-09T15:38:57Z
+
+### POST /v1/projects/order-operations-portal/changes/CHG-001/candidates/CAND-001/decision
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019",
+  "decision": "ACCEPT",
+  "role": "founder",
+  "rationale": "Read back from GitHub, CI green, AI review on a different model approved, waiver declared."
+}
+http=200
+{
+  "change": {
+    "change_id": "CHG-001",
+    "project_id": "order-operations-portal",
+    "title": "Filter the order list by status",
+    "status": "CANDIDATE_ACCEPTED",
+    "current_version": 1,
+    "versions": [
+      {
+        "version": 1,
+        "created_at": "2026-10-26T15:38:57Z",
+        "actor": "founder-001",
+        "reason": "EB-019: the change the headless agent run makes",
+        "request": {
+          "title": "Filter the order list by status",
+          "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+          "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+          "scope_included": [
+            "status query parameter on GET /api/orders",
+            "validation of the status value",
+            "unit tests"
+          ],
+          "scope_excluded": [
+            "authentication",
+            "order review behaviour",
+            "web UI",
+            "new dependencies",
+            "production environment"
+          ],
+          "acceptance_criteria": [
+            {
+              "id": "AC-001",
+              "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+            },
+            {
+              "id": "AC-002",
+              "text": "GET /api/orders without a status parameter returns every order, as before"
+            },
+            {
+              "id": "AC-003",
+              "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+            },
+            {
+              "id": "AC-004",
+              "text": "main_test.go covers the three cases and go test ./... passes"
+            }
+          ],
+          "allowed_paths": [
+            "main.go",
+            "main_test.go"
+          ],
+          "forbidden_actions": [
+            "authentication",
+            "production deployment",
+            "changing the order review endpoint",
+            "adding dependencies"
+          ],
+          "target_environment_id": "staging",
+          "business_constraints": {
+            "data_classification": "internal",
+            "expected_monthly_volume": "500 reviews"
+          },
+          "requested_by": "founder-001"
+        },
+        "evaluation": {
+          "status": "DECISION_READY",
+          "missing_inputs": [],
+          "observations": [],
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "topology_version": 1,
+          "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+          "target_environment": {
+            "id": "staging",
+            "type": "staging",
+            "sequence": 3,
+            "target_ref": "local/order-operations-portal-staging",
+            "required_evidence": [
+              "decision-record",
+              "review",
+              "single-operator-controls",
+              "test",
+              "build",
+              "smoke"
+            ],
+            "status": "ACTIVE"
+          },
+          "source_environment": {
+            "id": "testing",
+            "type": "testing",
+            "sequence": 2,
+            "target_ref": "ci",
+            "required_evidence": [
+              "test",
+              "build",
+              "code-review"
+            ],
+            "status": "ACTIVE"
+          },
+          "allowed_transition": "testing-to-staging",
+          "promotion_path": [
+            {
+              "id": "development",
+              "display_name": "development",
+              "type": "development",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "testing",
+              "display_name": "testing",
+              "type": "testing",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "staging",
+              "display_name": "staging",
+              "type": "staging",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "prod-demo",
+              "display_name": "prod-demo",
+              "type": "prod-demo",
+              "status": "ACTIVE"
+            },
+            {
+              "id": "production",
+              "display_name": "production",
+              "type": "production",
+              "status": "ACTIVE"
+            }
+          ],
+          "project_context_status": "DERIVED",
+          "decision_inputs_readiness": "READY",
+          "evaluated_at": "2026-10-26T15:38:57Z"
+        },
+        "options": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "unknowns": []
+      }
+    ],
+    "decisions": [
+      {
+        "decision_id": "DEC-001",
+        "project_id": "order-operations-portal",
+        "change_id": "CHG-001",
+        "change_version": 1,
+        "version": 1,
+        "status": "ACCEPTED_FOR_DEVELOPMENT",
+        "risk_level": "low",
+        "selected_option": "minimal_reversible_slice",
+        "alternatives": [
+          {
+            "id": "minimal_reversible_slice",
+            "title": "Minimal reversible slice",
+            "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+            "cost_drivers": [
+              "compute of the existing service",
+              "build and test minutes"
+            ],
+            "risks": [
+              "may not cover the full business need on its own",
+              "state resets if the slice is stateless"
+            ],
+            "recommended": true,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "defer",
+            "title": "Defer / keep current process",
+            "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+            "cost_drivers": [
+              "ongoing manual effort (not measured)"
+            ],
+            "risks": [
+              "business impact of waiting is not quantified"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          },
+          {
+            "id": "expanded_scope_new_infrastructure",
+            "title": "Expanded scope with new infrastructure",
+            "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+            "cost_drivers": [
+              "new managed services",
+              "operations and on-call load"
+            ],
+            "risks": [
+              "scope creep",
+              "cost unknown until sized",
+              "longer time to first evidence"
+            ],
+            "recommended": false,
+            "advisor_source": "rule-advisor",
+            "cost_estimate": {
+              "status": "UNKNOWN",
+              "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+              "price_table_version": "gcp-pricing-2026-09-27"
+            }
+          }
+        ],
+        "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+        "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+        "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+        "accepted_scope": [
+          "status query parameter on GET /api/orders",
+          "validation of the status value",
+          "unit tests"
+        ],
+        "out_of_scope": [
+          "authentication",
+          "order review behaviour",
+          "web UI",
+          "new dependencies",
+          "production environment"
+        ],
+        "allowed_paths": [
+          "main.go",
+          "main_test.go"
+        ],
+        "forbidden_actions": [
+          "deploy:production",
+          "modify:iam",
+          "read:deployment-secrets",
+          "merge-or-approve-release",
+          "change-scope-without-new-decision-version",
+          "authentication",
+          "production deployment",
+          "changing the order review endpoint",
+          "adding dependencies"
+        ],
+        "acceptance_criteria": [
+          {
+            "id": "AC-001",
+            "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+          },
+          {
+            "id": "AC-002",
+            "text": "GET /api/orders without a status parameter returns every order, as before"
+          },
+          {
+            "id": "AC-003",
+            "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+          },
+          {
+            "id": "AC-004",
+            "text": "main_test.go covers the three cases and go test ./... passes"
+          }
+        ],
+        "business_constraints": {
+          "data_classification": "internal",
+          "expected_monthly_volume": "500 reviews"
+        },
+        "unknowns": [],
+        "target_environment": {
+          "id": "staging",
+          "type": "staging",
+          "sequence": 3,
+          "target_ref": "local/order-operations-portal-staging",
+          "required_evidence": [
+            "decision-record",
+            "review",
+            "single-operator-controls",
+            "test",
+            "build",
+            "smoke"
+          ],
+          "status": "ACTIVE"
+        },
+        "source_environment": {
+          "id": "testing",
+          "type": "testing",
+          "sequence": 2,
+          "target_ref": "ci",
+          "required_evidence": [
+            "test",
+            "build",
+            "code-review"
+          ],
+          "status": "ACTIVE"
+        },
+        "allowed_transition": "testing-to-staging",
+        "promotion_path": [
+          {
+            "id": "development",
+            "display_name": "development",
+            "type": "development",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "testing",
+            "display_name": "testing",
+            "type": "testing",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "staging",
+            "display_name": "staging",
+            "type": "staging",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "prod-demo",
+            "display_name": "prod-demo",
+            "type": "prod-demo",
+            "status": "ACTIVE"
+          },
+          {
+            "id": "production",
+            "display_name": "production",
+            "type": "production",
+            "status": "ACTIVE"
+          }
+        ],
+        "production_action": "forbidden",
+        "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+        "topology_version": 1,
+        "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+        "policy_version": "project-workspace-v1",
+        "evidence_refs": [],
+        "human_decision": {
+          "actor": "founder-001",
+          "role": "founder",
+          "at": "2026-10-26T15:38:57Z",
+          "decision": "ACCEPTED",
+          "reason": "Small read-only API addition; the agent run is the point of the exercise."
+        },
+        "created_at": "2026-10-26T15:38:57Z"
+      }
+    ],
+    "work_order": {
+      "kind": "AgentWorkOrder",
+      "schema_version": "agent-work-order/v1",
+      "work_order_id": "AWO-001",
+      "lineage": {
+        "decision_id": "DEC-001",
+        "decision_version": 1,
+        "change_id": "CHG-001",
+        "project_id": "order-operations-portal",
+        "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+        "topology_version": 1,
+        "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+        "policy_version": "project-workspace-v1"
+      },
+      "status": "ISSUED",
+      "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+      "issuer": "founder-001",
+      "repository": "github.com/williamlabdev/order-operations-portal",
+      "base_branch": "main",
+      "target_branch": "agent/order-status-filter",
+      "target_environment_id": "staging",
+      "allowed_transition": "testing-to-staging",
+      "allowed_paths": [
+        "main.go",
+        "main_test.go"
+      ],
+      "forbidden_actions": [
+        "deploy:production",
+        "modify:iam",
+        "read:deployment-secrets",
+        "merge-or-approve-release",
+        "change-scope-without-new-decision-version",
+        "authentication",
+        "production deployment",
+        "changing the order review endpoint",
+        "adding dependencies"
+      ],
+      "acceptance_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004"
+      ],
+      "required_checks": [
+        "allowed-paths-diff-check",
+        "independent-review",
+        "decision-record",
+        "review",
+        "single-operator-controls",
+        "test",
+        "build",
+        "smoke"
+      ],
+      "output_paths": [
+        "runs/",
+        "evidence/"
+      ],
+      "issued_at": "2026-10-26T15:38:57Z",
+      "expires_at": "2026-11-09T15:38:57Z",
+      "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011"
+    },
+    "candidates": [
+      {
+        "candidate_id": "CAND-001",
+        "change_id": "CHG-001",
+        "work_order_id": "AWO-001",
+        "lineage": {
+          "decision_id": "DEC-001",
+          "decision_version": 1,
+          "change_id": "CHG-001",
+          "project_id": "order-operations-portal",
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "topology_version": 1,
+          "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+          "policy_version": "project-workspace-v1"
+        },
+        "run": {
+          "kind": "AgentRunRecord",
+          "schema_version": "agent-run-record/v1",
+          "run_id": "run-eb019-1",
+          "work_order_id": "AWO-001",
+          "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011",
+          "agent": {
+            "name": "claude-code",
+            "provider": "anthropic",
+            "model": "claude-fable-5-1",
+            "version": ""
+          },
+          "adapter": "claude-code-cli-headless",
+          "started_by": "founder-001",
+          "started_at": "2026-10-26T15:38:58Z",
+          "finished_at": "2026-10-26T15:40:18Z",
+          "declared_commands": [
+            "cat AGENTS.md; echo \"-----\"; cat docs/engineering/development.md; echo \"-----\"; ls -la; echo \"-----\"; cat main.go; echo \"-----\"; cat main_test.go",
+            "cat scripts/validate-demo.sh; echo \"-----\"; ls work-orders .github/workflows 2>/dev/null; echo \"-----\"; cat .github/workflows/*.yml 2>/dev/null | head -60; echo \"-----\"; cat go.mod; go version",
+            "gofmt -l main.go main_test.go; echo \"gofmt exit=$? (no files listed = already formatted)\"; echo \"----- go vet\"; go vet ./... && echo \"VET OK\"; echo \"----- go test\"; go test ./... 2>&1 | tail -5; echo \"----- go test -v (new tests)\"; go test -run 'TestListOrders|TestHealthAndOrderList' -v ./... 2>&1 | grep -E '^(=== RUN|--- |PASS|FAIL|ok)'; echo \"----- go build\"; go build ./... && echo \"BUILD OK\"; echo \"----- validate-demo\"; ./scripts/validate-demo.sh 2>&1 | tail -3",
+            "git status --porcelain"
+          ],
+          "declared_changed_paths": [
+            "main_test.go",
+            "main.go"
+          ]
+        },
+        "observation": {
+          "source": "github",
+          "repository": "github.com/williamlabdev/order-operations-portal",
+          "branch": "agent/order-status-filter",
+          "base_branch": "main",
+          "base_commit": "c3c23371ecc1277da6ddd2bc53abbd4b7b39cc79",
+          "head_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+          "pull_request": "https://github.com/williamlabdev/order-operations-portal/pull/3",
+          "changed_paths": [
+            "main.go",
+            "main_test.go"
+          ],
+          "checks": [
+            {
+              "name": "build",
+              "status": "PASS",
+              "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/actions/runs/40351630442/job/121672937734",
+              "observed_at": "2026-10-26T15:40:56Z"
+            },
+            {
+              "name": "test",
+              "status": "PASS",
+              "evidence_ref": "https://github.com/williamlabdev/order-operations-portal/actions/runs/40351630442/job/121672937260",
+              "observed_at": "2026-10-26T15:40:55Z"
+            }
+          ],
+          "reviews": [
+            {
+              "reviewer": "headless claude -p, claude-opus-5-5, separate read-only run",
+              "kind": "ai",
+              "verdict": "APPROVED",
+              "evidence_ref": "evidence/EB-019/ai-review-1.md",
+              "at": "2026-10-26T15:41:38Z"
+            }
+          ],
+          "compensating_controls": {
+            "declared": true,
+            "evidence_ref": "evidence/EB-019/ai-review-1.md + docs/governance/policies.md (single_operator mode)",
+            "reason": "single operator: the only human is also the run starter; an AI review on a different model from the author, the harness scope check and the local gate read-back stand in for a second human (DR-015 scope: local staging only)"
+          },
+          "observed_at": "2026-10-26T15:41:41Z"
+        },
+        "gates": [
+          {
+            "gate": "work_order_bound",
+            "status": "PASS",
+            "detail": "AWO-001 sha256:8a4a7dfcad67"
+          },
+          {
+            "gate": "decision_current",
+            "status": "PASS",
+            "detail": "DEC-001 v1 bound to topology v1"
+          },
+          {
+            "gate": "branch_matches",
+            "status": "PASS",
+            "detail": "agent/order-status-filter ← main"
+          },
+          {
+            "gate": "commit_observed",
+            "status": "PASS",
+            "detail": "b646caf96b287eaa859"
+          },
+          {
+            "gate": "allowed_paths",
+            "status": "PASS",
+            "detail": "2 changed path(s) all within allowed_paths"
+          },
+          {
+            "gate": "forbidden_actions",
+            "status": "PASS",
+            "detail": "no forbidden path touched (non-path actions are enforced at promotion)"
+          },
+          {
+            "gate": "required_checks",
+            "status": "PASS",
+            "detail": "all required pre-promotion checks have PASS evidence"
+          },
+          {
+            "gate": "promotion_checks",
+            "status": "DEFERRED_TO_PROMOTION",
+            "detail": "verified by the promotion gate after deployment: smoke"
+          },
+          {
+            "gate": "independent_review",
+            "status": "WAIVED",
+            "detail": "no second human; accepted under documented single-operator controls (evidence/EB-019/ai-review-1.md + docs/governance/policies.md (single_operator mode)) plus AI technical review — low-risk staging only, never production"
+          },
+          {
+            "gate": "work_order_expiry",
+            "status": "PASS",
+            "detail": "run started before 2026-11-09T15:38:57Z"
+          }
+        ],
+        "violations": [],
+        "verdict": "CANDIDATE_ACCEPTABLE",
+        "status": "ACCEPTED_FOR_PROMOTION",
+        "recommended_action": "A human may accept this candidate for promotion; acceptance is a separate decision from the requirement and from release.",
+        "human_decision": {
+          "actor": "founder-001",
+          "role": "founder",
+          "at": "2026-10-26T15:41:41Z",
+          "decision": "ACCEPTED",
+          "reason": "Read back from GitHub, CI green, AI review on a different model approved, waiver declared."
+        },
+        "submitted_by": "founder-001",
+        "reason": "EB-019: candidate from headless agent run run-eb019-1",
+        "created_at": "2026-10-26T15:41:41Z"
+      }
+    ],
+    "created_at": "2026-10-26T15:38:57Z",
+    "updated_at": "2026-10-26T15:41:41Z"
+  },
+  "decision": {
+    "decision_id": "DEC-001",
+    "project_id": "order-operations-portal",
+    "change_id": "CHG-001",
+    "change_version": 1,
+    "version": 1,
+    "status": "ACCEPTED_FOR_DEVELOPMENT",
+    "risk_level": "low",
+    "selected_option": "minimal_reversible_slice",
+    "alternatives": [
+      {
+        "id": "minimal_reversible_slice",
+        "title": "Minimal reversible slice",
+        "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+        "cost_drivers": [
+          "compute of the existing service",
+          "build and test minutes"
+        ],
+        "risks": [
+          "may not cover the full business need on its own",
+          "state resets if the slice is stateless"
+        ],
+        "recommended": true,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"minimal_reversible_slice\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      },
+      {
+        "id": "defer",
+        "title": "Defer / keep current process",
+        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+        "cost_drivers": [
+          "ongoing manual effort (not measured)"
+        ],
+        "risks": [
+          "business impact of waiting is not quantified"
+        ],
+        "recommended": false,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"defer\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      },
+      {
+        "id": "expanded_scope_new_infrastructure",
+        "title": "Expanded scope with new infrastructure",
+        "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+        "cost_drivers": [
+          "new managed services",
+          "operations and on-call load"
+        ],
+        "risks": [
+          "scope creep",
+          "cost unknown until sized",
+          "longer time to first evidence"
+        ],
+        "recommended": false,
+        "advisor_source": "rule-advisor",
+        "cost_estimate": {
+          "status": "UNKNOWN",
+          "reason": "no priced SKU is mapped to option \"expanded_scope_new_infrastructure\" in price_table_version gcp-pricing-2026-09-27",
+          "price_table_version": "gcp-pricing-2026-09-27"
+        }
+      }
+    ],
+    "rationale": "Small read-only API addition; the agent run is the point of the exercise.",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "accepted_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "AC-001",
+        "text": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "id": "AC-002",
+        "text": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "id": "AC-003",
+        "text": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "id": "AC-004",
+        "text": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "unknowns": [],
+    "target_environment": {
+      "id": "staging",
+      "type": "staging",
+      "sequence": 3,
+      "target_ref": "local/order-operations-portal-staging",
+      "required_evidence": [
+        "decision-record",
+        "review",
+        "single-operator-controls",
+        "test",
+        "build",
+        "smoke"
+      ],
+      "status": "ACTIVE"
+    },
+    "source_environment": {
+      "id": "testing",
+      "type": "testing",
+      "sequence": 2,
+      "target_ref": "ci",
+      "required_evidence": [
+        "test",
+        "build",
+        "code-review"
+      ],
+      "status": "ACTIVE"
+    },
+    "allowed_transition": "testing-to-staging",
+    "promotion_path": [
+      {
+        "id": "development",
+        "display_name": "development",
+        "type": "development",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "testing",
+        "display_name": "testing",
+        "type": "testing",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "staging",
+        "display_name": "staging",
+        "type": "staging",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "prod-demo",
+        "display_name": "prod-demo",
+        "type": "prod-demo",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "production",
+        "display_name": "production",
+        "type": "production",
+        "status": "ACTIVE"
+      }
+    ],
+    "production_action": "forbidden",
+    "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+    "topology_version": 1,
+    "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+    "policy_version": "project-workspace-v1",
+    "evidence_refs": [],
+    "human_decision": {
+      "actor": "founder-001",
+      "role": "founder",
+      "at": "2026-10-26T15:38:57Z",
+      "decision": "ACCEPTED",
+      "reason": "Small read-only API addition; the agent run is the point of the exercise."
+    },
+    "created_at": "2026-10-26T15:38:57Z"
+  },
+  "brief": {
+    "artifact_type": "change_decision_brief",
+    "schema_version": "change-decision-brief/v2",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "audience": "business owner, engineering manager, PM",
+    "state": "ACCEPTED",
+    "owner_summary": "GET /api/orders accepts an optional status query parameter; without it the endpoint behaves as before.",
+    "owner_summary_missing": false,
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "selected": {
+      "id": "minimal_reversible_slice",
+      "title": "Minimal reversible slice",
+      "summary": "Implement only the accepted scope inside the allowed paths, without new infrastructure, persistence or IAM changes; verify in the target environment before anything else is added.",
+      "code": "minimal_reversible_slice"
+    },
+    "route": {
+      "source_environment_id": "testing",
+      "target_environment_id": "staging",
+      "target_type": "staging",
+      "target_ref": "local/order-operations-portal-staging",
+      "transition": "testing-to-staging",
+      "production_action": "forbidden",
+      "path": [
+        {
+          "id": "development",
+          "display_name": "development",
+          "type": "development",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "testing",
+          "display_name": "testing",
+          "type": "testing",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "staging",
+          "display_name": "staging",
+          "type": "staging",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "prod-demo",
+          "display_name": "prod-demo",
+          "type": "prod-demo",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "production",
+          "display_name": "production",
+          "type": "production",
+          "status": "ACTIVE"
+        }
+      ]
+    },
+    "risk_level": "low",
+    "unknowns": [],
+    "in_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "required_evidence": [
+      "build",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "smoke",
+      "test"
+    ],
+    "decided_by": {
+      "actor": "founder-001",
+      "role": "founder",
+      "at": "2026-10-26T15:38:57Z",
+      "rationale": "Small read-only API addition; the agent run is the point of the exercise."
+    },
+    "alternatives": [
+      {
+        "id": "defer",
+        "title": "Defer / keep current process",
+        "summary": "Do not change the system now; keep the manual process and revisit when the unknowns are resolved.",
+        "code": "defer"
+      },
+      {
+        "id": "expanded_scope_new_infrastructure",
+        "title": "Expanded scope with new infrastructure",
+        "summary": "Solve the broader need with new services or persistence; requires its own architecture decision, cost evidence and IAM plan before acceptance.",
+        "code": "expanded_scope_new_infrastructure"
+      }
+    ],
+    "rendered_at": "2026-10-26T15:38:57Z"
+  },
+  "agent_context_pack": {
+    "artifact_type": "agent_context_pack",
+    "schema_version": "agent-context-pack/v1",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "status": "ISSUED_FOR_DEVELOPMENT_CANDIDATE",
+    "objective": "Let operations staff list only the orders in one status, so the review queue (PENDING_REVIEW) can be read without scanning reviewed orders.",
+    "environment_topology": {
+      "allowed_transition_id": "testing-to-staging",
+      "config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "production_action": "forbidden",
+      "source_environment_id": "testing",
+      "target_environment_id": "staging",
+      "target_ref": "local/order-operations-portal-staging",
+      "version": 1
+    },
+    "business_constraints": {
+      "data_classification": "internal",
+      "expected_monthly_volume": "500 reviews"
+    },
+    "accepted_scope": [
+      "status query parameter on GET /api/orders",
+      "validation of the status value",
+      "unit tests"
+    ],
+    "out_of_scope": [
+      "authentication",
+      "order review behaviour",
+      "web UI",
+      "new dependencies",
+      "production environment"
+    ],
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_tests": [
+      {
+        "id": "AC-001",
+        "expected": "GET /api/orders?status=<status> returns only the orders whose status equals <status>"
+      },
+      {
+        "id": "AC-002",
+        "expected": "GET /api/orders without a status parameter returns every order, as before"
+      },
+      {
+        "id": "AC-003",
+        "expected": "a status value that is not PENDING_REVIEW, APPROVED or REJECTED is answered with 400 and a JSON error body"
+      },
+      {
+        "id": "AC-004",
+        "expected": "main_test.go covers the three cases and go test ./... passes"
+      }
+    ],
+    "required_checks": [
+      "allowed-paths-diff-check",
+      "independent-review",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "test",
+      "build",
+      "smoke"
+    ],
+    "unknowns": [],
+    "evidence_refs": [],
+    "rendered_at": "2026-10-26T15:38:57Z"
+  },
+  "work_order": {
+    "kind": "AgentWorkOrder",
+    "schema_version": "agent-work-order/v1",
+    "work_order_id": "AWO-001",
+    "lineage": {
+      "decision_id": "DEC-001",
+      "decision_version": 1,
+      "change_id": "CHG-001",
+      "project_id": "order-operations-portal",
+      "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+      "topology_version": 1,
+      "topology_config_hash": "sha256:673290f9d2ae1cdae392d62ee7f216a2930b92ca8e15ce53c855e6944b488f91",
+      "policy_version": "project-workspace-v1"
+    },
+    "status": "ISSUED",
+    "human_gate": "ACCEPTED_FOR_DEVELOPMENT",
+    "issuer": "founder-001",
+    "repository": "github.com/williamlabdev/order-operations-portal",
+    "base_branch": "main",
+    "target_branch": "agent/order-status-filter",
+    "target_environment_id": "staging",
+    "allowed_transition": "testing-to-staging",
+    "allowed_paths": [
+      "main.go",
+      "main_test.go"
+    ],
+    "forbidden_actions": [
+      "deploy:production",
+      "modify:iam",
+      "read:deployment-secrets",
+      "merge-or-approve-release",
+      "change-scope-without-new-decision-version",
+      "authentication",
+      "production deployment",
+      "changing the order review endpoint",
+      "adding dependencies"
+    ],
+    "acceptance_ids": [
+      "AC-001",
+      "AC-002",
+      "AC-003",
+      "AC-004"
+    ],
+    "required_checks": [
+      "allowed-paths-diff-check",
+      "independent-review",
+      "decision-record",
+      "review",
+      "single-operator-controls",
+      "test",
+      "build",
+      "smoke"
+    ],
+    "output_paths": [
+      "runs/",
+      "evidence/"
+    ],
+    "issued_at": "2026-10-26T15:38:57Z",
+    "expires_at": "2026-11-09T15:38:57Z",
+    "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011"
+  },
+  "staleness": {
+    "stale": false
+  }
+}
+
+## build the reviewed head commit and run it as local staging (:8095)
+$ go build -o <scratch>/order-portal .   (at b646caf96b287eaa8593856c34f28208a8d66906) -> sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a
+127.0.0.1:8095/healthz -> {"build_digest":"sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a","environment":"staging","revision":"staging-20261026t154143z-36153","service":"order-operations-portal","started_at":"2026-10-26T15:41:43Z","status":"ok"}
+
+## release: CHG-001 -> staging
+
+### POST /v1/projects/order-operations-portal/releases
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019",
+  "change_ids": [
+    "CHG-001"
+  ],
+  "target_environment_id": "staging"
+}
+http=200
+{
+  "release": {
+    "release_id": "REL-001",
+    "project_id": "order-operations-portal",
+    "status": "AWAITING_BUILD",
+    "manifest": {
+      "release_id": "REL-001",
+      "project_id": "order-operations-portal",
+      "changes": [
+        {
+          "change_id": "CHG-001",
+          "title": "Filter the order list by status",
+          "decision_id": "DEC-001",
+          "decision_version": 1,
+          "work_order_id": "AWO-001",
+          "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011",
+          "candidate_id": "CAND-001",
+          "run_id": "run-eb019-1",
+          "run_started_by": "founder-001",
+          "branch": "agent/order-status-filter",
+          "head_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+          "review_gate": "WAIVED",
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "target_environment_id": "staging",
+          "candidate_accepted_by": "founder-001"
+        }
+      ],
+      "transition": "testing-to-staging",
+      "source_environment_id": "testing",
+      "environment": {
+        "environment_id": "staging",
+        "type": "staging",
+        "target_ref": "local/order-operations-portal-staging",
+        "required_evidence": [
+          "decision-record",
+          "review",
+          "single-operator-controls",
+          "test",
+          "build",
+          "smoke"
+        ],
+        "approver_policy": "",
+        "topology_version": 1,
+        "config_hash": "sha256:54176385024ff88245267055caf041bfa829991b08c97187ec195a257b1a3b56"
+      },
+      "build": null,
+      "policy_version": "project-workspace-v1",
+      "manifest_hash": "sha256:5be7b7ac91e251df9d98c1c1333097711985f73f9f04142858b58913d9fc7549"
+    },
+    "gates": [
+      {
+        "gate": "environment",
+        "status": "PASS",
+        "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+      },
+      {
+        "gate": "change",
+        "change_id": "CHG-001",
+        "status": "PASS",
+        "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+      },
+      {
+        "gate": "build",
+        "status": "NEEDS_EVIDENCE",
+        "detail": "no image build recorded; the release has no digest identity yet"
+      }
+    ],
+    "verdict": "AWAITING_BUILD",
+    "approval": null,
+    "deployments": [],
+    "receipt": null,
+    "reason": "EB-019",
+    "created_by": "founder-001",
+    "created_at": "2026-10-26T15:41:43Z",
+    "updated_at": "2026-10-26T15:41:43Z"
+  },
+  "live_gates": [
+    {
+      "gate": "environment",
+      "status": "PASS",
+      "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+    },
+    {
+      "gate": "change",
+      "change_id": "CHG-001",
+      "status": "PASS",
+      "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+    },
+    {
+      "gate": "build",
+      "status": "NEEDS_EVIDENCE",
+      "detail": "no image build recorded; the release has no digest identity yet"
+    }
+  ],
+  "staleness": {
+    "stale": false
+  }
+}
+
+### POST /v1/projects/order-operations-portal/releases/REL-001/build
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019",
+  "image_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+  "image_ref": "file://<scratch>/order-portal",
+  "build_id": "local-build-1",
+  "source_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+  "includes_commits": [
+    "b646caf96b287eaa8593856c34f28208a8d66906"
+  ],
+  "evidence_ref": "evidence/EB-019/agent-run-1.txt#build"
+}
+http=200
+{
+  "release": {
+    "release_id": "REL-001",
+    "project_id": "order-operations-portal",
+    "status": "READY_FOR_APPROVAL",
+    "manifest": {
+      "release_id": "REL-001",
+      "project_id": "order-operations-portal",
+      "changes": [
+        {
+          "change_id": "CHG-001",
+          "title": "Filter the order list by status",
+          "decision_id": "DEC-001",
+          "decision_version": 1,
+          "work_order_id": "AWO-001",
+          "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011",
+          "candidate_id": "CAND-001",
+          "run_id": "run-eb019-1",
+          "run_started_by": "founder-001",
+          "branch": "agent/order-status-filter",
+          "head_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+          "review_gate": "WAIVED",
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "target_environment_id": "staging",
+          "candidate_accepted_by": "founder-001"
+        }
+      ],
+      "transition": "testing-to-staging",
+      "source_environment_id": "testing",
+      "environment": {
+        "environment_id": "staging",
+        "type": "staging",
+        "target_ref": "local/order-operations-portal-staging",
+        "required_evidence": [
+          "decision-record",
+          "review",
+          "single-operator-controls",
+          "test",
+          "build",
+          "smoke"
+        ],
+        "approver_policy": "",
+        "topology_version": 1,
+        "config_hash": "sha256:54176385024ff88245267055caf041bfa829991b08c97187ec195a257b1a3b56"
+      },
+      "build": {
+        "image_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+        "image_ref": "file://<scratch>/order-portal",
+        "build_id": "local-build-1",
+        "source_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+        "includes_commits": [
+          "b646caf96b287eaa8593856c34f28208a8d66906"
+        ],
+        "evidence_ref": "evidence/EB-019/agent-run-1.txt#build",
+        "observed_at": "2026-10-26T15:41:43Z"
+      },
+      "policy_version": "project-workspace-v1",
+      "manifest_hash": "sha256:7cb6e7c50b009866eece017b152aa68ac216d3a0026a38286e9d4982cf56ca5d"
+    },
+    "gates": [
+      {
+        "gate": "environment",
+        "status": "PASS",
+        "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+      },
+      {
+        "gate": "change",
+        "change_id": "CHG-001",
+        "status": "PASS",
+        "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+      },
+      {
+        "gate": "build",
+        "status": "PASS",
+        "detail": "image sha256:b5ebb5881858 from b646caf96b287eaa859"
+      }
+    ],
+    "verdict": "READY_FOR_APPROVAL",
+    "approval": null,
+    "deployments": [],
+    "receipt": null,
+    "reason": "EB-019",
+    "created_by": "founder-001",
+    "created_at": "2026-10-26T15:41:43Z",
+    "updated_at": "2026-10-26T15:41:43Z"
+  },
+  "live_gates": [
+    {
+      "gate": "environment",
+      "status": "PASS",
+      "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+    },
+    {
+      "gate": "change",
+      "change_id": "CHG-001",
+      "status": "PASS",
+      "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+    },
+    {
+      "gate": "build",
+      "status": "PASS",
+      "detail": "image sha256:b5ebb5881858 from b646caf96b287eaa859"
+    }
+  ],
+  "staleness": {
+    "stale": false
+  }
+}
+
+### POST /v1/projects/order-operations-portal/releases/REL-001/approval
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019",
+  "decision": "APPROVE",
+  "role": "release_manager",
+  "rationale": "Local staging under single-operator controls."
+}
+http=200
+{
+  "release": {
+    "release_id": "REL-001",
+    "project_id": "order-operations-portal",
+    "status": "APPROVED",
+    "manifest": {
+      "release_id": "REL-001",
+      "project_id": "order-operations-portal",
+      "changes": [
+        {
+          "change_id": "CHG-001",
+          "title": "Filter the order list by status",
+          "decision_id": "DEC-001",
+          "decision_version": 1,
+          "work_order_id": "AWO-001",
+          "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011",
+          "candidate_id": "CAND-001",
+          "run_id": "run-eb019-1",
+          "run_started_by": "founder-001",
+          "branch": "agent/order-status-filter",
+          "head_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+          "review_gate": "WAIVED",
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "target_environment_id": "staging",
+          "candidate_accepted_by": "founder-001"
+        }
+      ],
+      "transition": "testing-to-staging",
+      "source_environment_id": "testing",
+      "environment": {
+        "environment_id": "staging",
+        "type": "staging",
+        "target_ref": "local/order-operations-portal-staging",
+        "required_evidence": [
+          "decision-record",
+          "review",
+          "single-operator-controls",
+          "test",
+          "build",
+          "smoke"
+        ],
+        "approver_policy": "",
+        "topology_version": 1,
+        "config_hash": "sha256:54176385024ff88245267055caf041bfa829991b08c97187ec195a257b1a3b56"
+      },
+      "build": {
+        "image_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+        "image_ref": "file://<scratch>/order-portal",
+        "build_id": "local-build-1",
+        "source_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+        "includes_commits": [
+          "b646caf96b287eaa8593856c34f28208a8d66906"
+        ],
+        "evidence_ref": "evidence/EB-019/agent-run-1.txt#build",
+        "observed_at": "2026-10-26T15:41:43Z"
+      },
+      "policy_version": "project-workspace-v1",
+      "manifest_hash": "sha256:7cb6e7c50b009866eece017b152aa68ac216d3a0026a38286e9d4982cf56ca5d"
+    },
+    "gates": [
+      {
+        "gate": "environment",
+        "status": "PASS",
+        "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+      },
+      {
+        "gate": "change",
+        "change_id": "CHG-001",
+        "status": "PASS",
+        "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+      },
+      {
+        "gate": "build",
+        "status": "PASS",
+        "detail": "image sha256:b5ebb5881858 from b646caf96b287eaa859"
+      }
+    ],
+    "verdict": "APPROVED",
+    "approval": {
+      "actor": "founder-001",
+      "role": "release_manager",
+      "at": "2026-10-26T15:41:43Z",
+      "decision": "APPROVED",
+      "reason": "Local staging under single-operator controls.",
+      "manifest_hash": "sha256:7cb6e7c50b009866eece017b152aa68ac216d3a0026a38286e9d4982cf56ca5d",
+      "expires_at": "2026-10-29T15:41:43Z",
+      "waiver": "approver also started run run-eb019-1; accepted under documented single-operator controls of staging"
+    },
+    "deployments": [],
+    "receipt": null,
+    "reason": "EB-019",
+    "created_by": "founder-001",
+    "created_at": "2026-10-26T15:41:43Z",
+    "updated_at": "2026-10-26T15:41:43Z"
+  },
+  "live_gates": [
+    {
+      "gate": "environment",
+      "status": "PASS",
+      "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+    },
+    {
+      "gate": "change",
+      "change_id": "CHG-001",
+      "status": "PASS",
+      "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+    },
+    {
+      "gate": "build",
+      "status": "PASS",
+      "detail": "image sha256:b5ebb5881858 from b646caf96b287eaa859"
+    }
+  ],
+  "staleness": {
+    "stale": false
+  }
+}
+
+### POST /v1/projects/order-operations-portal/releases/REL-001/deployment
+request_body:
+{
+  "actor": "founder-001",
+  "reason": "EB-019 staging deploy",
+  "idempotency_key": "k-staging-1",
+  "source": "local",
+  "service_url": "http://127.0.0.1:8095"
+}
+http=200
+{
+  "release": {
+    "release_id": "REL-001",
+    "project_id": "order-operations-portal",
+    "status": "PROMOTED",
+    "manifest": {
+      "release_id": "REL-001",
+      "project_id": "order-operations-portal",
+      "changes": [
+        {
+          "change_id": "CHG-001",
+          "title": "Filter the order list by status",
+          "decision_id": "DEC-001",
+          "decision_version": 1,
+          "work_order_id": "AWO-001",
+          "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011",
+          "candidate_id": "CAND-001",
+          "run_id": "run-eb019-1",
+          "run_started_by": "founder-001",
+          "branch": "agent/order-status-filter",
+          "head_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+          "review_gate": "WAIVED",
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "target_environment_id": "staging",
+          "candidate_accepted_by": "founder-001"
+        }
+      ],
+      "transition": "testing-to-staging",
+      "source_environment_id": "testing",
+      "environment": {
+        "environment_id": "staging",
+        "type": "staging",
+        "target_ref": "local/order-operations-portal-staging",
+        "required_evidence": [
+          "decision-record",
+          "review",
+          "single-operator-controls",
+          "test",
+          "build",
+          "smoke"
+        ],
+        "approver_policy": "",
+        "topology_version": 1,
+        "config_hash": "sha256:54176385024ff88245267055caf041bfa829991b08c97187ec195a257b1a3b56"
+      },
+      "build": {
+        "image_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+        "image_ref": "file://<scratch>/order-portal",
+        "build_id": "local-build-1",
+        "source_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+        "includes_commits": [
+          "b646caf96b287eaa8593856c34f28208a8d66906"
+        ],
+        "evidence_ref": "evidence/EB-019/agent-run-1.txt#build",
+        "observed_at": "2026-10-26T15:41:43Z"
+      },
+      "policy_version": "project-workspace-v1",
+      "manifest_hash": "sha256:7cb6e7c50b009866eece017b152aa68ac216d3a0026a38286e9d4982cf56ca5d"
+    },
+    "gates": [
+      {
+        "gate": "environment",
+        "status": "PASS",
+        "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+      },
+      {
+        "gate": "change",
+        "change_id": "CHG-001",
+        "status": "PASS",
+        "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+      },
+      {
+        "gate": "build",
+        "status": "PASS",
+        "detail": "image sha256:b5ebb5881858 from b646caf96b287eaa859"
+      }
+    ],
+    "verdict": "PROMOTED",
+    "approval": {
+      "actor": "founder-001",
+      "role": "release_manager",
+      "at": "2026-10-26T15:41:43Z",
+      "decision": "APPROVED",
+      "reason": "Local staging under single-operator controls.",
+      "manifest_hash": "sha256:7cb6e7c50b009866eece017b152aa68ac216d3a0026a38286e9d4982cf56ca5d",
+      "expires_at": "2026-10-29T15:41:43Z",
+      "waiver": "approver also started run run-eb019-1; accepted under documented single-operator controls of staging"
+    },
+    "deployments": [
+      {
+        "attempt_id": "REL-001-D01",
+        "idempotency_key": "k-staging-1",
+        "operation_id": "",
+        "source": "local",
+        "revision": "staging-20261026t154143z-36153",
+        "service_url": "http://127.0.0.1:8095",
+        "deployed_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+        "deployed_target_ref": "local/order-operations-portal-staging",
+        "deployed_config_hash": "",
+        "deployed_at": "2026-10-26T15:41:44Z",
+        "deployed_by": "founder-001",
+        "smoke": {
+          "status": "PASS",
+          "evidence_ref": "healthz:http://127.0.0.1:8095/healthz",
+          "at": "2026-10-26T15:41:44Z"
+        },
+        "observation": {
+          "service_url": "http://127.0.0.1:8095",
+          "http_status": 200,
+          "status": "ok",
+          "service": "order-operations-portal",
+          "environment": "staging",
+          "revision": "staging-20261026t154143z-36153",
+          "build_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+          "started_at": "2026-10-26T15:41:43Z",
+          "target_ref": "local/order-operations-portal-staging",
+          "observed_at": "2026-10-26T15:41:44Z"
+        },
+        "gates": [
+          {
+            "gate": "environment",
+            "status": "PASS",
+            "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+          },
+          {
+            "gate": "change",
+            "change_id": "CHG-001",
+            "status": "PASS",
+            "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+          },
+          {
+            "gate": "build",
+            "status": "PASS",
+            "detail": "image sha256:b5ebb5881858 from b646caf96b287eaa859"
+          },
+          {
+            "gate": "release_approval",
+            "status": "PASS",
+            "detail": "approved by founder-001 for manifest sha256:7cb6e7c50b00"
+          },
+          {
+            "gate": "digest_drift",
+            "status": "PASS",
+            "detail": "deployed digest equals the approved digest"
+          },
+          {
+            "gate": "target_drift",
+            "status": "PASS",
+            "detail": "deployed to the approved target local/order-operations-portal-staging"
+          },
+          {
+            "gate": "revision_observed",
+            "status": "PASS",
+            "detail": "staging-20261026t154143z-36153"
+          },
+          {
+            "gate": "smoke",
+            "status": "PASS",
+            "detail": "smoke PASS (healthz:http://127.0.0.1:8095/healthz)"
+          }
+        ],
+        "outcome": "PROMOTED",
+        "recorded_at": "2026-10-26T15:41:44Z"
+      }
+    ],
+    "receipt": {
+      "kind": "ReleaseReceipt",
+      "schema_version": "release-receipt/v1",
+      "receipt_id": "RR-001",
+      "release_id": "REL-001",
+      "project_id": "order-operations-portal",
+      "status": "PROMOTED",
+      "transition": "testing-to-staging",
+      "environment": {
+        "environment_id": "staging",
+        "type": "staging",
+        "target_ref": "local/order-operations-portal-staging",
+        "required_evidence": [
+          "decision-record",
+          "review",
+          "single-operator-controls",
+          "test",
+          "build",
+          "smoke"
+        ],
+        "approver_policy": "",
+        "topology_version": 1,
+        "config_hash": "sha256:54176385024ff88245267055caf041bfa829991b08c97187ec195a257b1a3b56"
+      },
+      "changes": [
+        {
+          "change_id": "CHG-001",
+          "title": "Filter the order list by status",
+          "decision_id": "DEC-001",
+          "decision_version": 1,
+          "work_order_id": "AWO-001",
+          "work_order_hash": "sha256:8a4a7dfcad67e12ccd8d985892e33556a124d8148b33987a8176645c81f53011",
+          "candidate_id": "CAND-001",
+          "run_id": "run-eb019-1",
+          "run_started_by": "founder-001",
+          "branch": "agent/order-status-filter",
+          "head_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+          "review_gate": "WAIVED",
+          "source_snapshot_hash": "sha256:2e56e4d6ccaa7884f7a3eb03126252d0f901304716fa59715063aaba0d955dc0",
+          "target_environment_id": "staging",
+          "candidate_accepted_by": "founder-001"
+        }
+      ],
+      "build": {
+        "image_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+        "image_ref": "file://<scratch>/order-portal",
+        "build_id": "local-build-1",
+        "source_commit": "b646caf96b287eaa8593856c34f28208a8d66906",
+        "includes_commits": [
+          "b646caf96b287eaa8593856c34f28208a8d66906"
+        ],
+        "evidence_ref": "evidence/EB-019/agent-run-1.txt#build",
+        "observed_at": "2026-10-26T15:41:43Z"
+      },
+      "approval": {
+        "actor": "founder-001",
+        "role": "release_manager",
+        "at": "2026-10-26T15:41:43Z",
+        "decision": "APPROVED",
+        "reason": "Local staging under single-operator controls.",
+        "manifest_hash": "sha256:7cb6e7c50b009866eece017b152aa68ac216d3a0026a38286e9d4982cf56ca5d",
+        "expires_at": "2026-10-29T15:41:43Z",
+        "waiver": "approver also started run run-eb019-1; accepted under documented single-operator controls of staging"
+      },
+      "deployment": {
+        "attempt_id": "REL-001-D01",
+        "idempotency_key": "k-staging-1",
+        "operation_id": "",
+        "source": "local",
+        "revision": "staging-20261026t154143z-36153",
+        "service_url": "http://127.0.0.1:8095",
+        "deployed_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+        "deployed_target_ref": "local/order-operations-portal-staging",
+        "deployed_config_hash": "",
+        "deployed_at": "2026-10-26T15:41:44Z",
+        "deployed_by": "founder-001",
+        "smoke": {
+          "status": "PASS",
+          "evidence_ref": "healthz:http://127.0.0.1:8095/healthz",
+          "at": "2026-10-26T15:41:44Z"
+        },
+        "observation": {
+          "service_url": "http://127.0.0.1:8095",
+          "http_status": 200,
+          "status": "ok",
+          "service": "order-operations-portal",
+          "environment": "staging",
+          "revision": "staging-20261026t154143z-36153",
+          "build_digest": "sha256:b5ebb5881858d9001a8f3d861db8a5c76ea265a80de493500456d6dacf96f78a",
+          "started_at": "2026-10-26T15:41:43Z",
+          "target_ref": "local/order-operations-portal-staging",
+          "observed_at": "2026-10-26T15:41:44Z"
+        },
+        "gates": [
+          {
+            "gate": "environment",
+            "status": "PASS",
+            "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+          },
+          {
+            "gate": "change",
+            "change_id": "CHG-001",
+            "status": "PASS",
+            "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+          },
+          {
+            "gate": "build",
+            "status": "PASS",
+            "detail": "image sha256:b5ebb5881858 from b646caf96b287eaa859"
+          },
+          {
+            "gate": "release_approval",
+            "status": "PASS",
+            "detail": "approved by founder-001 for manifest sha256:7cb6e7c50b00"
+          },
+          {
+            "gate": "digest_drift",
+            "status": "PASS",
+            "detail": "deployed digest equals the approved digest"
+          },
+          {
+            "gate": "target_drift",
+            "status": "PASS",
+            "detail": "deployed to the approved target local/order-operations-portal-staging"
+          },
+          {
+            "gate": "revision_observed",
+            "status": "PASS",
+            "detail": "staging-20261026t154143z-36153"
+          },
+          {
+            "gate": "smoke",
+            "status": "PASS",
+            "detail": "smoke PASS (healthz:http://127.0.0.1:8095/healthz)"
+          }
+        ],
+        "outcome": "PROMOTED",
+        "recorded_at": "2026-10-26T15:41:44Z"
+      },
+      "manifest_hash": "sha256:7cb6e7c50b009866eece017b152aa68ac216d3a0026a38286e9d4982cf56ca5d",
+      "evidence_refs": [
+        "evidence/EB-019/agent-run-1.txt#build",
+        "healthz:http://127.0.0.1:8095/healthz"
+      ],
+      "issued_at": "2026-10-26T15:41:44Z",
+      "receipt_hash": "sha256:5265930f9d91edcf14b86e77f8bcbaebc335f637264452b08edbfcc1793fa969"
+    },
+    "reason": "EB-019",
+    "created_by": "founder-001",
+    "created_at": "2026-10-26T15:41:43Z",
+    "updated_at": "2026-10-26T15:41:44Z"
+  },
+  "live_gates": [
+    {
+      "gate": "environment",
+      "status": "PASS",
+      "detail": "staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f"
+    },
+    {
+      "gate": "change",
+      "change_id": "CHG-001",
+      "status": "PASS",
+      "detail": "DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001"
+    },
+    {
+      "gate": "build",
+      "status": "PASS",
+      "detail": "image sha256:b5ebb5881858 from b646caf96b287eaa859"
+    }
+  ],
+  "staleness": {
+    "stale": false
+  }
+}
+release REL-001 status PROMOTED attempt REL-001-D01 outcome PROMOTED revision staging-20261026t154143z-36153 target local/order-operations-portal-staging
+  gate environment PASS - staging (staging) at local/order-operations-portal-staging, topology v1, config sha256:54176385024f
+  gate change PASS - DEC-001 v1 · AWO-001 · CAND-001 @ b646caf96b287eaa859 accepted by founder-001
+  gate build PASS - image sha256:b5ebb5881858 from b646caf96b287eaa859
+  gate release_approval PASS - approved by founder-001 for manifest sha256:7cb6e7c50b00
+  gate digest_drift PASS - deployed digest equals the approved digest
+  gate target_drift PASS - deployed to the approved target local/order-operations-portal-staging
+  gate revision_observed PASS - staging-20261026t154143z-36153
+  gate smoke PASS - smoke PASS (healthz:http://127.0.0.1:8095/healthz)
+  receipt RR-001 PROMOTED hash sha256:5265930f9d91edcf14b86e77f8bcbaebc335f637264452b08edbfcc1793fa969
+
+## the staged build does what the change asked (read directly from :8095)
+GET /api/orders -> http=200 [{"id":"ORD-1001","customer":"Acme North","amount":12800,"reason":"Shipping address changed after payment","status":"PENDING_REVIEW","evidence":[]},{"id":"ORD-1002","customer":"Beta Studio","amount":4200,"reason":"High-value order needs a second check","status":"PENDING_REVIEW","evidence":[]}]
+GET /api/orders?status=PENDING_REVIEW -> http=200 [{"id":"ORD-1001","customer":"Acme North","amount":12800,"reason":"Shipping address changed after payment","status":"PENDING_REVIEW","evidence":[]},{"id":"ORD-1002","customer":"Beta Studio","amount":4200,"reason":"High-value order needs a second check","status":"PENDING_REVIEW","evidence":[]}]
+GET /api/orders?status=APPROVED -> http=200 []
+GET /api/orders?status=NOT_A_STATUS -> http=400 {"error":"status must be PENDING_REVIEW, APPROVED or REJECTED"}
+
+## result
+run=run-eb019-1 pr=https://github.com/williamlabdev/order-operations-portal/pull/3 head=b646caf96b287eaa8593856c34f28208a8d66906 candidate=CAND-001 staging=PROMOTED review=APPROVED
+the pull request stays open; merging it and syncing the demo copy need the founder's command (DR-018)
+
+## teardown
+port 8094: no listener
+port 8095: no listener
+work dir (clones, binaries, ContextRail state) removed: yes
