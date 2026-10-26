@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -31,6 +32,31 @@ type reviewRequest struct {
 	Note     string `json:"note"`
 }
 
+// evidenceReference is one supporting reference a reviewer attaches to an
+// order exception (REQ-002): a label and an http(s) link, kept in memory next
+// to the order. Nothing is uploaded or stored; only the link is remembered.
+type evidenceReference struct {
+	Label   string `json:"label"`
+	URL     string `json:"url"`
+	AddedAt string `json:"addedAt"`
+}
+
+type evidenceRequest struct {
+	Label string `json:"label"`
+	URL   string `json:"url"`
+}
+
+// maxEvidencePerOrder caps the references on one order (AC-002).
+const maxEvidencePerOrder = 3
+
+// orderView is what GET /api/orders returns: the order plus its evidence
+// references (AC-004). The references live outside `order` so that existing
+// review behaviour and its tests stay untouched (AC-005).
+type orderView struct {
+	order
+	Evidence []evidenceReference `json:"evidence"`
+}
+
 type server struct {
 	mu          sync.RWMutex
 	environment string
@@ -38,6 +64,7 @@ type server struct {
 	buildDigest string
 	startedAt   string
 	orders      map[string]*order
+	evidence    map[string][]evidenceReference
 }
 
 // newServer builds the in-memory portal. The environment label is read from
@@ -58,7 +85,9 @@ func newServer() *server {
 		orders: map[string]*order{
 			"ORD-1001": {ID: "ORD-1001", Customer: "Acme North", Amount: 12800, Reason: "Shipping address changed after payment", Status: "PENDING_REVIEW"},
 			"ORD-1002": {ID: "ORD-1002", Customer: "Beta Studio", Amount: 4200, Reason: "High-value order needs a second check", Status: "PENDING_REVIEW"},
-		}}
+		},
+		evidence: map[string][]evidenceReference{},
+	}
 }
 
 func (s *server) routes() http.Handler {
@@ -66,8 +95,26 @@ func (s *server) routes() http.Handler {
 	mux.HandleFunc("GET /", s.home)
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /api/orders", s.listOrders)
-	mux.HandleFunc("POST /api/orders/", s.review)
+	mux.HandleFunc("POST /api/orders/", s.orderAction)
 	return logging(mux)
+}
+
+// orderAction dispatches POST /api/orders/{id}/review and
+// POST /api/orders/{id}/evidence; anything else under the prefix is 404.
+func (s *server) orderAction(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 4 || parts[0] != "api" || parts[1] != "orders" {
+		http.NotFound(w, r)
+		return
+	}
+	switch parts[3] {
+	case "review":
+		s.review(w, r, parts[2])
+	case "evidence":
+		s.addEvidence(w, r, parts[2])
+	default:
+		http.NotFound(w, r)
+	}
 }
 
 func (s *server) home(w http.ResponseWriter, r *http.Request) {
@@ -156,28 +203,38 @@ func listenAddr(port string) string {
 func (s *server) listOrders(w http.ResponseWriter, r *http.Request) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	result := make([]order, 0, len(s.orders))
+	result := make([]orderView, 0, len(s.orders))
 	for _, item := range s.orders {
-		result = append(result, *item)
+		result = append(result, orderView{order: *item, Evidence: s.evidenceOf(item.ID)})
 	}
 	writeJSON(w, http.StatusOK, result)
 }
 
-func (s *server) review(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 4 || parts[0] != "api" || parts[1] != "orders" || parts[3] != "review" {
-		http.NotFound(w, r)
-		return
-	}
+// evidenceOf returns a copy of the order's references, never nil, so the JSON
+// always carries an `evidence` array. Callers hold s.mu.
+func (s *server) evidenceOf(orderID string) []evidenceReference {
+	return append([]evidenceReference{}, s.evidence[orderID]...)
+}
+
+// decodeSingleJSON reads exactly one JSON object from the body; anything
+// malformed or trailing is a 400 with a JSON error (same rule as review).
+func decodeSingleJSON(w http.ResponseWriter, r *http.Request, target any) bool {
 	decoder := json.NewDecoder(r.Body)
-	var req reviewRequest
-	if err := decoder.Decode(&req); err != nil {
+	if err := decoder.Decode(target); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "request must be valid JSON"})
-		return
+		return false
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "request must contain one JSON object"})
+		return false
+	}
+	return true
+}
+
+func (s *server) review(w http.ResponseWriter, r *http.Request, orderID string) {
+	var req reviewRequest
+	if !decodeSingleJSON(w, r, &req) {
 		return
 	}
 	if req.Decision != "APPROVED" && req.Decision != "REJECTED" {
@@ -190,7 +247,7 @@ func (s *server) review(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	item, ok := s.orders[parts[2]]
+	item, ok := s.orders[orderID]
 	if !ok {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "order not found"})
 		return
@@ -199,6 +256,54 @@ func (s *server) review(w http.ResponseWriter, r *http.Request) {
 	item.Note = strings.TrimSpace(req.Note)
 	item.ReviewedAt = time.Now().UTC().Format(time.RFC3339)
 	writeJSON(w, http.StatusOK, map[string]any{"order": item, "reviewedAt": item.ReviewedAt})
+}
+
+// addEvidence attaches one evidence reference to an order (REQ-002).
+// AC-001: label and http(s) URL required → otherwise 400 JSON error.
+// AC-002: the fourth reference on the same order → 409.
+// AC-003: unknown order → 404.
+func (s *server) addEvidence(w http.ResponseWriter, r *http.Request, orderID string) {
+	var req evidenceRequest
+	if !decodeSingleJSON(w, r, &req) {
+		return
+	}
+	label := strings.TrimSpace(req.Label)
+	if label == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "label is required"})
+		return
+	}
+	link, err := validEvidenceURL(req.URL)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.orders[orderID]; !ok {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "order not found"})
+		return
+	}
+	if len(s.evidence[orderID]) >= maxEvidencePerOrder {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": fmt.Sprintf("order already has %d evidence references", maxEvidencePerOrder)})
+		return
+	}
+	reference := evidenceReference{Label: label, URL: link, AddedAt: time.Now().UTC().Format(time.RFC3339)}
+	s.evidence[orderID] = append(s.evidence[orderID], reference)
+	writeJSON(w, http.StatusCreated, map[string]any{"order": orderID, "evidence": s.evidenceOf(orderID)})
+}
+
+// validEvidenceURL accepts only absolute http or https links with a host; the
+// link is remembered as given (trimmed), never fetched.
+func validEvidenceURL(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", fmt.Errorf("url is required")
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+		return "", fmt.Errorf("url must be an absolute http or https link")
+	}
+	return raw, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
