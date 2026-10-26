@@ -170,7 +170,10 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 		readBackName = "github"
 	}
 	changesHandler.Register(mux)
-	registryhttp.NewReleasesHandler(release.NewService(releaseStore, changeService, topologyService)).Register(mux)
+	// Local deployments (source "local", DR-017) are read back from the
+	// running instance on this machine; the observer accepts loopback only.
+	localReadBack := release.NewLocalReadBack()
+	registryhttp.NewReleasesHandler(release.NewService(releaseStore, changeService, topologyService).WithObserver(localReadBack)).Register(mux)
 	mux.Handle("/v1/", registryhttp.NewServerWithOptions(roots, options))
 	mux.Handle("/healthz", registryhttp.NewHealthHandler(mode))
 	mux.Handle("/", registryhttp.NewStaticHandler(staticDir))
@@ -189,8 +192,8 @@ func serveHTTP(roots rootsFlag, addr, staticDir, stateDir string, options regist
 
 	errs := make(chan error, 1)
 	go func() {
-		fmt.Fprintf(os.Stderr, "ContextRail workspace listening on http://%s (mode=%s fixtures=%v static=%s state=%s advisor=%s read_back=%s scenario=%s delay_ms=%d)\n",
-			addr, mode, []string(roots), staticDir, stateDir, advisorName, readBackName, options.Scenario, options.Delay/time.Millisecond)
+		fmt.Fprintf(os.Stderr, "ContextRail workspace listening on http://%s (mode=%s fixtures=%v static=%s state=%s advisor=%s read_back=%s local_read_back=%s scenario=%s delay_ms=%d)\n",
+			addr, mode, []string(roots), staticDir, stateDir, advisorName, readBackName, localReadBack.Name(), options.Scenario, options.Delay/time.Millisecond)
 		errs <- server.ListenAndServe()
 	}()
 

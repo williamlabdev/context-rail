@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -33,18 +34,31 @@ type reviewRequest struct {
 type server struct {
 	mu          sync.RWMutex
 	environment string
+	revision    string
+	buildDigest string
+	startedAt   string
 	orders      map[string]*order
 }
 
 // newServer builds the in-memory portal. The environment label is read from
 // ORDER_PORTAL_ENV so two local instances (DR-015: local staging and local
 // prod-demo) can be told apart from their own /healthz read-back, not only from
-// the port they were started on.
+// the port they were started on. The revision and build digest give a local
+// instance the two identities a Cloud Run revision has: which build is
+// running (digest of this executable) and which start of it answers
+// (revision, new on every process start).
 func newServer() *server {
-	return &server{environment: environmentLabel(os.Getenv("ORDER_PORTAL_ENV")), orders: map[string]*order{
-		"ORD-1001": {ID: "ORD-1001", Customer: "Acme North", Amount: 12800, Reason: "Shipping address changed after payment", Status: "PENDING_REVIEW"},
-		"ORD-1002": {ID: "ORD-1002", Customer: "Beta Studio", Amount: 4200, Reason: "High-value order needs a second check", Status: "PENDING_REVIEW"},
-	}}
+	started := time.Now().UTC()
+	environment := environmentLabel(os.Getenv("ORDER_PORTAL_ENV"))
+	return &server{
+		environment: environment,
+		revision:    revisionName(environment, started, os.Getpid()),
+		buildDigest: executableDigest(),
+		startedAt:   started.Format(time.RFC3339),
+		orders: map[string]*order{
+			"ORD-1001": {ID: "ORD-1001", Customer: "Acme North", Amount: 12800, Reason: "Shipping address changed after payment", Status: "PENDING_REVIEW"},
+			"ORD-1002": {ID: "ORD-1002", Customer: "Beta Studio", Amount: 4200, Reason: "High-value order needs a second check", Status: "PENDING_REVIEW"},
+		}}
 }
 
 func (s *server) routes() http.Handler {
@@ -62,7 +76,37 @@ func (s *server) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "service": "order-operations-portal", "environment": s.environment})
+	writeJSON(w, http.StatusOK, map[string]string{
+		"status": "ok", "service": "order-operations-portal", "environment": s.environment,
+		"revision": s.revision, "build_digest": s.buildDigest, "started_at": s.startedAt,
+	})
+}
+
+// revisionName is unique per process start, like a Cloud Run revision is
+// unique per deployment: <environment>-<start time>-<pid>. Restarting the
+// same binary yields a new revision; the build digest is what stays equal.
+func revisionName(environment string, started time.Time, pid int) string {
+	return fmt.Sprintf("%s-%s-%d", environment, started.Format("20060102t150405z"), pid)
+}
+
+// executableDigest hashes the running executable so the read-back can tell
+// which build answers, without a container registry. It is a binary digest,
+// not an OCI image digest; an empty string means it could not be read.
+func executableDigest() string {
+	path, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer file.Close()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return ""
+	}
+	return fmt.Sprintf("sha256:%x", hash.Sum(nil))
 }
 
 // environmentLabel normalises ORDER_PORTAL_ENV; an unset value reports "local"

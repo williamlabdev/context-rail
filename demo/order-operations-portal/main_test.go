@@ -2,11 +2,16 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestHealthAndOrderList(t *testing.T) {
@@ -164,4 +169,53 @@ func TestHealthReportsEnvironmentLabel(t *testing.T) {
 	if environmentLabel("") != "local" {
 		t.Fatalf("unset ORDER_PORTAL_ENV should report local")
 	}
+}
+
+func TestHealthReportsRevisionAndBuildDigest(t *testing.T) {
+	t.Setenv("ORDER_PORTAL_ENV", "staging")
+	s := newServer()
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	res := httptest.NewRecorder()
+	s.routes().ServeHTTP(res, req)
+	var body map[string]string
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode healthz: %v", err)
+	}
+	if !strings.HasPrefix(body["revision"], "staging-") || body["revision"] != s.revision {
+		t.Fatalf("revision must be reported and carry the environment label: %q", body["revision"])
+	}
+	if want := independentExecutableDigest(t); body["build_digest"] != want {
+		t.Fatalf("build_digest must be the sha256 of the executable: got %q, want %q", body["build_digest"], want)
+	}
+	if body["started_at"] == "" {
+		t.Fatalf("started_at must be reported")
+	}
+	// The same build answers with the same digest; a new start is a new revision.
+	again := newServer()
+	if again.buildDigest != s.buildDigest {
+		t.Fatalf("build digest must be stable for one executable: %q vs %q", again.buildDigest, s.buildDigest)
+	}
+	if revisionName("prod-demo", time.Date(2026, 10, 26, 1, 2, 3, 0, time.UTC), 42) != "prod-demo-20261026t010203z-42" {
+		t.Fatalf("unexpected revision format: %s", revisionName("prod-demo", time.Date(2026, 10, 26, 1, 2, 3, 0, time.UTC), 42))
+	}
+}
+
+// independentExecutableDigest recomputes the digest without executableDigest so
+// the test fails if that helper hashes the wrong file or a constant.
+func independentExecutableDigest(t *testing.T) string {
+	t.Helper()
+	path, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open executable: %v", err)
+	}
+	defer file.Close()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		t.Fatalf("hash executable: %v", err)
+	}
+	return fmt.Sprintf("sha256:%x", hash.Sum(nil))
 }

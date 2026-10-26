@@ -155,6 +155,7 @@ type SmokeResult struct {
 	Status      string `json:"status"` // PASS or FAIL
 	EvidenceRef string `json:"evidence_ref"`
 	At          string `json:"at"`
+	Detail      string `json:"detail,omitempty"` // why a FAIL failed (set by the local read-back)
 }
 
 // DeploymentRecord is what was observed after the operator deployed.
@@ -162,7 +163,7 @@ type DeploymentRecord struct {
 	AttemptID          string       `json:"attempt_id"`
 	IdempotencyKey     string       `json:"idempotency_key"`
 	OperationID        string       `json:"operation_id"`
-	Source             string       `json:"source"` // declared or cloud-run
+	Source             string       `json:"source"` // declared, cloud-run or local (observed, DR-017)
 	Revision           string       `json:"revision"`
 	ServiceURL         string       `json:"service_url"`
 	DeployedDigest     string       `json:"deployed_digest"`
@@ -171,9 +172,12 @@ type DeploymentRecord struct {
 	DeployedAt         string       `json:"deployed_at"`
 	DeployedBy         string       `json:"deployed_by"`
 	Smoke              *SmokeResult `json:"smoke"`
-	Gates              []GateResult `json:"gates"`
-	Outcome            string       `json:"outcome"` // PROMOTED, PROMOTION_FAILED, REPLAYED
-	RecordedAt         string       `json:"recorded_at"`
+	// Observation is the live read-back a "local" deployment's revision,
+	// digest, target and smoke were taken from; nil for declared sources.
+	Observation *LiveObservation `json:"observation,omitempty"`
+	Gates       []GateResult     `json:"gates"`
+	Outcome     string           `json:"outcome"` // PROMOTED, PROMOTION_FAILED, REPLAYED
+	RecordedAt  string           `json:"recorded_at"`
 }
 
 // Receipt is the re-readable result of a governed release.
