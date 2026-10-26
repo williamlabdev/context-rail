@@ -200,11 +200,39 @@ func listenAddr(port string) string {
 	return ":8080"
 }
 
+// orderStatuses are the only values an order's status can take: the initial
+// PENDING_REVIEW and the two review decisions.
+var orderStatuses = []string{"PENDING_REVIEW", "APPROVED", "REJECTED"}
+
+// validOrderStatus reports whether raw is one of orderStatuses, compared
+// exactly (no trimming or case folding) so the filter matches the stored value.
+func validOrderStatus(raw string) bool {
+	for _, status := range orderStatuses {
+		if raw == status {
+			return true
+		}
+	}
+	return false
+}
+
+// listOrders returns every order, or only the orders in one status when the
+// `status` query parameter is present (AWO-001). A status parameter that is
+// not one of orderStatuses is a 400 with a JSON error; no parameter at all
+// keeps the previous behaviour of listing everything.
 func (s *server) listOrders(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	filter := query.Get("status")
+	if query.Has("status") && !validOrderStatus(filter) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "status must be " + strings.Join(orderStatuses, ", ")})
+		return
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	result := make([]orderView, 0, len(s.orders))
 	for _, item := range s.orders {
+		if filter != "" && item.Status != filter {
+			continue
+		}
 		result = append(result, orderView{order: *item, Evidence: s.evidenceOf(item.ID)})
 	}
 	writeJSON(w, http.StatusOK, result)
