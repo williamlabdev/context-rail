@@ -1,0 +1,119 @@
+{
+  "decision_id": "DR-018",
+  "project_id": "context-rail",
+  "request_id": null,
+  "version": 1,
+  "status": "ACCEPTED_FOR_DEVELOPMENT",
+  "risk_level": "medium",
+  "selected_option": "headless_claude_code_run_on_the_external_source_repository_with_harness_owned_git",
+  "alternatives": [
+    {
+      "id": "target_the_demo_copy_inside_context_rail",
+      "status": "rejected",
+      "reason": "The demo copy has no remote and no CI of its own, so a candidate there cannot carry real Git or CI evidence; roadmap G3 asks for both. The founder chose the external repository github.com/williamlabdev/order-operations-portal, which is public and runs its own test and build jobs."
+    },
+    {
+      "id": "founder_runs_an_interactive_agent_session",
+      "status": "rejected",
+      "reason": "EB-012 already recorded one interactive run (ARR-002, Claude in Cowork). It cannot be replayed from a script, and the commands the agent ran are only what the agent reported. The founder chose a headless claude -p run started by a harness, whose transcript is captured as it happens."
+    },
+    {
+      "id": "agent_commits_pushes_and_opens_the_pull_request",
+      "status": "rejected",
+      "reason": "It would give the agent git, network and GitHub credentials. The harness keeps those: the agent only edits files and runs go test, go vet and gofmt. The harness checks the changed paths against allowed_paths before it commits, so an out-of-scope edit stops the run before anything is pushed. Agent proposal, not a founder ruling."
+    },
+    {
+      "id": "agent_sdk_or_managed_agents",
+      "status": "rejected",
+      "reason": "Both would mean writing and hosting an agent loop. ContextRail does not host agents (roadmap scope), and the developer-side tool G3 asks about is an external coding agent the developer already uses, Claude Code."
+    },
+    {
+      "id": "one_way_sync_from_the_demo_to_the_external_repository",
+      "status": "rejected",
+      "reason": "The agent proposed copying the demo over the external repository. The founder chose a bidirectional sync with the external repository as the single source. The divergence was in both directions: the external repository had REQ-002 evidence links, and the demo had the healthz identity and local topology that DR-017 needs. A one-way copy would have dropped one side."
+    }
+  ],
+  "scope": {
+    "allowed_paths": [
+      "scripts/agent-run.sh",
+      "scripts/agent-run-prompt.md",
+      "evidence/EB-019/",
+      "decisions/DR-018-headless-agent-run.json",
+      "roadmap.md",
+      "README.md",
+      "scripts/agent-review-prompt.md"
+    ],
+    "forbidden_paths": [
+      "secrets",
+      ".env",
+      "internal/",
+      "cmd/",
+      "evidence/EB-012/",
+      "evidence/EB-017/",
+      "evidence/EB-018/",
+      "demo/order-operations-portal/main.go",
+      "demo/order-operations-portal/main_test.go",
+      "demo/order-operations-portal/README.md"
+    ]
+  },
+  "architecture_impact": [
+    "No ContextRail code changes. The run exercises existing surfaces: change, decision, work order, candidate with read_back github (internal/change/readback.go), release build, approval and a source local deployment (DR-017).",
+    "Precondition, not yet met when this version was written: order-operations-portal PR #2 and context-rail PR #26 align the external repository and the demo copy in both directions, and both must be merged before the run. Without PR #2 the external main (d843463) has neither the healthz identity nor the local topology DR-017 reads. From then on the external repository is the single source; the demo is a fixture synced from it and is not edited first. Its manifest keeps the placeholder repository block, because tests/registry/contract_test.go pins fixture-pending-remote.",
+    "scripts/agent-run.sh starts ContextRail with CONTEXT_RAIL_ADVISOR=rule, with a fresh clone of the external main as the Project root, and with GITHUB_TOKEN set only on that command line. The work order's repository is therefore the real github.com/williamlabdev/order-operations-portal, not the demo placeholder.",
+    "The change asks for GET /api/orders?status=<status>: return only orders in that status, return the full list when status is absent, and answer 400 for an unknown status. Tests are part of the change. Base main, target branch agent/order-status-filter, work-order allowed_paths main.go and main_test.go of the external repository. The work order's required checks are allowed-paths-diff-check and independent-review plus the staging environment's requiredEvidence in the external project.yaml (decision-record, review, single-operator-controls, test, build, smoke); test and build are observed as the external CI check-runs of the same names. The Context Pack does not hash main.go or main_test.go, so the agent's edit leaves it current.",
+    "The harness renders the agent prompt from the issued work order: its id and hash, the change text, allowed_paths, forbidden_actions and acceptance. It runs claude -p --bare --model claude-opus-5-5 --max-budget-usd 3 --no-session-persistence --output-format stream-json --verbose in the clone, with --allowedTools limited to Read, Edit, Write, Glob, Grep, Bash(go test:*), Bash(go vet:*) and Bash(gofmt:*). --bare skips the founder's hooks, plugins and settings, so the run does not depend on the developer's personal configuration.",
+    "ANTHROPIC_API_KEY is read from the founder's local .env file and placed on the claude command line only; it is never exported, logged or written to evidence. Before the transcript is saved, it is scanned for the key, and any hit aborts the run.",
+    "After the agent stops, the harness commits under the founder's git identity with an Agent-Run trailer naming the run id, then pushes the branch and opens the pull request with gh. It refuses to commit if any changed path is outside allowed_paths. It waits for the external CI with gh pr checks --watch.",
+    "The candidate is submitted with read_back {source: github, repository: williamlabdev/order-operations-portal, base: main, head: agent/order-status-filter}. Branch, commits, changed paths and checks come from GitHub, not from the agent. The AgentRun record names the agent (Claude Code headless, claude-opus-5-5), the adapter, the run id and the commands the agent declared, read from the transcript.",
+    "No second human exists, so the independent_review gate can only be WAIVED (internal/change/candidate.go independentReviewGate): single-operator-controls is a required check, an AI review is APPROVED and compensating controls are declared. The harness obtains the AI review from a second, separate claude -p --bare run with read-only tools (Read, Glob, Grep), given the work order and the pull request diff, capped at US$1, which must answer APPROVED or CHANGES_REQUESTED with reasons; its transcript and verdict are saved in EB-019. The candidate declares that review and the compensating controls; MergeObservation keeps both next to the GitHub observation. CHANGES_REQUESTED stops the run before the candidate is accepted.",
+    "The binary is built from the candidate head commit and started locally as staging. A release is cut with source_commit set to that head commit and image_digest set to the binary's sha256, then approved and deployed with source local. DR-017 reads the identity back over loopback.",
+    "The agent's pull request is not merged by the run. Merging it, and then syncing the demo copy from the external main, is a separate step that needs the founder's command."
+  ],
+  "cost_assumptions": [
+    "One authoring claude -p run capped at US$3 and one review run capped at US$1 (--max-budget-usd), billed to the promotional API credit (expires 2026-11-10 UTC). Each transcript's total_cost_usd is recorded in EB-019.",
+    "If the first authoring run fails the acceptance checks or the review requests changes, it is kept as evidence. At most one more authoring and review pair is made with the same prompts, so at most US$8 in all.",
+    "External CI runs on a public repository, so it is not billed. ContextRail itself makes no model call (rule advisor)."
+  ],
+  "unknowns": [
+    "The candidate gate does not compare the observed repository with the work order's repository. The harness passes the right repository, but nothing in ContextRail would reject a read-back pointed at another repository. Recorded, not fixed here.",
+    "GitHubReadBack ignores errors from the pulls, review and check-run calls, so a transient GitHub error looks like missing evidence rather than an error. A check-run still in progress (empty conclusion) is read as FAIL, so the harness reads back only after gh pr checks --watch has finished.",
+    "Staging runs the candidate's head commit, not a merged main. Promotion evidence is about the reviewed change, and a later merge commit would be a different build (DR-017: the build digest changes with every commit).",
+    "The single-operator waiver (AI review plus declared compensating controls) covers accepting the candidate and approving the release; a distinct human reviewer is not exercised. The AI reviewer is the same model family as the author, so it is independent of the authoring run but not of its model's blind spots.",
+    "--bare and --allowedTools restrict which tools the agent can use, but Bash(go test:*) still runs test code that the agent wrote, on the founder's machine. The clone is a temporary directory and the key is the only secret in the process environment."
+  ],
+  "acceptance_criteria": [
+    "One claude -p run, started by scripts/agent-run.sh, edits only main.go and main_test.go of the external repository, and its transcript is saved in EB-019 without the key.",
+    "The harness opens a pull request on github.com/williamlabdev/order-operations-portal from agent/order-status-filter into main, and the external CI jobs test and build are seen green on it.",
+    "The candidate submitted with read_back github is VERIFIED from GitHub: branch, commits, changed paths and required checks are observed, not declared. It is accepted against the work order.",
+    "A separate read-only claude -p review run answers APPROVED on the pull request diff, its transcript is in EB-019, and the candidate's independent_review gate is WAIVED, not PASS.",
+    "A release built from the candidate head commit is promoted to the local staging environment with source local; the receipt binds that head commit, and the staging instance answers GET /api/orders?status=… as specified.",
+    "The run stops on its own: ContextRail and the staging instance are shut down and the temporary clone is removed. The external pull request stays open for the founder.",
+    "roadmap G3 is updated only after the above is seen in EB-019; CI is cited only if a run is actually seen green."
+  ],
+  "source_snapshot_hash": null,
+  "source_commit": "6dbf83c",
+  "source_refs": [
+    "roadmap.md §6 G3",
+    "roadmap.md (scope: one developer-started external coding-agent run; ContextRail does not host agents)",
+    "decisions/DR-016-advisor-provider-selection.json",
+    "decisions/DR-017-local-promotion-read-back.json",
+    "evidence/EB-012/ (earlier interactive agent run ARR-002, GitHub read-back VERIFIED)",
+    "internal/change/readback.go (GitHubReadBack)",
+    "internal/change/model.go (AgentWorkOrder)",
+    "internal/change/candidate.go (AgentRun, candidate gates)",
+    "internal/release/service.go (build source_commit must include the accepted candidate commit)",
+    "github.com/williamlabdev/order-operations-portal PR #2 and context-rail PR #26 (bidirectional sync; both open when this version was written)"
+  ],
+  "policy_version": "project-workspace-v1",
+  "evidence_refs": [
+    "evidence/EB-019/"
+  ],
+  "human_decision": {
+    "actor": "founder-001",
+    "role": "founder_and_solution_architect",
+    "at": "2026-10-26T23:00:10+08:00",
+    "decision": "ACCEPTED_FOR_DEVELOPMENT",
+    "reason": "William 對 G3 的授權原話是「可以啊 我本來就有提供claude的api key對吧」。2026-10-26 他在 agent 提供的選項 UI 中裁決，以下為所選選項的標籤原文。目標 repo：「外部 order-operations-portal (Recommended)」。Agent：「我跑 headless claude -p (Recommended)」。改動內容：「訂單列表依狀態篩選 (Recommended)」。對齊方式：「雙向同步，外部設為唯一真相源」（否決 agent 建議的單向同步）。看到兩支同步 PR 的 CI 結果後，他回「好 等你的DR」。harness 掌管 git、AI 審查跑、預算上限、工具白名單、最多重跑一次，是 agent 在上述授權內提出的設計，與 DR-017 版本 1 相同處理：在本版提交給他時審閱，他若否決任何一項就開版本 2。at 為 agent 寫入本版的時刻。"
+  },
+  "human_review": null
+}
