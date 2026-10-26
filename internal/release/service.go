@@ -1,6 +1,7 @@
 package release
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -26,6 +27,7 @@ type Service struct {
 	store    Store
 	changes  ChangeReader
 	topology TopologyReader
+	observer Observer // optional live read-back for source "local" deployments (DR-017)
 	now      func() time.Time
 	mu       sync.Mutex
 }
@@ -36,6 +38,14 @@ func NewService(store Store, changes ChangeReader, topologyReader TopologyReader
 
 func (service *Service) WithClock(now func() time.Time) *Service {
 	service.now = now
+	return service
+}
+
+// WithObserver enables deployments with source "local": their revision,
+// digest, target and smoke are read back from the running service, never
+// taken from the request.
+func (service *Service) WithObserver(observer Observer) *Service {
+	service.observer = observer
 	return service
 }
 
@@ -364,15 +374,27 @@ func (service *Service) RecordDeployment(projectID, releaseID string, request De
 	if release.Status == StatusRejected {
 		return nil, newError(CodeReleaseClosed, "release %s was REJECTED", releaseID)
 	}
+	source := firstNonEmpty(strings.TrimSpace(request.Source), "declared")
+	if source == SourceLocal {
+		if err := service.validateLocalDeployment(request); err != nil {
+			return nil, err
+		}
+	}
 	at := service.stamp()
 	actor := firstNonEmpty(strings.TrimSpace(request.Actor), "local-operator")
 	record := DeploymentRecord{
 		AttemptID: fmt.Sprintf("%s-D%02d", release.ReleaseID, len(release.Deployments)+1), IdempotencyKey: key,
-		OperationID: strings.TrimSpace(request.OperationID), Source: firstNonEmpty(strings.TrimSpace(request.Source), "declared"),
+		OperationID: strings.TrimSpace(request.OperationID), Source: source,
 		Revision: strings.TrimSpace(request.Revision), ServiceURL: strings.TrimSpace(request.ServiceURL),
 		DeployedDigest: strings.TrimSpace(request.DeployedDigest), DeployedTargetRef: strings.TrimSpace(request.DeployedTargetRef),
 		DeployedConfigHash: strings.TrimSpace(request.DeployedConfigHash), DeployedAt: firstNonEmpty(strings.TrimSpace(request.DeployedAt), at),
 		DeployedBy: actor, Smoke: request.Smoke, RecordedAt: at,
+	}
+	if source == SourceLocal {
+		// Observed, not declared: the identity fields come from the service
+		// itself. The replay check above runs first, so a retried record
+		// never re-reads the service and never changes the stored answer.
+		service.observeLocal(&record, at)
 	}
 	service.syncManifest(projectID, state, release, at, actor)
 	record.Gates = service.deploymentGates(projectID, state, release, record)
@@ -404,6 +426,49 @@ func (service *Service) RecordDeployment(projectID, releaseID string, request De
 	}
 	view := service.view(projectID, state, release)
 	return &view, nil
+}
+
+// validateLocalDeployment rejects a "local" record that tries to declare
+// what the read-back is there to observe.
+func (service *Service) validateLocalDeployment(request DeploymentRequest) error {
+	if service.observer == nil {
+		return newError(CodeInvalidRequest, "source %q needs a live read-back and none is configured on this server", SourceLocal)
+	}
+	if strings.TrimSpace(request.ServiceURL) == "" {
+		return newError(CodeInvalidRequest, "source %q requires service_url: the loopback origin of the running instance", SourceLocal)
+	}
+	if strings.TrimSpace(request.Revision) != "" || strings.TrimSpace(request.DeployedDigest) != "" || strings.TrimSpace(request.DeployedTargetRef) != "" || request.Smoke != nil {
+		return newError(CodeInvalidRequest, "source %q deployments are observed, not declared: omit revision, deployed_digest, deployed_target_ref and smoke", SourceLocal)
+	}
+	return nil
+}
+
+// observeLocal fills the identity of a "local" record from the running
+// service. An unreachable or unhealthy service is recorded as a FAIL smoke
+// with the reason, and the identity fields stay empty, so the gates report
+// NEEDS_EVIDENCE/BLOCKED instead of promoting on a declaration.
+func (service *Service) observeLocal(record *DeploymentRecord, at string) {
+	ctx, cancel := context.WithTimeout(context.Background(), localReadBackTimeout)
+	defer cancel()
+	observation, err := service.observer.Observe(ctx, record.ServiceURL)
+	evidenceRef := "healthz:" + record.ServiceURL + "/healthz"
+	if err != nil {
+		record.Smoke = &SmokeResult{Status: "FAIL", EvidenceRef: evidenceRef, At: at, Detail: err.Error()}
+		return
+	}
+	record.Observation = observation
+	record.Revision = observation.Revision
+	record.DeployedDigest = observation.BuildDigest
+	record.DeployedTargetRef = observation.TargetRef
+	record.ServiceURL = observation.ServiceURL
+	switch {
+	case observation.HTTPStatus != 200:
+		record.Smoke = &SmokeResult{Status: "FAIL", EvidenceRef: evidenceRef, At: observation.ObservedAt, Detail: fmt.Sprintf("healthz answered http %d", observation.HTTPStatus)}
+	case !strings.EqualFold(observation.Status, "ok"):
+		record.Smoke = &SmokeResult{Status: "FAIL", EvidenceRef: evidenceRef, At: observation.ObservedAt, Detail: "healthz status " + firstNonEmpty(observation.Status, "(missing)")}
+	default:
+		record.Smoke = &SmokeResult{Status: "PASS", EvidenceRef: evidenceRef, At: observation.ObservedAt}
+	}
 }
 
 // --- gates -----------------------------------------------------------------------
@@ -776,7 +841,11 @@ func (service *Service) deploymentGates(projectID string, state *State, release 
 	case record.Smoke == nil:
 		gates = append(gates, GateResult{Gate: "smoke", Status: GateNeedsEvidence, Detail: "no smoke result; the deployment is not verified"})
 	case strings.ToUpper(record.Smoke.Status) != "PASS":
-		gates = append(gates, GateResult{Gate: "smoke", Status: GateBlocked, Detail: "smoke " + record.Smoke.Status + " (" + firstNonEmpty(record.Smoke.EvidenceRef, "no evidence ref") + ")"})
+		detail := "smoke " + record.Smoke.Status + " (" + firstNonEmpty(record.Smoke.EvidenceRef, "no evidence ref") + ")"
+		if record.Smoke.Detail != "" {
+			detail += ": " + record.Smoke.Detail
+		}
+		gates = append(gates, GateResult{Gate: "smoke", Status: GateBlocked, Detail: detail})
 	default:
 		gates = append(gates, GateResult{Gate: "smoke", Status: GatePass, Detail: "smoke PASS (" + firstNonEmpty(record.Smoke.EvidenceRef, "no evidence ref") + ")"})
 	}
