@@ -75,6 +75,9 @@ against the DR-018 total cap of US$50. Earlier model probes (Fable vs Opus,
   it as an absolute path has not been checked.
 - **The pull requests are not merged** and the demo copy in context-rail is not
   re-synced; both need the founder's command (DR-018).
+  *Update 2026-10-27, after this bundle:* the founder merged
+  order-operations-portal#4 (`74361e9`) and the demo copy was synced from it in
+  context-rail #28. Run 1's pull request #3 was closed unmerged.
 - **Staging ran the pull request head, not `main`.**
 - **`--bare` is not isolation.** The init events list the founder's installed
   plugins (LSP plugins and built-ins); the runs did not depend on hooks, but the
