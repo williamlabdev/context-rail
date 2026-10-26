@@ -18,7 +18,7 @@ STAGING_PORT="${STAGING_PORT:-8091}"
 PROD_DEMO_PORT="${PROD_DEMO_PORT:-8092}"
 DRIFT_PORT="${DRIFT_PORT:-8093}"
 OUT="${OUT:-evidence/EB-018/local-promotion-run.txt}"
-STATE_DIR="${STATE_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/eb017-state.XXXXXX")}"
+STATE_DIR="${STATE_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/eb018-state.XXXXXX")}"
 PROJECT="order-operations-portal"
 BASE="http://127.0.0.1:${RAIL_PORT}/v1/projects/${PROJECT}"
 ACTOR="founder-001"
@@ -132,12 +132,12 @@ print("declared topology ok: v%s, %s" % (d["current_version"], ", ".join("%s=%s"
 log ""
 log "## change: request -> decision -> work order -> candidate -> accepted"
 call POST "$BASE/changes" "$(cat <<JSON
-{"actor":"$ACTOR","reason":"EB-018: the healthz identity change that this promotion ships",
- "request":{"title":"Report revision and build digest from /healthz","objective":"Let a local instance answer which build runs and which start of it answers, so a promotion gate can read it back without a container registry.",
- "owner_summary":"Each local instance reports its environment label, a per-start revision and the sha256 of its own executable on /healthz.",
- "scope_included":["healthz identity fields","unit tests"],"scope_excluded":["project.yaml","authentication","order review behaviour"],
- "acceptance_criteria":[{"text":"healthz reports revision, build_digest and started_at"},{"text":"build_digest equals the sha256 of the running executable"}],
- "allowed_paths":["main.go","main_test.go"],"forbidden_actions":["project.yaml edits","authentication"],
+{"actor":"$ACTOR","reason":"EB-018: the healthz identity and declared local topology change that this promotion ships",
+ "request":{"title":"Report revision and build digest from /healthz and declare the local environments","objective":"Let a local instance answer which build runs and which start of it answers, so a promotion gate can read it back without a container registry, and declare the local staging and prod-demo targets in the governed baseline.",
+ "owner_summary":"Each local instance reports its environment label, a per-start revision and the sha256 of its own executable on /healthz; project.yaml declares local staging and local prod-demo targets.",
+ "scope_included":["healthz identity fields","unit tests","declared local environments","Context Pack rebuild"],"scope_excluded":["authentication","order review behaviour","production environment"],
+ "acceptance_criteria":[{"text":"healthz reports revision, build_digest and started_at"},{"text":"build_digest equals the sha256 of the running executable"},{"text":"project.yaml declares local staging and prod-demo and the Context Pack stays CURRENT"}],
+ "allowed_paths":["main.go","main_test.go","project.yaml","docs/operations/environments.md","docs/ai/context-pack.json"],"forbidden_actions":["authentication","production deployment"],
  "target_environment_id":"staging","business_constraints":{"data_classification":"internal","expected_monthly_volume":"500 reviews"},"requested_by":"$ACTOR"}}
 JSON
 )"
@@ -152,10 +152,10 @@ TARGET_BRANCH="$(printf '%s' "$BODY" | jget 'd["work_order"].get("target_branch"
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 call POST "$BASE/changes/CHG-001/candidates" "$(cat <<JSON
 {"actor":"$ACTOR","reason":"EB-018: candidate from the agent run that produced the healthz change",
- "run":{"kind":"ContextRailRun","schema_version":"1","run_id":"run-eb017-1","work_order_id":"$WO_ID","work_order_hash":"$WO_HASH",
-   "agent":{"name":"claude-code","provider":"anthropic","model":"claude-fable-5-1"},"adapter":"claude-code-cli","started_by":"$ACTOR","started_at":"$NOW"},
+ "run":{"kind":"ContextRailRun","schema_version":"1","run_id":"run-eb018-1","work_order_id":"$WO_ID","work_order_hash":"$WO_HASH",
+   "agent":{"name":"claude-code","provider":"anthropic","model":"claude-opus-5-5"},"adapter":"claude-code-cli","started_by":"$ACTOR","started_at":"$NOW"},
  "observation":{"source":"local-git","repository":"williamlabdev/context-rail","branch":"$TARGET_BRANCH","base_branch":"$BASE_BRANCH",
-   "base_commit":"7d371b8","head_commit":"$HEAD_COMMIT","changed_paths":["main.go","main_test.go"],
+   "base_commit":"65a7d44","head_commit":"$HEAD_COMMIT","changed_paths":["main.go","main_test.go","project.yaml","docs/operations/environments.md","docs/ai/context-pack.json"],
    "checks":[{"name":"test","status":"PASS","evidence_ref":"evidence/EB-018/go-build-test-output.txt","observed_at":"$NOW"},
              {"name":"build","status":"PASS","evidence_ref":"evidence/EB-018/local-promotion-run.txt#build","observed_at":"$NOW"}],
    "reviews":[{"reviewer":"verifier subagent (Claude; model per agent definition: sonnet)","kind":"ai","verdict":"APPROVED","evidence_ref":"evidence/EB-018/ai-review-demo-healthz.md","at":"$NOW"}],
@@ -190,7 +190,7 @@ log "### attempt B: the staging instance answers for prod-demo on :$STAGING_PORT
 call POST "$BASE/releases/REL-002/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018 prod-demo attempt B (wrong instance)\",\"idempotency_key\":\"k-prod-demo-b\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${STAGING_PORT}\"}"
 log "--- gates:"; gates | tee -a "$OUT"
 log ""
-log "### attempt C: the real prod-demo instance on :$PROD_DEMO_PORT (expected: PROMOTED, receipt chained to RR-001)"
+log "### attempt C: the real prod-demo instance on :$PROD_DEMO_PORT (expected: PROMOTED, previous receipt RR-001)"
 call POST "$BASE/releases/REL-002/deployment" "{\"actor\":\"$ACTOR\",\"reason\":\"EB-018 prod-demo attempt C\",\"idempotency_key\":\"k-prod-demo-c\",\"source\":\"local\",\"service_url\":\"http://127.0.0.1:${PROD_DEMO_PORT}\"}"
 log "--- gates:"; gates | tee -a "$OUT"
 

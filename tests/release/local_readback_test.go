@@ -40,7 +40,8 @@ func localInstance(environment, revision, buildDigest string) *release.LiveObser
 
 // localHarness is the standard harness with staging retargeted to a local
 // instance and an isolated local prod-demo added through the topology API,
-// exactly as the EB-017 run does over HTTP (project.yaml stays untouched).
+// as the EB-017 run did over HTTP. Since DR-017 version 2 the demo
+// project.yaml declares this topology and the EB-018 run reads it back instead.
 func localHarness(t *testing.T, observer release.Observer) *harness {
 	t.Helper()
 	h := newHarness(t, false)
