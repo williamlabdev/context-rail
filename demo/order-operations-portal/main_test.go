@@ -273,6 +273,129 @@ func TestEvidenceIsListedWithTheOrder(t *testing.T) {
 	}
 }
 
+// --- AWO-001: filter the order list by status ----------------------------------
+
+// listOrders performs GET /api/orders with the given raw query (may be empty)
+// and returns the response plus the decoded order list when it is a 200.
+func listOrders(t *testing.T, s *server, rawQuery string) (*httptest.ResponseRecorder, []orderView) {
+	t.Helper()
+	target := "/api/orders"
+	if rawQuery != "" {
+		target += "?" + rawQuery
+	}
+	req := httptest.NewRequest(http.MethodGet, target, nil)
+	res := httptest.NewRecorder()
+	s.routes().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		return res, nil
+	}
+	var orders []orderView
+	if err := json.NewDecoder(res.Body).Decode(&orders); err != nil {
+		t.Fatalf("GET %s: decode orders: %v", target, err)
+	}
+	return res, orders
+}
+
+// reviewOrder approves or rejects one order so the fixture has mixed statuses.
+func reviewOrder(t *testing.T, s *server, orderID, decision string) {
+	t.Helper()
+	body, _ := json.Marshal(reviewRequest{Decision: decision, Note: "reviewed for the status filter test"})
+	req := httptest.NewRequest(http.MethodPost, "/api/orders/"+orderID+"/review", bytes.NewReader(body))
+	res := httptest.NewRecorder()
+	s.routes().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("review %s as %s: got %d, want 200: %s", orderID, decision, res.Code, res.Body.String())
+	}
+}
+
+// GET /api/orders?status=<status> returns only the orders in that status, for
+// each of the three statuses, and a status nobody is in yields an empty array.
+func TestListOrdersFiltersByStatus(t *testing.T) {
+	s := newServer()
+	reviewOrder(t, s, "ORD-1002", "APPROVED")
+	want := map[string][]string{
+		"PENDING_REVIEW": {"ORD-1001"},
+		"APPROVED":       {"ORD-1002"},
+		"REJECTED":       {},
+	}
+	for status, ids := range want {
+		res, orders := listOrders(t, s, "status="+status)
+		if res.Code != http.StatusOK {
+			t.Fatalf("status=%s: got %d, want 200: %s", status, res.Code, res.Body.String())
+		}
+		if orders == nil {
+			t.Fatalf("status=%s: response must be a JSON array even when empty", status)
+		}
+		if len(orders) != len(ids) {
+			t.Fatalf("status=%s: got %d orders, want %d: %+v", status, len(orders), len(ids), orders)
+		}
+		for i, item := range orders {
+			if item.Status != status {
+				t.Fatalf("status=%s: order %s has status %s", status, item.ID, item.Status)
+			}
+			if item.ID != ids[i] {
+				t.Fatalf("status=%s: got order %s, want %s", status, item.ID, ids[i])
+			}
+			if item.Evidence == nil {
+				t.Fatalf("status=%s: filtered order %s must still carry its evidence array", status, item.ID)
+			}
+		}
+	}
+	// Reviewing again moves the order between filters.
+	reviewOrder(t, s, "ORD-1002", "REJECTED")
+	if _, orders := listOrders(t, s, "status=REJECTED"); len(orders) != 1 || orders[0].ID != "ORD-1002" {
+		t.Fatalf("status=REJECTED after re-review: %+v", orders)
+	}
+	if _, orders := listOrders(t, s, "status=APPROVED"); len(orders) != 0 {
+		t.Fatalf("status=APPROVED after re-review must be empty: %+v", orders)
+	}
+}
+
+// GET /api/orders without a status parameter still returns every order.
+func TestListOrdersWithoutStatusReturnsAll(t *testing.T) {
+	s := newServer()
+	reviewOrder(t, s, "ORD-1001", "REJECTED")
+	res, orders := listOrders(t, s, "")
+	if res.Code != http.StatusOK {
+		t.Fatalf("got %d, want 200", res.Code)
+	}
+	if len(orders) != len(s.orders) {
+		t.Fatalf("got %d orders, want all %d: %+v", len(orders), len(s.orders), orders)
+	}
+	seen := map[string]string{}
+	for _, item := range orders {
+		seen[item.ID] = item.Status
+	}
+	if seen["ORD-1001"] != "REJECTED" || seen["ORD-1002"] != "PENDING_REVIEW" {
+		t.Fatalf("unfiltered list must include orders of every status: %v", seen)
+	}
+	// Unrelated query parameters do not turn the filter on.
+	if _, orders := listOrders(t, s, "page=1"); len(orders) != len(s.orders) {
+		t.Fatalf("unrelated query parameter must not filter: %+v", orders)
+	}
+}
+
+// A status value outside PENDING_REVIEW, APPROVED and REJECTED is a 400 with a
+// JSON error body; the comparison is exact, so case and whitespace variants
+// are rejected rather than silently matching nothing.
+func TestListOrdersRejectsUnknownStatus(t *testing.T) {
+	for _, rawQuery := range []string{
+		"status=SHIPPED",
+		"status=pending_review",
+		"status=%20APPROVED",
+		"status=",
+	} {
+		s := newServer()
+		res, _ := listOrders(t, s, rawQuery)
+		if res.Code != http.StatusBadRequest {
+			t.Fatalf("%s: got %d, want 400: %s", rawQuery, res.Code, res.Body.String())
+		}
+		if msg := decodeError(t, res); !strings.Contains(msg, "status") {
+			t.Fatalf("%s: error must name the status parameter: %q", rawQuery, msg)
+		}
+	}
+}
+
 // The unknown action under /api/orders/{id}/ stays a 404 and the review
 // endpoint is unchanged by the new dispatcher (AC-005).
 func TestUnknownOrderActionIsNotFound(t *testing.T) {
