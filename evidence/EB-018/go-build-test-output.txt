@@ -1,0 +1,73 @@
+# EB-018 go build / vet / test output
+captured_at=2026-10-26T14:19:17Z
+commit=46482f5 (code under test; tracked changes not in it:  M README.md  M decisions/DR-017-local-promotion-read-back.json  M roadmap.md )
+
+$ go build ./... && go vet ./... && go test -count=1 ./...
+?   	context-rail/cmd/context-rail	[no test files]
+?   	context-rail/internal/change	[no test files]
+?   	context-rail/internal/document	[no test files]
+?   	context-rail/internal/http	[no test files]
+?   	context-rail/internal/projectregistry	[no test files]
+?   	context-rail/internal/release	[no test files]
+?   	context-rail/internal/topology	[no test files]
+ok  	context-rail/tests/change	0.528s
+ok  	context-rail/tests/document	1.701s
+ok  	context-rail/tests/http	1.873s
+ok  	context-rail/tests/registry	0.935s
+ok  	context-rail/tests/release	7.141s
+ok  	context-rail/tests/topology	2.579s
+exit=0
+
+$ (cd demo/order-operations-portal && go vet ./... && go test -count=1 -v ./...)
+=== RUN   TestHealthAndOrderList
+GET /healthz
+GET /api/orders
+--- PASS: TestHealthAndOrderList (0.00s)
+=== RUN   TestReviewRequiresNote
+POST /api/orders/ORD-1001/review
+POST /api/orders/ORD-1001/review
+POST /api/orders/ORD-1001/review
+--- PASS: TestReviewRequiresNote (0.00s)
+=== RUN   TestReviewRejectsInvalidJSON
+POST /api/orders/ORD-1001/review
+--- PASS: TestReviewRejectsInvalidJSON (0.00s)
+=== RUN   TestReviewRejectsTrailingJSON
+POST /api/orders/ORD-1001/review
+POST /api/orders/ORD-1001/review
+--- PASS: TestReviewRejectsTrailingJSON (0.00s)
+=== RUN   TestReviewRejectsUnsupportedDecision
+POST /api/orders/ORD-1001/review
+--- PASS: TestReviewRejectsUnsupportedDecision (0.00s)
+=== RUN   TestReviewUpdatesOrder
+POST /api/orders/ORD-1001/review
+--- PASS: TestReviewUpdatesOrder (0.00s)
+=== RUN   TestReviewCanBeRepeated
+POST /api/orders/ORD-1001/review
+POST /api/orders/ORD-1001/review
+--- PASS: TestReviewCanBeRepeated (0.00s)
+=== RUN   TestReviewUnknownOrder
+POST /api/orders/ORD-9999/review
+--- PASS: TestReviewUnknownOrder (0.00s)
+=== RUN   TestListenAddrHonoursPort
+--- PASS: TestListenAddrHonoursPort (0.00s)
+=== RUN   TestHealthReportsEnvironmentLabel
+GET /healthz
+--- PASS: TestHealthReportsEnvironmentLabel (0.00s)
+=== RUN   TestHealthReportsRevisionAndBuildDigest
+GET /healthz
+--- PASS: TestHealthReportsRevisionAndBuildDigest (0.00s)
+=== RUN   TestRevisionLabelIsSanitised
+--- PASS: TestRevisionLabelIsSanitised (0.00s)
+=== RUN   TestRestartIsANewRevision
+--- PASS: TestRestartIsANewRevision (0.02s)
+=== RUN   TestHealthHelperProcess
+    main_test.go:264: only runs as the helper process of TestRestartIsANewRevision
+--- SKIP: TestHealthHelperProcess (0.00s)
+PASS
+ok  	example.com/order-operations-portal	0.445s
+exit=0
+
+$ demo/order-operations-portal/scripts/validate-demo.sh   (the demo AGENTS.md required check)
+ok  	example.com/order-operations-portal	(cached)
+VALIDATION PASS: Project Context Contract files, tests and build are present.
+exit=0

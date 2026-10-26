@@ -1,0 +1,13 @@
+# EB-018 Context Pack hash recompute (sha256 of each declared source vs its content_hash)
+captured_at=2026-10-26T14:22:16Z
+commit=46482f5
+MATCH    project.yaml sha256:8f08b95e3f0c
+MATCH    README.md sha256:28557e979555
+MATCH    vision.md sha256:ce7b31686e33
+MATCH    architecture.md sha256:719e27374a56
+MATCH    docs/engineering/development.md sha256:5b6a96d799b2
+MATCH    docs/operations/environments.md sha256:cd8af7ba50ed
+MATCH    docs/governance/policies.md sha256:25b27b8ebc2f
+MATCH    governance/role-assignments.json sha256:58cb5ad043de
+MATCH    AGENTS.md sha256:30907814bdc0
+sources=9 mismatches=0 status=CURRENT
