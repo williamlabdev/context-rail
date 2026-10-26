@@ -30,6 +30,13 @@ REVIEW_MODEL="claude-opus-5-5"; REVIEW_BUDGET=5
 # --bare exposes only Bash, Edit and Read (init event of a probe run, 2026-10-26), so Write, Glob and Grep are not listed.
 AUTHOR_TOOLS="Read,Edit,Bash(go test:*),Bash(go vet:*),Bash(gofmt:*)"
 REVIEW_TOOLS="Read"
+# --allowedTools only pre-approves; it does not stop a child from inheriting the
+# caller's permission mode (run 1 ran in auto mode). dontAsk denies anything not
+# pre-approved, and --tools removes the other built-ins outright. Read-only shell
+# commands (ls, cat, git status) are still auto-allowed by Claude Code in dontAsk.
+PERMISSION_MODE="dontAsk"
+AUTHOR_BUILTINS="Read,Edit,Bash"
+REVIEW_BUILTINS="Read"
 # Keep Read away from where secrets live; the key file and gh credentials are outside the clone anyway.
 DENY_TOOLS="Read(//$HOME/dev/source/core/**),Read(//$HOME/.config/**),Read(//$HOME/.ssh/**),Read(//$HOME/.claude/**)"
 KEY_FILE="${KEY_FILE:-$HOME/dev/source/core/aine/orvena/.env}"
@@ -83,8 +90,8 @@ log "captured_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 log "context-rail commit=$(git rev-parse HEAD)"
 log "tracked changes not in that commit: $(git status --porcelain --untracked-files=no | tr '\n' ' ' | sed 's/ *$//')"
 log "ports: context-rail=$RAIL_PORT staging=$STAGING_PORT"
-log "author: claude -p --bare --model $AUTHOR_MODEL --max-budget-usd $AUTHOR_BUDGET --allowedTools \"$AUTHOR_TOOLS\""
-log "reviewer: claude -p --bare --model $REVIEW_MODEL --max-budget-usd $REVIEW_BUDGET --allowedTools \"$REVIEW_TOOLS\""
+log "author: claude -p --bare --permission-mode $PERMISSION_MODE --tools $AUTHOR_BUILTINS --model $AUTHOR_MODEL --max-budget-usd $AUTHOR_BUDGET --allowedTools \"$AUTHOR_TOOLS\""
+log "reviewer: claude -p --bare --permission-mode $PERMISSION_MODE --tools $REVIEW_BUILTINS --model $REVIEW_MODEL --max-budget-usd $REVIEW_BUDGET --allowedTools \"$REVIEW_TOOLS\""
 log "both: --disallowedTools \"$DENY_TOOLS\"" 
 log "claude version: $(claude --version 2>/dev/null | head -1)"
 
@@ -176,10 +183,11 @@ PY
 summarize() {
   python3 -I - "$1" <<'PY'
 import json, sys
-result, tools = {}, []
+result, tools, init = {}, [], {}
 for line in open(sys.argv[1]):
     try: event = json.loads(line)
     except ValueError: continue
+    if event.get("subtype") == "init": init = event
     if event.get("type") == "result": result = event
     if event.get("type") == "assistant":
         for block in event.get("message", {}).get("content", []):
@@ -188,6 +196,8 @@ for line in open(sys.argv[1]):
                 tools.append(block["name"] + ": " + str(i.get("command") or i.get("file_path") or i.get("pattern") or ""))
 print("is_error=%s subtype=%s turns=%s duration_ms=%s total_cost_usd=%s" % (result.get("is_error"), result.get("subtype"), result.get("num_turns"), result.get("duration_ms"), result.get("total_cost_usd")))
 print("models=%s" % ",".join(sorted((result.get("modelUsage") or {}).keys())))
+print("permission_mode=%s builtins=%s" % (init.get("permissionMode"), ",".join(init.get("tools") or [])))
+print("permission_denials=%d" % len(result.get("permission_denials") or []))
 for t in tools: print("tool " + t)
 PY
 }
@@ -199,7 +209,7 @@ scrub "$EB/author-prompt-$RUN_N.md"
 log "prompt rendered from $WO_ID: $EB/author-prompt-$RUN_N.md"
 AUTHOR_STARTED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 AUTHOR_EXIT=0
-(cd "$WORK/agent" && ANTHROPIC_API_KEY="$KEY" claude -p --bare --no-session-persistence --model "$AUTHOR_MODEL" \
+(cd "$WORK/agent" && ANTHROPIC_API_KEY="$KEY" claude -p --bare --no-session-persistence --permission-mode "$PERMISSION_MODE" --tools "$AUTHOR_BUILTINS" --model "$AUTHOR_MODEL" \
   --max-budget-usd "$AUTHOR_BUDGET" --allowedTools "$AUTHOR_TOOLS" --disallowedTools "$DENY_TOOLS" --output-format stream-json --verbose \
   < "$ROOT/$EB/author-prompt-$RUN_N.md") > "$WORK/author.jsonl" 2> "$WORK/author.err" || AUTHOR_EXIT=$?
 AUTHOR_FINISHED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -210,6 +220,7 @@ log "exit=$AUTHOR_EXIT started=$AUTHOR_STARTED finished=$AUTHOR_FINISHED transcr
 summarize "$WORK/author.jsonl" | tee "$WORK/author-summary.txt" | while IFS= read -r line; do log "$line"; done
 [ "$AUTHOR_EXIT" = 0 ] || die "author run failed"
 grep -q "^is_error=False subtype=success" "$WORK/author-summary.txt" || die "author run did not end in success"
+grep -qx "permission_mode=$PERMISSION_MODE builtins=Bash,Edit,Read" "$WORK/author-summary.txt" || die "author run did not start in $PERMISSION_MODE with Bash,Edit,Read"
 
 log ""
 log "## scope check before anything is committed (Work Order allowed_paths: main.go, main_test.go)"
@@ -264,13 +275,14 @@ scrub "$WORK/pr.diff"
 render scripts/agent-review-prompt.md "$EB/review-prompt-$RUN_N.md" "diff=$WORK/pr.diff" "head_commit=$HEAD_COMMIT" "pr_url=$PR_URL"
 scrub "$EB/review-prompt-$RUN_N.md"
 REVIEW_EXIT=0
-(cd "$WORK/agent" && ANTHROPIC_API_KEY="$KEY" claude -p --bare --no-session-persistence --model "$REVIEW_MODEL" \
+(cd "$WORK/agent" && ANTHROPIC_API_KEY="$KEY" claude -p --bare --no-session-persistence --permission-mode "$PERMISSION_MODE" --tools "$REVIEW_BUILTINS" --model "$REVIEW_MODEL" \
   --max-budget-usd "$REVIEW_BUDGET" --allowedTools "$REVIEW_TOOLS" --disallowedTools "$DENY_TOOLS" --output-format stream-json --verbose \
   < "$ROOT/$EB/review-prompt-$RUN_N.md") > "$WORK/review.jsonl" 2> "$WORK/review.err" || REVIEW_EXIT=$?
 scrub "$WORK/review.jsonl"; scrub "$WORK/review.err"
 sed "s#$WORK#<scratch>#g" "$WORK/review.jsonl" > "$EB/review-transcript-$RUN_N.jsonl"
 log "exit=$REVIEW_EXIT transcript=$EB/review-transcript-$RUN_N.jsonl (checked: no key, no GitHub token)"
-summarize "$WORK/review.jsonl" | while IFS= read -r line; do log "$line"; done
+summarize "$WORK/review.jsonl" | tee "$WORK/review-summary.txt" | while IFS= read -r line; do log "$line"; done
+grep -qx "permission_mode=$PERMISSION_MODE builtins=Read" "$WORK/review-summary.txt" || die "review run did not start in $PERMISSION_MODE with Read only"
 [ "$REVIEW_EXIT" = 0 ] || die "review run failed"
 REVIEW_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 python3 -I - "$WORK/review.jsonl" "$EB/ai-review-$RUN_N.md" "$REVIEW_MODEL" "$PR_URL" "$HEAD_COMMIT" "$RUN_N" "$REVIEW_AT" <<'PY' | while IFS= read -r line; do log "$line"; done
@@ -291,7 +303,7 @@ except Exception as error:
     print("verdict=UNPARSEABLE (%s)" % error); sys.exit(0)
 with open(out, "w") as f:
     f.write("# EB-019 AI review, run %s\n\n" % n)
-    f.write("- reviewer: separate headless `claude -p --bare` run, model `%s`, read-only tools (Read, Glob, Grep)\n" % model)
+    f.write("- reviewer: separate headless `claude -p --bare` run, model `%s`, `--tools Read` only, permission mode dontAsk\n" % model)
     f.write("- reviewed: %s at %s\n- at: %s\n- cost: US$%s\n- transcript: `review-transcript-%s.jsonl`\n\n" % (pr, head, at, result.get("total_cost_usd"), n))
     f.write("## Verdict: %s\n\n" % verdict["verdict"])
     for r in verdict.get("reasons", []): f.write("- %s\n" % r)
