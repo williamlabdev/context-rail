@@ -71,7 +71,7 @@ func TestImportSnapshotIncludesBothFixtureShapes(t *testing.T) {
 	if len(order.Repositories) != 1 || order.Repositories[0].Status != "fixture-pending-remote" {
 		t.Fatalf("unexpected order repositories: %#v", order.Repositories)
 	}
-	if len(order.Environments) != 4 || order.Environments[0].ID != "development" || order.Environments[3].ID != "production" {
+	if len(order.Environments) != 5 || order.Environments[0].ID != "development" || order.Environments[3].ID != "prod-demo" || order.Environments[4].ID != "production" {
 		t.Fatalf("unexpected order environments: %#v", order.Environments)
 	}
 	if order.Context.Status != "DERIVED" || order.Readiness.Production.Status != "BLOCKED" {

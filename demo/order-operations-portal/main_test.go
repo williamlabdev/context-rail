@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -218,4 +219,51 @@ func independentExecutableDigest(t *testing.T) string {
 		t.Fatalf("hash executable: %v", err)
 	}
 	return fmt.Sprintf("sha256:%x", hash.Sum(nil))
+}
+
+func TestRevisionLabelIsSanitised(t *testing.T) {
+	cases := map[string]string{"staging": "staging", "Prod Demo": "prod-demo", "a/b\nc": "a-b-c", "--": "local", "": "local"}
+	for in, want := range cases {
+		if got := revisionLabel(in); got != want {
+			t.Fatalf("revisionLabel(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// TestRestartIsANewRevision starts this test binary twice as a real process
+// (the helper below prints one /healthz body) and checks that the two starts
+// report different revisions and the same build digest. The two starts usually
+// land in the same second, so it is the pid part that separates them.
+func TestRestartIsANewRevision(t *testing.T) {
+	if os.Getenv("ORDER_PORTAL_HEALTH_HELPER") == "1" {
+		t.Skip("helper process")
+	}
+	var bodies [2]map[string]string
+	for i := range bodies {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestHealthHelperProcess$")
+		cmd.Env = append(os.Environ(), "ORDER_PORTAL_HEALTH_HELPER=1", "ORDER_PORTAL_ENV=staging")
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("start %d: %v", i+1, err)
+		}
+		line, _, _ := strings.Cut(string(out), "\n")
+		if err := json.Unmarshal([]byte(line), &bodies[i]); err != nil {
+			t.Fatalf("start %d: decode %q: %v", i+1, line, err)
+		}
+	}
+	if bodies[0]["revision"] == "" || bodies[0]["revision"] == bodies[1]["revision"] {
+		t.Fatalf("two starts must report different revisions: %q vs %q", bodies[0]["revision"], bodies[1]["revision"])
+	}
+	if bodies[0]["build_digest"] == "" || bodies[0]["build_digest"] != bodies[1]["build_digest"] {
+		t.Fatalf("two starts of one binary must report the same digest: %q vs %q", bodies[0]["build_digest"], bodies[1]["build_digest"])
+	}
+}
+
+func TestHealthHelperProcess(t *testing.T) {
+	if os.Getenv("ORDER_PORTAL_HEALTH_HELPER") != "1" {
+		t.Skip("only runs as the helper process of TestRestartIsANewRevision")
+	}
+	res := httptest.NewRecorder()
+	newServer().health(res, httptest.NewRequest(http.MethodGet, "/healthz", nil)) // health directly: the logging middleware would print first
+	fmt.Print(res.Body.String())
 }

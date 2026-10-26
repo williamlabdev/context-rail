@@ -89,8 +89,8 @@ func TestTopologyGetBootstrapsFromManifestAndRegistryStaysReadable(t *testing.T)
 	}
 	versions := payload["versions"].([]any)
 	environments := versions[0].(map[string]any)["environments"].([]any)
-	if len(environments) != 4 {
-		t.Fatalf("expected 4 manifest environments, got %d", len(environments))
+	if len(environments) != 5 {
+		t.Fatalf("expected 5 manifest environments, got %d", len(environments))
 	}
 	// Registry routes still resolve through the same mux.
 	response, _ = call(t, mux, http.MethodGet, "/v1/projects", nil)
@@ -137,7 +137,7 @@ func TestTopologyMutationJourneyDoesNotTouchConsumerSources(t *testing.T) {
 	}
 	// reorder
 	response, payload = call(t, mux, http.MethodPost, "/v1/projects/order-operations-portal/environments/reorder", map[string]any{
-		"expected_version": 3, "reason": "uat after staging", "order": []string{"development", "testing", "staging", "uat", "production"},
+		"expected_version": 3, "reason": "uat after staging", "order": []string{"development", "testing", "staging", "uat", "prod-demo", "production"},
 	})
 	if response.Code != http.StatusOK || payload["current_version"] != float64(4) {
 		t.Fatalf("reorder: expected 200 v4, got %d %s", response.Code, response.Body.String())
@@ -167,8 +167,8 @@ func TestTopologyMutationJourneyDoesNotTouchConsumerSources(t *testing.T) {
 		t.Fatalf("registry detail broke after mutations: %d", response.Code)
 	}
 	entry := payload["projects"].([]any)[0].(map[string]any)
-	if len(entry["environments"].([]any)) != 4 {
-		t.Fatal("registry must keep reporting the manifest's 4 environments")
+	if len(entry["environments"].([]any)) != 5 {
+		t.Fatal("registry must keep reporting the manifest's 5 environments")
 	}
 }
 

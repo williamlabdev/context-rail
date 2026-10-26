@@ -328,7 +328,7 @@ func TestRegistrySourceReadsDemoFixtures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if baseline == nil || len(baseline.Environments) != 4 || baseline.Environments[3].Type != "production" {
+	if baseline == nil || len(baseline.Environments) != 5 || baseline.Environments[3].Type != "prod-demo" || baseline.Environments[4].Type != "production" {
 		t.Fatalf("unexpected demo baseline: %+v", baseline)
 	}
 	if len(baseline.DecisionIDs) != 1 || baseline.DecisionIDs[0] != "DR-001" {
