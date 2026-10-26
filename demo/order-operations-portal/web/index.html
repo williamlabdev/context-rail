@@ -18,7 +18,12 @@
     .approve { background: #d9f5e8; color: #146b45; } .reject { background: #ffe0e0; color: #9a2e2e; }
     textarea { width: 100%; min-height: 74px; border: 1px solid #d7deea; border-radius: 9px; padding: 10px; box-sizing: border-box; margin: 8px 0 12px; font: inherit; }
     #message { margin: 18px 0; min-height: 20px; font-weight: 600; } .empty { color: #637087; padding: 20px 0; }
-    @media (max-width: 720px) { header { display: block; } .badge { display: inline-block; margin-top: 16px; } .grid { grid-template-columns: 1fr; } }
+    .evidence { margin: 12px 0; padding: 12px; border: 1px dashed #d7deea; border-radius: 9px; }
+    .evidence h3 { font-size: 13px; color: #637087; margin: 0 0 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .evidence ul { margin: 0 0 8px; padding-left: 18px; } .evidence li { margin: 4px 0; font-size: 14px; } .evidence a { color: #315efb; word-break: break-all; }
+    .evidence-form { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; } .evidence-form input { border: 1px solid #d7deea; border-radius: 9px; padding: 8px 10px; font: inherit; min-width: 0; }
+    .evidence-form button { margin: 0; background: #e8edff; color: #1f3fb5; } .evidence .cap { color: #637087; font-size: 13px; margin: 0; }
+    @media (max-width: 720px) { header { display: block; } .badge { display: inline-block; margin-top: 16px; } .grid { grid-template-columns: 1fr; } .evidence-form { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -46,6 +51,7 @@ async function load() {
     card.append(element('div', 'status', order.status), element('p', 'reason', order.reason));
     if (order.note) { const note = element('p'); note.append(element('strong', null, '覆核備註：'), document.createTextNode(order.note)); card.append(note); }
     if (order.reviewedAt) { const reviewedAt = element('p'); reviewedAt.append(element('strong', null, '覆核時間：'), document.createTextNode(order.reviewedAt)); card.append(reviewedAt); }
+    card.append(evidenceSection(order));
     if (order.status === 'PENDING_REVIEW') {
       const textarea = element('textarea'); textarea.placeholder = '請輸入覆核理由（必填）'; textarea.value = draftNotes.get(order.id) || '';
       textarea.addEventListener('input', () => draftNotes.set(order.id, textarea.value)); card.append(textarea);
@@ -55,6 +61,40 @@ async function load() {
     root.appendChild(card);
   });
   if (!orders.length) root.appendChild(element('p', 'empty', '目前沒有待覆核訂單。'));
+}
+// REQ-002: evidence references (label + http(s) link) sit above the review
+// buttons; at most three per order, kept in memory by the service.
+const MAX_EVIDENCE = 3;
+function evidenceSection(order) {
+  const section = element('section', 'evidence');
+  const references = order.evidence || [];
+  section.append(element('h3', null, `佐證連結 ${references.length}/${MAX_EVIDENCE}`));
+  if (references.length) {
+    const list = element('ul');
+    references.forEach(reference => {
+      const item = element('li');
+      const link = element('a', null, reference.label); link.href = reference.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+      item.append(link, document.createTextNode(` · ${reference.url}`)); list.append(item);
+    });
+    section.append(list);
+  }
+  if (order.status !== 'PENDING_REVIEW') return section;
+  if (references.length >= MAX_EVIDENCE) { section.append(element('p', 'cap', '已達三筆佐證上限。')); return section; }
+  const form = element('form', 'evidence-form');
+  const label = element('input'); label.name = 'label'; label.placeholder = '標籤，例如 工單 T-7'; label.required = true; label.maxLength = 80;
+  const url = element('input'); url.name = 'url'; url.type = 'url'; url.placeholder = 'https://…'; url.required = true;
+  const submit = element('button', null, '附加佐證'); submit.type = 'submit';
+  form.append(label, url, submit);
+  form.addEventListener('submit', event => { event.preventDefault(); addEvidence(order.id, label.value, url.value); });
+  section.append(form);
+  return section;
+}
+async function addEvidence(id, label, url) {
+  selected = id;
+  const res = await fetch(`/api/orders/${id}/evidence`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({label, url}) });
+  const body = await res.json(); const message = document.querySelector('#message');
+  message.textContent = res.ok ? `${id} 已附加佐證「${label.trim()}」（${body.evidence.length}/${MAX_EVIDENCE}）。` : `無法附加佐證：${body.error}`;
+  message.style.color = res.ok ? '#146b45' : '#9a2e2e'; await load();
 }
 async function review(id, decision, note) {
   selected = id;
