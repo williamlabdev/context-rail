@@ -1,8 +1,8 @@
 # ContextRail Roadmap
 
 Status: working product and engineering baseline
-Version: 1.6
-Updated: 2026-10-20
+Version: 1.7
+Updated: 2026-10-26
 Origin: planned as a two-person, five-week prototype for Google Cloud AI Builder Cup 2026. The project withdrew from the competition on 2026-10-16; the week table in §3 is kept as the original plan, and the competition deadline no longer constrains this roadmap.
 Deployment decision (2026-10-19, [DR-015](decisions/DR-015-local-only-deployment.json)): ContextRail and the managed demo application are deployed on the developer's machine only. No Cloud Run, Cloud Build, Artifact Registry or Secret Manager resource is a target of this roadmap. Cloud Run remains the reference environment *type*; gates G1, G3 and G4 below read local environments and real Git/CI evidence.
 
@@ -148,7 +148,7 @@ The P0 agent exit condition is one reproducible handoff chain with canonical IDs
 | G1 | Go build, model access and the local run path (`go run` / `docker run`) work for real; no cloud resource is required (DR-015). **MET** as of 2026-10-20: build and both run paths in [EB-015](evidence/EB-015/README.md); model access in [EB-016](evidence/EB-016/README.md), one real Anthropic advisor call (`claude-opus-5-5`, DR-016) producing the candidates of a Change decision, through `go run` only (the `docker run` path was not re-run with an advisor). The Gemini path remains UNVERIFIED; the gate is met by one real provider, not by all. | Fix the environment; do not claim an integration that only a mock has exercised. |
 | G2 | Project contract, environment policy, source citations, deterministic cost and DecisionRecord work. | Stop adding adapters; remove unsupported claims. |
 | G3 | A real external coding-agent run produces a candidate and real Git/CI evidence reaches a locally deployed staging environment. | Remove all stretch/P1 and describe the result as a narrower decision-to-deployment workflow. |
-| G4 | Local staging and isolated local prod-demo promotion, drift checks, idempotency and receipt work. | Report as staging-only; do not claim production readiness. |
+| G4 | Local staging and isolated local prod-demo promotion, drift checks, idempotency and receipt work. **MET** as of 2026-10-26 for the local scope of DR-015: [EB-017](evidence/EB-017/README.md) promotes one locally built demo binary from local staging to an isolated local prod-demo with the gates reading each instance's `/healthz` over loopback ([DR-017](decisions/DR-017-local-promotion-read-back.json)); digest drift, target drift and a moved revision are each BLOCKED, a same-key retry replays, every attempt leaves a receipt pointing back to the staging receipt. The DR-017 design choices are the agent's and await the founder's confirmation. Limits: the digest is a local binary digest, not an OCI image digest; `config_drift` is not observable from a local instance; isolation is process and port only; one operator under the single-operator waiver. Production stays protected and read-only. | Report as staging-only; do not claim production readiness. |
 | G5 | Reproduction, holdout, usability and baseline results are recorded. | Report limitations and keep market claims conditional. |
 
 ## 7. Definition of done for the prototype
@@ -177,7 +177,7 @@ These are the remaining decisions that can materially change the five-week plan:
 - The first design-partner cohort: startup/SMB teams with the stated operating characteristics; enterprise validation is a later extension, not a P0 dependency.
 - The demo source provider: GitHub, GitLab Cloud, self-hosted GitLab or a checked-in fixture.
 - Whether the first demo uses one repo, a monorepo path or multiple repositories.
-- How the two local environments (staging, prod-demo) are instantiated and told apart in deployment evidence: separate ports, containers, state directories or a local image digest (DR-015 leaves this open).
+- ~~How the two local environments (staging, prod-demo) are instantiated and told apart in deployment evidence.~~ Settled 2026-10-26 by [DR-017](decisions/DR-017-local-promotion-read-back.json): separate processes of the same binary on separate loopback ports, labelled by `ORDER_PORTAL_ENV`, each reporting a per-start revision and the sha256 of its executable on `/healthz`; the target is `local/<service>-<environment>`.
 - The first environment matrix and required promotion evidence; Development, Testing, Staging and Production are an example, not a forced global list.
 - Which records must be retained after archive and the minimum access roles for the demo.
 - Whether P1 should prioritize a source adapter, a fixed agent adapter, an FDE handoff pack, a Drive/Docs adapter, ADC or revision rollback.
