@@ -59,7 +59,10 @@ const (
 )
 
 func NewLocalReadBack() *LocalReadBack {
-	return &LocalReadBack{Client: &http.Client{Timeout: localReadBackTimeout}, now: func() time.Time { return time.Now().UTC() }}
+	// Redirects are never followed: a loopback service answering 3xx must not
+	// be able to point the read-back at another host.
+	client := &http.Client{Timeout: localReadBackTimeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	return &LocalReadBack{Client: client, now: func() time.Time { return time.Now().UTC() }}
 }
 
 func (reader *LocalReadBack) Name() string { return "loopback" }

@@ -83,10 +83,18 @@ func TestLocalDeploymentIsObservedNotDeclared(t *testing.T) {
 	approvedStagingRelease(t, h)
 
 	// Declaring identity on a local record is refused: the read-back owns it.
-	declared := localDeployment("k-declared", "http://127.0.0.1:8091")
-	declared.DeployedDigest = digest
-	if _, err := h.releases.RecordDeployment("demo", "REL-001", declared); codeOf(t, err) != release.CodeInvalidRequest {
-		t.Fatalf("declared digest on a local deployment must be refused: %v", err)
+	for name, declare := range map[string]func(*release.DeploymentRequest){
+		"revision":             func(r *release.DeploymentRequest) { r.Revision = "staging-r1" },
+		"deployed_digest":      func(r *release.DeploymentRequest) { r.DeployedDigest = digest },
+		"deployed_target_ref":  func(r *release.DeploymentRequest) { r.DeployedTargetRef = "local/demo-staging" },
+		"deployed_config_hash": func(r *release.DeploymentRequest) { r.DeployedConfigHash = "sha256:declared" },
+		"smoke":                func(r *release.DeploymentRequest) { r.Smoke = &release.SmokeResult{Status: "PASS"} },
+	} {
+		declared := localDeployment("k-declared-"+name, "http://127.0.0.1:8091")
+		declare(&declared)
+		if _, err := h.releases.RecordDeployment("demo", "REL-001", declared); codeOf(t, err) != release.CodeInvalidRequest {
+			t.Fatalf("declared %s on a local deployment must be refused: %v", name, err)
+		}
 	}
 	if _, err := h.releases.RecordDeployment("demo", "REL-001", localDeployment("k-nourl", "")); codeOf(t, err) != release.CodeInvalidRequest {
 		t.Fatalf("missing service_url must be refused: %v", err)
@@ -260,5 +268,18 @@ func TestLocalReadBackReadsHealthzOnLoopbackOnly(t *testing.T) {
 	observation, err = reader.Observe(context.Background(), unhealthy.URL)
 	if err != nil || observation.HTTPStatus != 503 || observation.Status != "degraded" || observation.TargetRef != "" {
 		t.Fatalf("unhealthy instance: %v %+v", err, observation)
+	}
+	// A redirect is never followed, even to another loopback origin: the
+	// read-back reports the 3xx it got and reads nothing else.
+	followed := false
+	elsewhere := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { followed = true }))
+	defer elsewhere.Close()
+	redirecting := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, elsewhere.URL+"/healthz", http.StatusFound)
+	}))
+	defer redirecting.Close()
+	observation, err = reader.Observe(context.Background(), redirecting.URL)
+	if err != nil || observation.HTTPStatus != http.StatusFound || followed {
+		t.Fatalf("redirect must not be followed: followed=%v %v %+v", followed, err, observation)
 	}
 }

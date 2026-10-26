@@ -36,7 +36,7 @@ cleanup() {
   for port in "$RAIL_PORT" "$STAGING_PORT" "$PROD_DEMO_PORT" "$DRIFT_PORT"; do
     if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then log "port $port: STILL LISTENING"; else log "port $port: no listener"; fi
   done
-  log "state_dir=$STATE_DIR (scratch, not committed)"
+  log "state_dir=<scratch> (mktemp or STATE_DIR, not committed)"
 }
 trap cleanup EXIT
 
@@ -55,22 +55,26 @@ call() {
   [ -n "$data" ] && { log "request_body:"; printf '%s' "$data" | pretty | tee -a "$OUT" >/dev/null; }
   log "http=$STATUS"
   printf '%s' "$BODY" | pretty 2>/dev/null | tee -a "$OUT" >/dev/null || log "$BODY"
+  case "$STATUS" in 2*) ;; *) [ "${ALLOW_FAIL:-0}" = 1 ] || { log "FATAL: unexpected http=$STATUS"; exit 1; } ;; esac
 }
 gates() { printf '%s' "$BODY" | python3 -I -c '
 import json,sys
 d=json.load(sys.stdin)
 r=d.get("release",d)
-a=(r.get("deployment_attempts") or [])[-1]
-print("attempt", a.get("attempt_id"), "outcome", a.get("outcome"), "receipt", a.get("receipt_id"))
-for g in a.get("gates",[]): print("  gate", g["name"], g["result"], "-", g.get("detail",""))
-rc=r.get("receipts") or []
-if rc: print("  last receipt", rc[-1]["receipt_id"], "previous", rc[-1].get("previous_receipt_id",""), "hash", rc[-1]["receipt_hash"][:23]+"...")
+deps=r.get("deployments") or []
+a=deps[-1] if deps else {}
+print("release", r.get("release_id"), "status", r.get("status"), "deployments", len(deps))
+print("attempt", a.get("attempt_id"), "key", a.get("idempotency_key"), "outcome", a.get("outcome"), "revision", a.get("revision"), "digest", (a.get("deployed_digest") or "")[:19]+"...", "target", a.get("deployed_target_ref"))
+for g in a.get("gates",[]): print("  gate", g["gate"], g["status"], "-", g.get("detail",""))
+rc=r.get("receipt") or {}
+if rc: print("  receipt", rc.get("receipt_id"), rc.get("status"), "previous", rc.get("previous_receipt_id",""), "hash", rc.get("receipt_hash"))
 '; }
 
 HEAD_COMMIT="$(git rev-parse HEAD)"
 log "# EB-017 real run: local staging -> local prod-demo promotion with loopback read-back (DR-017, G4)"
 log "captured_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 log "commit=$HEAD_COMMIT"
+log "tracked changes not in that commit: $(git status --porcelain --untracked-files=no | tr '\n' ' ' | sed 's/ *$//')"
 log "ports: context-rail=$RAIL_PORT staging=$STAGING_PORT prod-demo=$PROD_DEMO_PORT drift=$DRIFT_PORT"
 log "advisor=rule (CONTEXT_RAIL_ADVISOR=rule; no API key read or used)"
 log "env_check: ANTHROPIC_API_KEY exported in the invoking shell? $([ -n "${ANTHROPIC_API_KEY:-}" ] && echo YES || echo NO)"
@@ -126,7 +130,7 @@ call POST "$BASE/changes" "$(cat <<JSON
  "scope_included":["healthz identity fields","unit tests"],"scope_excluded":["project.yaml","authentication","order review behaviour"],
  "acceptance_criteria":[{"text":"healthz reports revision, build_digest and started_at"},{"text":"build_digest equals the sha256 of the running executable"}],
  "allowed_paths":["main.go","main_test.go"],"forbidden_actions":["project.yaml edits","authentication"],
- "target_environment_id":"staging","business_constraints":{"data_classification":"internal"},"requested_by":"$ACTOR"}}
+ "target_environment_id":"staging","business_constraints":{"data_classification":"internal","expected_monthly_volume":"500 reviews"},"requested_by":"$ACTOR"}}
 JSON
 )"
 OPTION="$(printf '%s' "$BODY" | jget 'd["change"]["versions"][-1]["options"][0]["id"]')"
@@ -146,8 +150,8 @@ call POST "$BASE/changes/CHG-001/candidates" "$(cat <<JSON
    "base_commit":"7d371b8","head_commit":"$HEAD_COMMIT","changed_paths":["main.go","main_test.go"],
    "checks":[{"name":"test","status":"PASS","evidence_ref":"evidence/EB-017/go-build-test-output.txt","observed_at":"$NOW"},
              {"name":"build","status":"PASS","evidence_ref":"evidence/EB-017/local-promotion-run.txt#build","observed_at":"$NOW"}],
-   "reviews":[{"reviewer":"claude-fable-5-1 (verifier subagent)","kind":"ai","verdict":"APPROVED","evidence_ref":"evidence/EB-017/ai-review-demo-healthz.md","at":"$NOW"}],
-   "compensating_controls":{"declared":true,"evidence_ref":"evidence/EB-017/ai-review-demo-healthz.md + docs/governance/policies.md (single_operator mode)","reason":"single operator: the only human is also the run starter; an independent AI review plus the local gate read-back stand in for a second human (DR-015 scope: local staging and prod-demo only)"},
+   "reviews":[{"reviewer":"verifier subagent (Claude; model per agent definition: sonnet)","kind":"ai","verdict":"APPROVED","evidence_ref":"evidence/EB-017/ai-review-demo-healthz.md","at":"$NOW"}],
+   "compensating_controls":{"declared":true,"evidence_ref":"evidence/EB-017/ai-review-demo-healthz.md + demo/order-operations-portal/docs/governance/policies.md (single_operator mode)","reason":"single operator: the only human is also the run starter; an independent AI review plus the local gate read-back stand in for a second human (DR-015 scope: local staging and prod-demo only)"},
    "observed_at":"$NOW"}}
 JSON
 )"

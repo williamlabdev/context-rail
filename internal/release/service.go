@@ -437,8 +437,8 @@ func (service *Service) validateLocalDeployment(request DeploymentRequest) error
 	if strings.TrimSpace(request.ServiceURL) == "" {
 		return newError(CodeInvalidRequest, "source %q requires service_url: the loopback origin of the running instance", SourceLocal)
 	}
-	if strings.TrimSpace(request.Revision) != "" || strings.TrimSpace(request.DeployedDigest) != "" || strings.TrimSpace(request.DeployedTargetRef) != "" || request.Smoke != nil {
-		return newError(CodeInvalidRequest, "source %q deployments are observed, not declared: omit revision, deployed_digest, deployed_target_ref and smoke", SourceLocal)
+	if strings.TrimSpace(request.Revision) != "" || strings.TrimSpace(request.DeployedDigest) != "" || strings.TrimSpace(request.DeployedTargetRef) != "" || strings.TrimSpace(request.DeployedConfigHash) != "" || request.Smoke != nil {
+		return newError(CodeInvalidRequest, "source %q deployments are observed, not declared: omit revision, deployed_digest, deployed_target_ref, deployed_config_hash and smoke", SourceLocal)
 	}
 	return nil
 }
