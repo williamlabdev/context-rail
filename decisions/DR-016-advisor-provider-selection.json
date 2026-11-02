@@ -60,7 +60,7 @@
     "Zero cloud spend and zero new dependencies, as DR-015 requires."
   ],
   "unknowns": [
-    "Whether the Gemini adapter honours the same schema contract against the real API. Still UNVERIFIED; EB-016 is Anthropic-only and the roadmap row says so.",
+    "Whether the Gemini adapter honours the same schema contract against the real API. Still UNVERIFIED; EB-016 is Anthropic-only and the roadmap row says so. (2026-11-02 update: William ruled that no Gemini key will be obtained — his words: 「但是我沒有gemini的api key 我只有claude的」 — so this stays UNVERIFIED and is not pursued; the adapter is kept as the provider-neutral counterpart, not removed. Recorded in roadmap v1.11 G1.)",
     "Actual token usage and cost per call. Not measured; a usage log line (counts only, never content) would settle it and is a small follow-up if cost ever matters.",
     "Latency distribution. One measurement (13 s) sits well under the 45 s adapter timeout and the 60 s server write timeout; whether slower requests or larger groundings approach either limit is unknown.",
     "Whether the advisor's candidates are good enough to be worth the call compared with the rule advisor. This record proves access and schema compliance, not quality; a comparison would need the reader test that DR-013 / EB-013 are still blocked on.",
